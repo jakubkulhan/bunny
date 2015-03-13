@@ -1,0 +1,29 @@
+{
+    "name": "bunny/bunny",
+    "description": "RabbitMQ (or generally AMQP 0.9.1) pure-PHP client library (does not require any ext).",
+    "minimum-stability": "stable",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jakub Kulhan",
+            "email": "jakub.kulhan@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "psr/log": "~1.0",
+        "react/event-loop": "~0.4",
+        "react/promise": "~2.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bunny\\": [
+                "src/Bunny/",
+                "test/Bunny"
+            ]
+        }
+    }
+}
