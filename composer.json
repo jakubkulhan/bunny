@@ -1,6 +1,21 @@
 {
     "name": "bunny/bunny",
-    "description": "RabbitMQ (or generally AMQP 0.9.1) pure-PHP client library (does not require any ext).",
+    "type": "library",
+    "description": "Performant pure-PHP AMQP (RabbitMQ) sync/async (ReactPHP) library",
+    "keywords": [
+        "rabbitmq",
+        "rabbit",
+        "bunny",
+        "amqp",
+        "messaging",
+        "message",
+        "queue",
+        "queueing",
+        "exchange",
+        "react",
+        "react-php",
+        "reactphp"
+    ],
     "minimum-stability": "stable",
     "license": "MIT",
     "authors": [
@@ -22,8 +37,12 @@
         "psr-4": {
             "Bunny\\": [
                 "src/Bunny/",
-                "test/Bunny"
+                "test/Bunny/"
             ]
-        }
+        },
+        "classmap": [
+            "src/Bunny/",
+            "test/Bunny/"
+        ]
     }
 }
