@@ -124,6 +124,7 @@ class ProtocolReader
             $frame->payload = $frameBuffer->consume($frameBuffer->getLength());
 
         } elseif ($type === Constants::FRAME_HEARTBEAT) {
+            $frame = new HeartbeatFrame();
             if (!$frameBuffer->isEmpty()) {
                 throw new ProtocolException("Heartbeat frame must be empty.");
             }
