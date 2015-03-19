@@ -303,6 +303,26 @@ abstract class AbstractClient
     abstract public function disconnect($replyCode = 0, $replyText = "");
 
     /**
+     * Returns true if client is connected to server.
+     *
+     * @return boolean
+     */
+    public function isConnected()
+    {
+        return $this->state === ClientStateEnum::CONNECTED;
+    }
+
+    /**
+     * Returns current client state.
+     *
+     * @return int
+     */
+    public function getState()
+    {
+        return $this->state;
+    }
+
+    /**
      * Creates and opens new channel.
      *
      * Channel gets first available channel id.
