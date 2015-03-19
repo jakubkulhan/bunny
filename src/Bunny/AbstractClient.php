@@ -63,6 +63,12 @@ abstract class AbstractClient
     /** @var int */
     protected $frameMax = 0xFFFF;
 
+    /** @var float microtime of last read*/
+    protected $lastRead = 0.0;
+
+    /** @var float microtime of last write */
+    protected $lastWrite = 0.0;
+
     /**
      * Constructor.
      *
@@ -107,7 +113,11 @@ abstract class AbstractClient
         }
 
         if (!isset($options["timeout"])) {
-            $options["timeout"] = 3;
+            $options["timeout"] = 1;
+        }
+
+        if (!isset($options["heartbeat"])) {
+            $options["heartbeat"] = 60.0;
         }
 
         $this->options = $options;
@@ -260,6 +270,7 @@ abstract class AbstractClient
         }
 
         $this->readBuffer->append($s);
+        $this->lastRead = microtime(true);
     }
 
     /**
@@ -276,6 +287,7 @@ abstract class AbstractClient
         }
 
         $this->writeBuffer->discard($written);
+        $this->lastWrite = microtime(true);
     }
 
     /**
@@ -458,7 +470,7 @@ abstract class AbstractClient
             $this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, "Got body frame on connection channel (#0).");
 
         } elseif ($frame instanceof HeartbeatFrame) {
-            // TODO: save last time of last heartbeat
+            $this->lastRead = microtime(true);
 
         } else {
             throw new ClientException("Unhandled frame " . get_class($frame) . ".");
@@ -466,8 +478,11 @@ abstract class AbstractClient
     }
 
     /**
-     * Wait for messages on connection and process them.
+     * Wait for messages on connection and process them. Will process messages for at most $maxSeconds.
+     *
+     * @param float $maxSeconds
+     * @return void
      */
-    abstract public function run();
+    abstract public function run($maxSeconds = null);
 
 }

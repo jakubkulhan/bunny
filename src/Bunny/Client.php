@@ -3,6 +3,7 @@ namespace Bunny;
 
 use Bunny\Exception\ClientException;
 use Bunny\Protocol\AbstractFrame;
+use Bunny\Protocol\HeartbeatFrame;
 
 /**
  * Synchronous AMQP/RabbitMQ client.
@@ -86,7 +87,7 @@ class Client extends AbstractClient
             $this->flushWriteBuffer();
             $this->authResponse($this->awaitConnectionStart());
             $tune = $this->awaitConnectionTune();
-            $this->connectionTuneOk($tune->channelMax, $tune->frameMax, $tune->heartbeat); // FIXME: options heartbeat
+            $this->connectionTuneOk($tune->channelMax, $tune->frameMax, $this->options["heartbeat"]); // FIXME: options heartbeat
             $this->frameMax = $tune->frameMax;
             $this->connectionOpen($this->options["vhost"]);
 
@@ -124,11 +125,22 @@ class Client extends AbstractClient
     }
 
     /**
-     * Runs it's own event loop, processes frames as they arrive.
+     * Runs it's own event loop, processes frames as they arrive. Processes messages for at most $maxSeconds.
+     *
+     * @param float $maxSeconds
      */
-    public function run()
+    public function run($maxSeconds = null)
     {
+        if (!$this->isConnected()) {
+            throw new ClientException("Client has to be connected.");
+        }
+
         $this->running = true;
+        $startTime = microtime(true);
+        $stopTime = null;
+        if ($maxSeconds !== null) {
+            $stopTime = $startTime + $maxSeconds;
+        }
 
         do {
             if (!empty($this->queue)) {
@@ -136,16 +148,30 @@ class Client extends AbstractClient
 
             } else {
                 if (($frame = $this->reader->consumeFrame($this->readBuffer)) === null) {
+                    $now = microtime(true);
+                    $nextStreamSelectTimeout = $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
+                    if ($stopTime !== null && $stopTime < $nextStreamSelectTimeout) {
+                        $nextStreamSelectTimeout = $stopTime;
+                    }
+                    $tvSec = intval($nextStreamSelectTimeout - $now);
+                    $tvUsec = intval(($nextStreamSelectTimeout - $now - $tvSec) * 1000000);
 
-                    // TODO: heartbeat timeout
-
-                    if (($n = @stream_select($r = [$this->getStream()], $w = null, $e = null, 100)) === false) {
+                    if (($n = @stream_select($r = [$this->getStream()], $w = null, $e = null, $tvSec, $tvUsec)) === false) {
                         throw new ClientException("stream_select() failed.");
                     }
 
-                    if ($n === 0) {
-                        // TODO: send heartbeat frame
-                    } else {
+                    $now = microtime(true);
+
+                    if ($now >= $nextHeartbeat) {
+                        $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
+                        $this->flushWriteBuffer();
+                    }
+
+                    if ($stopTime !== null && $now >= $stopTime) {
+                        break;
+                    }
+
+                    if ($n > 0) {
                         $this->feedReadBuffer();
                     }
 

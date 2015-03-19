@@ -63,4 +63,14 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $client->disconnect();
     }
 
+    public function testRunMaxSeconds()
+    {
+        $client = new Client();
+        $client->connect();
+        $s = microtime(true);
+        $client->run(1.0);
+        $e = microtime(true);
+        $this->assertLessThan(2.0, $e - $s);
+    }
+
 }

@@ -4,11 +4,13 @@ namespace Bunny\Async;
 use Bunny\AbstractClient;
 use Bunny\ClientStateEnum;
 use Bunny\Exception\ClientException;
+use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodConnectionTuneFrame;
 use Psr\Log\LoggerInterface;
 use React\EventLoop\Factory;
 use React\EventLoop\LoopInterface;
+use React\EventLoop\Timer\Timer;
 use React\Promise;
 
 /**
@@ -51,6 +53,12 @@ class Client extends AbstractClient
     /** @var callable[] */
     protected $awaitCallbacks;
 
+    /** @var Timer */
+    protected $stopTimer;
+
+    /** @var Timer */
+    protected $heartbeatTimer;
+
     /**
      * Constructor.
      *
@@ -81,10 +89,18 @@ class Client extends AbstractClient
     }
 
     /**
-     * Calls {@link eventLoop}'s run() method.
+     * Calls {@link eventLoop}'s run() method. Processes messages for at most $maxSeconds.
+     *
+     * @param float $maxSeconds
      */
-    public function run()
+    public function run($maxSeconds = null)
     {
+        if ($maxSeconds !== null) {
+            $this->stopTimer = $this->eventLoop->addTimer($maxSeconds, function () {
+                $this->stop();
+            });
+        }
+
         $this->eventLoop->run();
     }
 
@@ -93,6 +109,11 @@ class Client extends AbstractClient
      */
     public function stop()
     {
+        if ($this->stopTimer) {
+            $this->stopTimer->cancel();
+            $this->stopTimer = null;
+        }
+
         $this->eventLoop->stop();
     }
 
@@ -174,13 +195,13 @@ class Client extends AbstractClient
 
         })->then(function (MethodConnectionTuneFrame $tune) {
             $this->frameMax = $tune->frameMax;
-            return $this->connectionTuneOk($tune->channelMax, $tune->frameMax, $tune->heartbeat); // FIXME: options heartbeat
+            return $this->connectionTuneOk($tune->channelMax, $tune->frameMax, $this->options["heartbeat"]);
 
         })->then(function () {
             return $this->connectionOpen($this->options["vhost"]);
 
         })->then(function () {
-            // TODO: add periodic heartbeat timer to event loop
+            $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
 
             $this->state = ClientStateEnum::CONNECTED;
             return $this;
@@ -211,6 +232,11 @@ class Client extends AbstractClient
             foreach ($this->channels as $channel) {
                 $promises[] = $channel->close();
             }
+        }
+
+        if ($this->heartbeatTimer) {
+            $this->heartbeatTimer->cancel();
+            $this->heartbeatTimer = null;
         }
 
         return Promise\all($promises)->then(function () use ($replyCode, $replyText) {
@@ -262,6 +288,25 @@ class Client extends AbstractClient
 
                 $this->channels[$frame->channel]->onFrameReceived($frame);
             }
+        }
+    }
+
+    /**
+     * Callback when heartbeat timer timed out.
+     */
+    public function onHeartbeat()
+    {
+        $now = microtime(true);
+        $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
+
+        if ($now >= $nextHeartbeat) {
+            $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
+            $this->flushWriteBuffer()->then(function () {
+                $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
+            });
+
+        } else {
+            $this->heartbeatTimer = $this->eventLoop->addTimer($nextHeartbeat - $now, [$this, "onHeartbeat"]);
         }
     }
 
