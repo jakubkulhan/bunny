@@ -153,8 +153,8 @@ class Client extends AbstractClient
                     if ($stopTime !== null && $stopTime < $nextStreamSelectTimeout) {
                         $nextStreamSelectTimeout = $stopTime;
                     }
-                    $tvSec = intval($nextStreamSelectTimeout - $now);
-                    $tvUsec = intval(($nextStreamSelectTimeout - $now - $tvSec) * 1000000);
+                    $tvSec = max(intval($nextStreamSelectTimeout - $now), 0);
+                    $tvUsec = max(intval(($nextStreamSelectTimeout - $now - $tvSec) * 1000000), 0);
 
                     if (($n = @stream_select($r = [$this->getStream()], $w = null, $e = null, $tvSec, $tvUsec)) === false) {
                         throw new ClientException("stream_select() failed.");
