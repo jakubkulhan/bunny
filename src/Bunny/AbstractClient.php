@@ -286,6 +286,8 @@ abstract class AbstractClient
             throw new ClientException("Broken pipe or closed connection.");
         }
 
+        fflush($this->getStream()); // flush internal PHP buffers
+
         $this->writeBuffer->discard($written);
         $this->lastWrite = microtime(true);
     }
