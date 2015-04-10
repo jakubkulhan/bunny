@@ -45,6 +45,18 @@ class Client extends AbstractClient
     }
 
     /**
+     * Destructor.
+     *
+     * Clean shutdown = disconnect if connected.
+     */
+    public function __destruct()
+    {
+        if ($this->isConnected()) {
+            $this->disconnect();
+        }
+    }
+
+    /**
      * Reads data from stream to {@link readBuffer}.
      *
      * @return boolean

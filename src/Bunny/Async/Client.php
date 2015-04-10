@@ -79,6 +79,18 @@ class Client extends AbstractClient
     }
 
     /**
+     * Destructor.
+     *
+     * Clean shutdown = disconnect if connected.
+     */
+    public function __destruct()
+    {
+        if ($this->isConnected()) {
+            $this->disconnect();
+        }
+    }
+
+    /**
      * Initializes instance.
      */
     protected function init()
