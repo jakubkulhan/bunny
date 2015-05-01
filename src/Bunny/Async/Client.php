@@ -282,8 +282,9 @@ class Client extends AbstractClient
         $this->read();
 
         while (($frame = $this->reader->consumeFrame($this->readBuffer)) !== null) {
-            foreach ($this->awaitCallbacks as $callback) {
+            foreach ($this->awaitCallbacks as $k => $callback) {
                 if ($callback($frame) === true) {
+                    unset($this->awaitCallbacks[$k]);
                     continue 2; // CONTINUE WHILE LOOP
                 }
             }

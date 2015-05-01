@@ -148,4 +148,31 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         $loop->run();
     }
 
+    public function testConflictingQueueDeclareRejects()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(5, function () {
+            throw new TimeoutException();
+        });
+
+        $client = new Client($loop);
+        $client->connect()->then(function (Client $client) {
+            return $client->channel();
+        })->then(function (Channel $ch) {
+            return Promise\all([
+                $ch->queueDeclare("conflict", false, false),
+                $ch->queueDeclare("conflict", false, true),
+            ]);
+        })->then(function () use ($loop) {
+            $this->fail("Promise should get rejected");
+            $loop->stop();
+        }, function (\Exception $e) use ($loop) {
+            $this->assertInstanceOf("Bunny\\Exception\\ClientException", $e);
+            $loop->stop();
+        });
+
+        $loop->run();
+    }
+
 }
