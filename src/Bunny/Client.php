@@ -179,8 +179,7 @@ class Client extends AbstractClient
                     $now = microtime(true);
 
                     if ($now >= $nextHeartbeat) {
-                        $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
-                        $this->flushWriteBuffer();
+                        $this->doHeartbeat();
                     }
 
                     if ($stopTime !== null && $now >= $stopTime) {
@@ -221,4 +220,12 @@ class Client extends AbstractClient
         $this->running = false;
     }
 
+    /**
+     * Do heartbeat
+     */
+    public function doHeartbeat()
+    {
+        $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
+        $this->flushWriteBuffer();
+    }
 }
