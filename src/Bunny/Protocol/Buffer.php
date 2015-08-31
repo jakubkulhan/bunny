@@ -48,7 +48,7 @@ class Buffer
                 define("PHP_VERSION_ID", ($version[0] * 10000 + $version[1] * 100 + $version[2]));
             }
 
-            self::$native64BitPack = PHP_VERSION_ID >= 50603;
+            self::$native64BitPack = PHP_VERSION_ID >= 50603 && PHP_INT_SIZE === 8;
         }
     }
 
