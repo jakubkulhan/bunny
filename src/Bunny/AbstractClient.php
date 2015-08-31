@@ -480,6 +480,14 @@ abstract class AbstractClient
     }
 
     /**
+     * @return int
+     */
+    protected function getFrameMax()
+    {
+        return $this->frameMax;
+    }
+
+    /**
      * Wait for messages on connection and process them. Will process messages for at most $maxSeconds.
      *
      * @param float $maxSeconds

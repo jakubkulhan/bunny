@@ -300,10 +300,17 @@ $clientMethodsContent .= "    abstract protected function flushWriteBuffer();\n"
 $clientMethodsContent .= "\n";
 $clientMethodsContent .= "    /**\n";
 $clientMethodsContent .= "     * Enqueues given frame for later processing.\n";
-$clientMethodsContent .= "     * \n";
+$clientMethodsContent .= "     *\n";
 $clientMethodsContent .= "     * @param Protocol\\AbstractFrame \$frame\n";
 $clientMethodsContent .= "     */\n";
 $clientMethodsContent .= "    abstract protected function enqueue(Protocol\\AbstractFrame \$frame);\n";
+$clientMethodsContent .= "\n";
+$clientMethodsContent .= "    /**\n";
+$clientMethodsContent .= "     * Returns frame max size.\n";
+$clientMethodsContent .= "     *\n";
+$clientMethodsContent .= "     * @return int\n";
+$clientMethodsContent .= "     */\n";
+$clientMethodsContent .= "    abstract protected function getFrameMax();\n";
 $clientMethodsContent .= "\n";
 
 $channelMethodsContent = "<?php\n";
@@ -668,9 +675,6 @@ foreach ($spec->classes as $class) {
 
                 $clientMethodsContent .= "        \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
 
-                $clientMethodsContent .= "        \$buffer->appendUint8(" . Constants::FRAME_BODY . ");\n";
-                $clientMethodsContent .= "        \$buffer->appendUint16(\$channel);\n";
-
                 if ($class->id === 60 && $method->id === 40) {
                     $clientMethodsContent .= "        \$len1 = \$buffer->getLength() - \$off1;\n";
                     $clientMethodsContent .= "        }\n";
@@ -680,9 +684,14 @@ foreach ($spec->classes as $class) {
                     $clientMethodsContent .= "        }\n";
                 }
 
-                $clientMethodsContent .= "        \$buffer->appendUint32(strlen(\$body));\n";
-                $clientMethodsContent .= "        \$buffer->append(\$body);\n";
-                $clientMethodsContent .= "        \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
+                $clientMethodsContent .= "        for (\$payloadMax = \$this->getFrameMax() - 8 /* frame preface and frame end */, \$i = 0, \$l = strlen(\$body); \$i < \$l; \$i += \$payloadMax) {\n";
+                $clientMethodsContent .= "            \$payloadSize = \$l - \$i; if (\$payloadSize > \$payloadMax) { \$payloadSize = \$payloadMax; }\n";
+                $clientMethodsContent .= "            \$buffer->appendUint8(" . Constants::FRAME_BODY . ");\n";
+                $clientMethodsContent .= "            \$buffer->appendUint16(\$channel);\n";
+                $clientMethodsContent .= "            \$buffer->appendUint32(\$payloadSize);\n";
+                $clientMethodsContent .= "            \$buffer->append(substr(\$body, \$i, \$payloadSize));\n";
+                $clientMethodsContent .= "            \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
+                $clientMethodsContent .= "        }\n";
             }
 
             if (isset($method->synchronous) && $method->synchronous) {

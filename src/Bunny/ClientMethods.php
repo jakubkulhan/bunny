@@ -60,10 +60,17 @@ trait ClientMethods
 
     /**
      * Enqueues given frame for later processing.
-     * 
+     *
      * @param Protocol\AbstractFrame $frame
      */
     abstract protected function enqueue(Protocol\AbstractFrame $frame);
+
+    /**
+     * Returns frame max size.
+     *
+     * @return int
+     */
+    abstract protected function getFrameMax();
 
     /**
      * @return Protocol\MethodConnectionStartFrame|PromiseInterface
@@ -1790,17 +1797,20 @@ trait ClientMethods
             $buffer->appendUint8($clusterIdLength); $buffer->append($clusterId);
         }
         $buffer->appendUint8(206);
-        $buffer->appendUint8(3);
-        $buffer->appendUint16($channel);
         $len1 = $buffer->getLength() - $off1;
         }
         if (!$c) {
             $this->cache[$ck] = [$buffer->read($len0, $off0), $buffer->read($len1, $off1)];
             if (count($this->cache) > 100) { reset($this->cache); unset($this->cache[key($this->cache)]); }
         }
-        $buffer->appendUint32(strlen($body));
-        $buffer->append($body);
-        $buffer->appendUint8(206);
+        for ($payloadMax = $this->getFrameMax() - 8 /* frame preface and frame end */, $i = 0, $l = strlen($body); $i < $l; $i += $payloadMax) {
+            $payloadSize = $l - $i; if ($payloadSize > $payloadMax) { $payloadSize = $payloadMax; }
+            $buffer->appendUint8(3);
+            $buffer->appendUint16($channel);
+            $buffer->appendUint32($payloadSize);
+            $buffer->append(substr($body, $i, $payloadSize));
+            $buffer->appendUint8(206);
+        }
         return $this->flushWriteBuffer();
     }
 

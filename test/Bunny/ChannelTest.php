@@ -81,4 +81,17 @@ class ChannelTest extends \PHPUnit_Framework_TestCase
         $ch->getClient()->disconnect();
     }
 
+    public function testBigMessage()
+    {
+        $body = str_repeat("a", 10 << 20 /* 10 MiB */);
+        $ch = (new Client())->connect()->channel();
+        $ch->queueDeclare("test_queue", false, false, false, true);
+        $ch->publish($body, [], "", "test_queue");
+        $ch->run(function (Message $msg, Channel $ch, Client $c) use ($body) {
+            $this->assertEquals($body, $msg->content);
+            $c->stop();
+        });
+        $ch->getClient()->disconnect();
+    }
+
 }
