@@ -295,7 +295,7 @@ abstract class AbstractClient
      * Responds to authentication challenge
      *
      * @param MethodConnectionStartFrame $start
-     * @return boolean|PromiseInterface
+     * @return boolean|Promise\PromiseInterface
      */
     protected function authResponse(MethodConnectionStartFrame $start)
     {
@@ -340,7 +340,7 @@ abstract class AbstractClient
      *
      * Channel gets first available channel id.
      *
-     * @return Channel|PromiseInterface
+     * @return Channel|Promise\PromiseInterface
      */
     public function channel()
     {
