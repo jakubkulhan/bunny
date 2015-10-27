@@ -12,7 +12,6 @@ use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
-use Prophecy\Promise\PromiseInterface;
 use Psr\Log\LoggerInterface;
 use React\Promise;
 
