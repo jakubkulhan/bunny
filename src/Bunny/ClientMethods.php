@@ -1923,7 +1923,7 @@ trait ClientMethods
         $this->getWriter()->appendBits([$noAck], $buffer);
         $buffer->appendUint8(206);
         $this->flushWriteBuffer();
-        return $this->awaitGetOk($channel);
+        return $this->awaitGetOkOrEmpty($channel);
     }
 
     /**
@@ -2007,6 +2007,49 @@ trait ClientMethods
                     $this->feedReadBuffer();
                 }
                 if ($frame instanceof Protocol\MethodBasicGetEmptyFrame && $frame->channel === $channel) {
+                    return $frame;
+                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                    $this->channelCloseOk($channel);
+                    throw new ClientException($frame->replyText, $frame->replyCode);
+                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                    $this->connectionCloseOk();
+                    throw new ClientException($frame->replyText, $frame->replyCode);
+                } else {
+                    $this->enqueue($frame);
+                }
+            }
+        }
+        throw new \LogicException('This statement should be never reached.');
+    }
+
+    public function awaitGetOkOrEmpty($channel)
+    {
+        if ($this instanceof Async\Client) {
+            $deferred = new Deferred();
+            $this->addAwaitCallback(function ($frame) use ($deferred, $channel) {
+                if (($frame instanceof Protocol\MethodBasicGetOkFrame || $frame instanceof Protocol\MethodBasicGetEmptyFrame) && $frame->channel === $channel) {
+                    $deferred->resolve($frame);
+                    return true;
+                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
+                        $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
+                    });
+                    return true;
+                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
+                        $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
+                    });
+                    return true;
+                }
+                return false;
+            });
+            return $deferred->promise();
+        } else {
+            for (;;) {
+                while (($frame = $this->getReader()->consumeFrame($this->getReadBuffer())) === null) {
+                    $this->feedReadBuffer();
+                }
+                if (($frame instanceof Protocol\MethodBasicGetOkFrame || $frame instanceof Protocol\MethodBasicGetEmptyFrame) && $frame->channel === $channel) {
                     return $frame;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
