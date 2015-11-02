@@ -55,14 +55,6 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $client->disconnect();
     }
 
-    public function testCloseChannel()
-    {
-        $client = new Client();
-        $this->assertInstanceof("Bunny\\Channel", $ch = $client->connect()->channel());
-        $this->assertInstanceOf("Bunny\\Protocol\\MethodChannelCloseOkFrame", $client->closeChannel($ch));
-        $client->disconnect();
-    }
-
     public function testRunMaxSeconds()
     {
         $client = new Client();
@@ -73,4 +65,29 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->assertLessThan(2.0, $e - $s);
     }
 
+    public function testDisconnectWithBufferedMessages()
+    {
+        $client = new Client();
+        $client->connect();
+        $channel = $client->channel();
+
+        $processed = 0;
+
+        $channel->qos(0, 1000);
+        $channel->queueDeclare("disconnect_test");
+        $channel->consume(function (Message $message, Channel $channel) use ($client, &$processed) {
+            $channel->ack($message);
+            ++$processed;
+            $client->disconnect()->then(function () use ($client) {
+                $client->stop();
+            });
+        });
+        $channel->publish(".", [], "", "disconnect_test");
+        $channel->publish(".", [], "", "disconnect_test");
+        $channel->publish(".", [], "", "disconnect_test");
+
+        $client->run(5);
+
+        $this->assertEquals(1, $processed);
+    }
 }

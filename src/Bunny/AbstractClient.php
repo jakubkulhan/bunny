@@ -59,6 +59,9 @@ abstract class AbstractClient
     /** @var Channel[] */
     protected $channels = [];
 
+    /** @var Promise\PromiseInterface */
+    protected $disconnectPromise;
+
     /** @var int */
     protected $frameMax = 0xFFFF;
 
@@ -313,6 +316,15 @@ abstract class AbstractClient
         return $this->connectionStartOk([], "AMQPLAIN", $responseBuffer->read($responseBuffer->getLength()), "en_US");
     }
 
+    /**
+     * Disconnects the client.
+     *
+     * Always returns a promise (even sync client)
+     *
+     * @param int $replyCode
+     * @param string $replyText
+     * @return Promise\PromiseInterface
+     */
     abstract public function disconnect($replyCode = 0, $replyText = "");
 
     /**
@@ -369,22 +381,14 @@ abstract class AbstractClient
     }
 
     /**
-     * Closes and removes channel.
+     * Removes channel.
      *
-     * @param Channel $channel
-     * @param int $replyCode
-     * @param string $replyText
-     * @return Protocol\MethodChannelCloseOkFrame|Promise\PromiseInterface
+     * @param int $channelId
+     * @return void
      */
-    public function closeChannel(Channel $channel, $replyCode = 0, $replyText = "")
+    public function removeChannel($channelId)
     {
-        if ($channel->getClient() !== $this) {
-            throw new ClientException("Tried closing channel from another client.");
-        }
-
-        // break reference cycle
-        unset($this->channels[$channel->getChannelId()]);
-        return $this->channelClose($channel->getChannelId(), $replyCode, $replyText, 0, 0);
+        unset($this->channels[$channelId]);
     }
 
     /**
@@ -395,74 +399,7 @@ abstract class AbstractClient
     public function onFrameReceived(AbstractFrame $frame)
     {
         if ($frame instanceof MethodFrame) {
-            if (false) {
-//            } elseif ($frame instanceof MethodConnectionStartFrame) {
-//            } elseif ($frame instanceof MethodConnectionStartOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionSecureFrame) {
-//            } elseif ($frame instanceof MethodConnectionSecureOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionTuneFrame) {
-//            } elseif ($frame instanceof MethodConnectionTuneOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionOpenFrame) {
-//            } elseif ($frame instanceof MethodConnectionOpenOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionCloseFrame) {
-//            } elseif ($frame instanceof MethodConnectionCloseOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionBlockedFrame) {
-//            } elseif ($frame instanceof MethodConnectionUnblockedFrame) {
-//            } elseif ($frame instanceof MethodChannelOpenFrame) {
-//            } elseif ($frame instanceof MethodChannelOpenOkFrame) {
-//            } elseif ($frame instanceof MethodChannelFlowFrame) {
-//            } elseif ($frame instanceof MethodChannelFlowOkFrame) {
-//            } elseif ($frame instanceof MethodChannelCloseFrame) {
-//            } elseif ($frame instanceof MethodChannelCloseOkFrame) {
-//            } elseif ($frame instanceof MethodAccessRequestFrame) {
-//            } elseif ($frame instanceof MethodAccessRequestOkFrame) {
-//            } elseif ($frame instanceof MethodExchangeDeclareFrame) {
-//            } elseif ($frame instanceof MethodExchangeDeclareOkFrame) {
-//            } elseif ($frame instanceof MethodExchangeDeleteFrame) {
-//            } elseif ($frame instanceof MethodExchangeDeleteOkFrame) {
-//            } elseif ($frame instanceof MethodExchangeBindFrame) {
-//            } elseif ($frame instanceof MethodExchangeBindOkFrame) {
-//            } elseif ($frame instanceof MethodExchangeUnbindFrame) {
-//            } elseif ($frame instanceof MethodExchangeUnbindOkFrame) {
-//            } elseif ($frame instanceof MethodQueueDeclareFrame) {
-//            } elseif ($frame instanceof MethodQueueDeclareOkFrame) {
-//            } elseif ($frame instanceof MethodQueueBindFrame) {
-//            } elseif ($frame instanceof MethodQueueBindOkFrame) {
-//            } elseif ($frame instanceof MethodQueuePurgeFrame) {
-//            } elseif ($frame instanceof MethodQueuePurgeOkFrame) {
-//            } elseif ($frame instanceof MethodQueueDeleteFrame) {
-//            } elseif ($frame instanceof MethodQueueDeleteOkFrame) {
-//            } elseif ($frame instanceof MethodQueueUnbindFrame) {
-//            } elseif ($frame instanceof MethodQueueUnbindOkFrame) {
-//            } elseif ($frame instanceof MethodBasicQosFrame) {
-//            } elseif ($frame instanceof MethodBasicQosOkFrame) {
-//            } elseif ($frame instanceof MethodBasicConsumeFrame) {
-//            } elseif ($frame instanceof MethodBasicConsumeOkFrame) {
-//            } elseif ($frame instanceof MethodBasicCancelFrame) {
-//            } elseif ($frame instanceof MethodBasicCancelOkFrame) {
-//            } elseif ($frame instanceof MethodBasicPublishFrame) {
-//            } elseif ($frame instanceof MethodBasicReturnFrame) {
-//            } elseif ($frame instanceof MethodBasicDeliverFrame) {
-//            } elseif ($frame instanceof MethodBasicGetFrame) {
-//            } elseif ($frame instanceof MethodBasicGetOkFrame) {
-//            } elseif ($frame instanceof MethodBasicGetEmptyFrame) {
-//            } elseif ($frame instanceof MethodBasicAckFrame) {
-//            } elseif ($frame instanceof MethodBasicRejectFrame) {
-//            } elseif ($frame instanceof MethodBasicRecoverAsyncFrame) {
-//            } elseif ($frame instanceof MethodBasicRecoverFrame) {
-//            } elseif ($frame instanceof MethodBasicRecoverOkFrame) {
-//            } elseif ($frame instanceof MethodBasicNackFrame) {
-//            } elseif ($frame instanceof MethodTxSelectFrame) {
-//            } elseif ($frame instanceof MethodTxSelectOkFrame) {
-//            } elseif ($frame instanceof MethodTxCommitFrame) {
-//            } elseif ($frame instanceof MethodTxCommitOkFrame) {
-//            } elseif ($frame instanceof MethodTxRollbackFrame) {
-//            } elseif ($frame instanceof MethodTxRollbackOkFrame) {
-//            } elseif ($frame instanceof MethodConfirmSelectFrame) {
-//            } elseif ($frame instanceof MethodConfirmSelectOkFrame) {
-            } else {
-                throw new ClientException("Unhandled method frame " . get_class($frame) . ".");
-            }
+            throw new ClientException("Unhandled method frame " . get_class($frame) . ".");
 
         } elseif ($frame instanceof ContentHeaderFrame) {
             $this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, "Got header frame on connection channel (#0).");

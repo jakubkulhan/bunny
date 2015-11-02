@@ -664,8 +664,7 @@ trait ClientMethods
         $buffer->appendInt16($closeClassId);
         $buffer->appendInt16($closeMethodId);
         $buffer->appendUint8(206);
-        $this->flushWriteBuffer();
-        return $this->awaitChannelCloseOk($channel);
+        return $this->flushWriteBuffer();
     }
 
     /**

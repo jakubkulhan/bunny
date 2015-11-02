@@ -29,4 +29,14 @@ final class ChannelStateEnum
      */
     const ERROR = 4;
 
+    /**
+     * Channel is being closed.
+     */
+    const CLOSING = 5;
+
+    /**
+     * Channel has received channel.close-ok frame.
+     */
+    const CLOSED = 6;
+
 }

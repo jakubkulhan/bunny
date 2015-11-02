@@ -98,6 +98,7 @@ class Client extends AbstractClient
         parent::init();
         $this->flushWriteBufferPromise = null;
         $this->awaitCallbacks = [];
+        $this->disconnectPromise = null;
     }
 
     /**
@@ -224,7 +225,8 @@ class Client extends AbstractClient
     /**
      * Disconnects client from server.
      *
-     * Calling disconnect() multiple times or if client is not connected will result in error.
+     * - Calling disconnect() if client is not connected will result in error.
+     * - Calling disconnect() multiple times will result in the same promise.
      *
      * @param int $replyCode
      * @param string $replyText
@@ -232,6 +234,10 @@ class Client extends AbstractClient
      */
     public function disconnect($replyCode = 0, $replyText = "")
     {
+        if ($this->state === ClientStateEnum::DISCONNECTING) {
+            return $this->disconnectPromise;
+        }
+
         if ($this->state !== ClientStateEnum::CONNECTED) {
             return Promise\reject(new ClientException("Client is not connected."));
         }
@@ -242,7 +248,7 @@ class Client extends AbstractClient
 
         if ($replyCode === 0) {
             foreach ($this->channels as $channel) {
-                $promises[] = $channel->close();
+                $promises[] = $channel->close($replyCode, $replyText);
             }
         }
 
@@ -251,7 +257,11 @@ class Client extends AbstractClient
             $this->heartbeatTimer = null;
         }
 
-        return Promise\all($promises)->then(function () use ($replyCode, $replyText) {
+        return $this->disconnectPromise = Promise\all($promises)->then(function () use ($replyCode, $replyText) {
+            if (!empty($this->channels)) {
+                throw new \LogicException("All channels have to be closed by now.");
+            }
+
             return $this->connectionClose($replyCode, $replyText, 0, 0);
         })->then(function () {
             $this->eventLoop->removeReadStream($this->getStream());

@@ -4,6 +4,7 @@ namespace Bunny;
 use Bunny\Exception\ClientException;
 use Bunny\Protocol\AbstractFrame;
 use Bunny\Protocol\HeartbeatFrame;
+use React\Promise;
 
 /**
  * Synchronous AMQP/RabbitMQ client.
@@ -52,7 +53,7 @@ class Client extends AbstractClient
     public function __destruct()
     {
         if ($this->isConnected()) {
-            $this->disconnect();
+            $this->closeStream();
         }
     }
 
@@ -114,26 +115,42 @@ class Client extends AbstractClient
     }
 
     /**
-     * Synchronously disconnects from AMQP server.
+     * Disconnects from AMQP server.
      *
      * @param int $replyCode
      * @param string $replyText
-     * @return self
+     * @return Promise\PromiseInterface
      */
     public function disconnect($replyCode = 0, $replyText = "")
     {
+        if ($this->state === ClientStateEnum::DISCONNECTING) {
+            return $this->disconnectPromise;
+        }
+
+        if ($this->state !== ClientStateEnum::CONNECTED) {
+            return Promise\reject(new ClientException("Client is not connected."));
+        }
+
         $this->state = ClientStateEnum::DISCONNECTING;
+
+        $promises = [];
 
         if ($replyCode === 0) {
             foreach ($this->channels as $channel) {
-                $channel->close();
+                $promises[] = $channel->close();
             }
         }
 
-        $this->connectionClose($replyCode, $replyText, 0, 0);
-        $this->closeStream();
-        $this->init();
-        return $this;
+        return $this->disconnectPromise = Promise\all($promises)->then(function () use ($replyCode, $replyText) {
+            if (!empty($this->channels)) {
+                throw new \LogicException("All channels have to be closed by now.");
+            }
+
+            $this->connectionClose($replyCode, $replyText, 0, 0);
+            $this->closeStream();
+            $this->init();
+            return $this;
+        });
     }
 
     /**

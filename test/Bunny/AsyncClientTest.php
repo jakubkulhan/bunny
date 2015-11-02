@@ -128,26 +128,6 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         $loop->run();
     }
 
-    public function testCloseChannel()
-    {
-        $loop = Factory::create();
-
-        $loop->addTimer(5, function () {
-            throw new TimeoutException();
-        });
-
-        $client = new Client($loop);
-        $client->connect()->then(function (Client $client) {
-            return $client->channel();
-        })->then(function (Channel $ch) {
-            return $ch->getClient()->closeChannel($ch);
-        })->then(function () use ($loop) {
-            $loop->stop();
-        });
-
-        $loop->run();
-    }
-
     public function testConflictingQueueDeclareRejects()
     {
         $loop = Factory::create();
@@ -173,6 +153,45 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         });
 
         $loop->run();
+    }
+
+    public function testDisconnectWithBufferedMessages()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(5, function () {
+            throw new TimeoutException();
+        });
+
+        $processed = 0;
+
+        $client = new Client($loop);
+        $client->connect()->then(function (Client $client) {
+            return $client->channel();
+        })->then(function (Channel $channel) use ($client, $loop, &$processed) {
+            return Promise\all([
+                $channel->qos(0, 1000),
+                $channel->queueDeclare("disconnect_test"),
+                $channel->consume(function (Message $message, Channel $channel) use ($client, $loop, &$processed) {
+                    $channel->ack($message);
+
+                    ++$processed;
+
+                    $client->disconnect()->then(function () use ($loop) {
+                        $loop->stop();
+                    });
+
+                }, "disconnect_test"),
+                $channel->publish(".", [], "", "disconnect_test"),
+                $channel->publish(".", [], "", "disconnect_test"),
+                $channel->publish(".", [], "", "disconnect_test"),
+            ]);
+        });
+
+        $loop->run();
+
+        // all messages should be processed
+        $this->assertEquals(1, $processed);
     }
 
 }

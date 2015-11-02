@@ -3,6 +3,7 @@ namespace Bunny;
 
 use Bunny\Exception\ChannelException;
 use Bunny\Protocol\AbstractFrame;
+use Bunny\Protocol\MethodChannelCloseOkFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\Buffer;
 use Bunny\Protocol\ContentBodyFrame;
@@ -11,6 +12,7 @@ use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodBasicConsumeOkFrame;
 use Bunny\Protocol\MethodBasicDeliverFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
+use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
 
 /**
@@ -58,6 +60,12 @@ class Channel
     /** @var int */
     protected $state = ChannelStateEnum::READY;
 
+    /** @var Deferred */
+    protected $closeDeferred;
+
+    /** @var PromiseInterface */
+    protected $closePromise;
+
     /**
      * Constructor.
      *
@@ -94,17 +102,29 @@ class Channel
     /**
      * Closes channel.
      *
+     * Always returns a promise, because there can be outstanding messages to be processed.
+     *
      * @param int $replyCode
      * @param string $replyText
-     * @return Protocol\MethodChannelCloseOkFrame|PromiseInterface
+     * @return PromiseInterface
      */
     public function close($replyCode = 0, $replyText = "")
     {
-        $ret = $this->client->closeChannel($this, $replyCode, $replyText);
-        // break reference cycle, must be called AFTER Client::closeChannel(), because in Client::closeChannel() channel's client is checked
-        unset($this->client);
-        $this->deliverCallbacks = []; // break consumers' reference cycle
-        return $ret;
+        if ($this->state === ChannelStateEnum::CLOSED) {
+            throw new ChannelException("Trying to close already closed channel #{$this->channelId}.");
+        }
+
+        if ($this->state === ChannelStateEnum::CLOSING) {
+            return $this->closePromise;
+        }
+
+        $this->state = ChannelStateEnum::CLOSING;
+
+        $this->client->channelClose($this->channelId, $replyCode, $replyText, 0, 0);
+        $this->closeDeferred = new Deferred();
+        return $this->closePromise = $this->closeDeferred->promise()->then(function () {
+            $this->client->removeChannel($this->channelId);
+        });
     }
 
     /**
@@ -224,8 +244,16 @@ class Channel
             throw new ChannelException("Channel in error state.");
         }
 
+        if ($this->state === ChannelStateEnum::CLOSED) {
+            throw new ChannelException("Received frame #{$frame->type} on closed channel #{$this->channelId}.");
+        }
+
         if ($frame instanceof MethodFrame) {
-            if ($this->state !== ChannelStateEnum::READY) {
+            if ($this->state === ChannelStateEnum::CLOSING && !($frame instanceof MethodChannelCloseOkFrame)) {
+                // drop frames in closing state
+                return;
+
+            } elseif ($this->state !== ChannelStateEnum::READY && !($frame instanceof MethodChannelCloseOkFrame)) {
                 $currentState = $this->state;
                 $this->state = ChannelStateEnum::ERROR;
 
@@ -242,52 +270,19 @@ class Channel
                 throw new ChannelException("Unexpected frame: " . $msg);
             }
 
-            if (false) {
-//            } elseif ($frame instanceof MethodConnectionStartFrame) {
-//            } elseif ($frame instanceof MethodConnectionStartOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionSecureFrame) {
-//            } elseif ($frame instanceof MethodConnectionSecureOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionTuneFrame) {
-//            } elseif ($frame instanceof MethodConnectionTuneOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionOpenFrame) {
-//            } elseif ($frame instanceof MethodConnectionOpenOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionCloseFrame) {
-//            } elseif ($frame instanceof MethodConnectionCloseOkFrame) {
-//            } elseif ($frame instanceof MethodConnectionBlockedFrame) {
-//            } elseif ($frame instanceof MethodConnectionUnblockedFrame) {
-//            } elseif ($frame instanceof MethodChannelOpenFrame) {
-//            } elseif ($frame instanceof MethodChannelOpenOkFrame) {
-//            } elseif ($frame instanceof MethodChannelFlowFrame) {
-//            } elseif ($frame instanceof MethodChannelFlowOkFrame) {
-//            } elseif ($frame instanceof MethodChannelCloseFrame) {
-//            } elseif ($frame instanceof MethodChannelCloseOkFrame) {
-//            } elseif ($frame instanceof MethodAccessRequestFrame) {
-//            } elseif ($frame instanceof MethodAccessRequestOkFrame) {
-//            } elseif ($frame instanceof MethodExchangeDeclareFrame) {
-//            } elseif ($frame instanceof MethodExchangeDeclareOkFrame) {
-//            } elseif ($frame instanceof MethodExchangeDeleteFrame) {
-//            } elseif ($frame instanceof MethodExchangeDeleteOkFrame) {
-//            } elseif ($frame instanceof MethodExchangeBindFrame) {
-//            } elseif ($frame instanceof MethodExchangeBindOkFrame) {
-//            } elseif ($frame instanceof MethodExchangeUnbindFrame) {
-//            } elseif ($frame instanceof MethodExchangeUnbindOkFrame) {
-//            } elseif ($frame instanceof MethodQueueDeclareFrame) {
-//            } elseif ($frame instanceof MethodQueueDeclareOkFrame) {
-//            } elseif ($frame instanceof MethodQueueBindFrame) {
-//            } elseif ($frame instanceof MethodQueueBindOkFrame) {
-//            } elseif ($frame instanceof MethodQueuePurgeFrame) {
-//            } elseif ($frame instanceof MethodQueuePurgeOkFrame) {
-//            } elseif ($frame instanceof MethodQueueDeleteFrame) {
-//            } elseif ($frame instanceof MethodQueueDeleteOkFrame) {
-//            } elseif ($frame instanceof MethodQueueUnbindFrame) {
-//            } elseif ($frame instanceof MethodQueueUnbindOkFrame) {
-//            } elseif ($frame instanceof MethodBasicQosFrame) {
-//            } elseif ($frame instanceof MethodBasicQosOkFrame) {
-//            } elseif ($frame instanceof MethodBasicConsumeFrame) {
-//            } elseif ($frame instanceof MethodBasicConsumeOkFrame) {
-//            } elseif ($frame instanceof MethodBasicCancelFrame) {
-//            } elseif ($frame instanceof MethodBasicCancelOkFrame) {
-//            } elseif ($frame instanceof MethodBasicPublishFrame) {
+            if ($frame instanceof MethodChannelCloseOkFrame) {
+                $this->state = ChannelStateEnum::CLOSED;
+
+                if ($this->closeDeferred !== null) {
+                    $this->closeDeferred->resolve($this->channelId);
+                }
+
+                // break reference cycle, must be called after resolving promise
+                unset($this->client);
+                // break consumers' reference cycle
+                $this->deliverCallbacks = [];
+
+
             } elseif ($frame instanceof MethodBasicReturnFrame) {
                 $this->returnFrame = $frame;
                 $this->state = ChannelStateEnum::AWAITING_HEADER;
@@ -296,29 +291,16 @@ class Channel
                 $this->deliverFrame = $frame;
                 $this->state = ChannelStateEnum::AWAITING_HEADER;
 
-//            } elseif ($frame instanceof MethodBasicGetFrame) {
-//            } elseif ($frame instanceof MethodBasicGetOkFrame) {
-//            } elseif ($frame instanceof MethodBasicGetEmptyFrame) {
-//            } elseif ($frame instanceof MethodBasicAckFrame) {
-//            } elseif ($frame instanceof MethodBasicRejectFrame) {
-//            } elseif ($frame instanceof MethodBasicRecoverAsyncFrame) {
-//            } elseif ($frame instanceof MethodBasicRecoverFrame) {
-//            } elseif ($frame instanceof MethodBasicRecoverOkFrame) {
-//            } elseif ($frame instanceof MethodBasicNackFrame) {
-//            } elseif ($frame instanceof MethodTxSelectFrame) {
-//            } elseif ($frame instanceof MethodTxSelectOkFrame) {
-//            } elseif ($frame instanceof MethodTxCommitFrame) {
-//            } elseif ($frame instanceof MethodTxCommitOkFrame) {
-//            } elseif ($frame instanceof MethodTxRollbackFrame) {
-//            } elseif ($frame instanceof MethodTxRollbackOkFrame) {
-//            } elseif ($frame instanceof MethodConfirmSelectFrame) {
-//            } elseif ($frame instanceof MethodConfirmSelectOkFrame) {
             } else {
                 throw new ChannelException("Unhandled method frame " . get_class($frame) . ".");
             }
 
         } elseif ($frame instanceof ContentHeaderFrame) {
-            if ($this->state !== ChannelStateEnum::AWAITING_HEADER) {
+            if ($this->state === ChannelStateEnum::CLOSING) {
+                // drop frames in closing state
+                return;
+
+            } elseif ($this->state !== ChannelStateEnum::AWAITING_HEADER) {
                 $currentState = $this->state;
                 $this->state = ChannelStateEnum::ERROR;
 
@@ -340,7 +322,11 @@ class Channel
             $this->state = ChannelStateEnum::AWAITING_BODY;
 
         } elseif ($frame instanceof ContentBodyFrame) {
-            if ($this->state !== ChannelStateEnum::AWAITING_BODY) {
+            if ($this->state === ChannelStateEnum::CLOSING) {
+                // drop frames in closing state
+                return;
+
+            } elseif ($this->state !== ChannelStateEnum::AWAITING_BODY) {
                 $currentState = $this->state;
                 $this->state = ChannelStateEnum::ERROR;
 

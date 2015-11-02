@@ -8,8 +8,12 @@ class ChannelTest extends \PHPUnit_Framework_TestCase
     {
         $c = new Client();
         $c->connect();
-        $this->assertInstanceOf("Bunny\\Protocol\\MethodChannelCloseOkFrame", $c->channel()->close());
-        $c->disconnect();
+        $promise = $c->channel()->close();
+        $this->assertInstanceOf("React\\Promise\\PromiseInterface", $promise);
+        $promise->then(function () use ($c) {
+            $c->stop();
+        });
+        $c->run();
     }
 
     public function testExchangeDeclare()
