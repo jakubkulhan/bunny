@@ -7,6 +7,8 @@ use React\Promise;
 /**
  * AMQP-0-9-1 channel methods
  *
+ * THIS CLASS IS GENERATED FROM amqp-rabbitmq-0.9.1.json. **DO NOT EDIT!**
+ *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
 trait ChannelMethods
@@ -225,7 +227,7 @@ trait ChannelMethods
      *
      * @return boolean|Promise\PromiseInterface
      */
-    public function publish($body, array $headers, $exchange = '', $routingKey = '', $mandatory = false, $immediate = false)
+    public function publish($body, array $headers = [], $exchange = '', $routingKey = '', $mandatory = false, $immediate = false)
     {
         return $this->getClient()->publish($this->getChannelId(), $body, $headers, $exchange, $routingKey, $mandatory, $immediate);
     }
@@ -236,7 +238,7 @@ trait ChannelMethods
      * @param string $queue
      * @param boolean $noAck
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodBasicGetOkFrame
+     * @return boolean|Promise\PromiseInterface|Protocol\MethodBasicGetOkFrame|Protocol\MethodBasicGetEmptyFrame
      */
     public function get($queue = '', $noAck = false)
     {

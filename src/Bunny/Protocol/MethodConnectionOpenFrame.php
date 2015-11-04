@@ -3,6 +3,13 @@ namespace Bunny\Protocol;
 
 use Bunny\Constants;
 
+/**
+ * AMQP 'connection.open' (class #10, method #40) frame.
+ *
+ * THIS CLASS IS GENERATED FROM amqp-rabbitmq-0.9.1.json. **DO NOT EDIT!**
+ *
+ * @author Jakub Kulhan <jakub.kulhan@gmail.com>
+ */
 class MethodConnectionOpenFrame extends MethodFrame
 {
 

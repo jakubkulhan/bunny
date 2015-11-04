@@ -8,6 +8,8 @@ use Bunny\Exception\InvalidMethodException;
 /**
  * AMQP-0-9-1 protocol reader
  *
+ * THIS CLASS IS GENERATED FROM amqp-rabbitmq-0.9.1.json. **DO NOT EDIT!**
+ *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
 trait ProtocolReaderGenerated

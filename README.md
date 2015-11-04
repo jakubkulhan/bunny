@@ -68,6 +68,17 @@ $ php benchmark/producer.php N & php benchmark/consumer.php
 
 TODO, see `benchmarks/` for basic use.
 
+## Contributing
+
+* Large part of the PHP code (almost everything in `Bunny\Protocol` namespace) is generated from spec in file
+  [`spec/amqp-rabbitmq-0.9.1.json`](spec/amqp-rabbitmq-0.9.1.json). Look for `DO NOT EDIT!` in doc comments.
+
+  To change geneted files change [`spec/generate.php`](spec/generate.php) and run:
+
+  ```sh
+  $ php ./spec/generate.php
+  ```
+
 ## License
 
 BunnyPHP is licensed under MIT license. See `LICENSE` file.

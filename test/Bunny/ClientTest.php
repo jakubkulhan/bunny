@@ -90,4 +90,47 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals(1, $processed);
     }
+
+    public function testGet()
+    {
+        $client = new Client();
+        $client->connect();
+        $channel  = $client->channel();
+
+        $channel->queueDeclare("get_test");
+        $channel->publish(".", [], "", "get_test");
+
+        $message1 = $channel->get("get_test", true);
+        $this->assertNotNull($message1);
+        $this->assertInstanceOf("Bunny\\Message", $message1);
+        $this->assertEquals($message1->exchange, "");
+        $this->assertEquals($message1->content, ".");
+
+        $message2 = $channel->get("get_test", true);
+        $this->assertNull($message2);
+
+        $channel->publish("..", [], "", "get_test");
+
+        $channel->get("get_test");
+        $client->disconnect()->then(function () use ($client) {
+            $client->connect();
+
+            $channel  = $client->channel();
+            $message3 = $channel->get("get_test");
+            $this->assertNotNull($message3);
+            $this->assertInstanceOf("Bunny\\Message", $message3);
+            $this->assertEquals($message3->exchange, "");
+            $this->assertEquals($message3->content, "..");
+
+            $channel->ack($message3);
+
+            return $client->disconnect();
+
+        })->then(function () use ($client) {
+            $client->stop();
+        });
+
+        $client->run(5);
+    }
+
 }

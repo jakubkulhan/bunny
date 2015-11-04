@@ -3,6 +3,13 @@ namespace Bunny\Protocol;
 
 use Bunny\Constants;
 
+/**
+ * AMQP 'basic.cancel' (class #60, method #30) frame.
+ *
+ * THIS CLASS IS GENERATED FROM amqp-rabbitmq-0.9.1.json. **DO NOT EDIT!**
+ *
+ * @author Jakub Kulhan <jakub.kulhan@gmail.com>
+ */
 class MethodBasicCancelFrame extends MethodFrame
 {
 

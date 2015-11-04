@@ -7,6 +7,8 @@ use Bunny\Exception\ProtocolException;
 /**
  * AMQP-0-9-1 protocol writer
  *
+ * THIS CLASS IS GENERATED FROM amqp-rabbitmq-0.9.1.json. **DO NOT EDIT!**
+ *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
 trait ProtocolWriterGenerated

@@ -334,7 +334,7 @@ abstract class AbstractClient
      */
     public function isConnected()
     {
-        return $this->state === ClientStateEnum::CONNECTED;
+        return $this->state !== ClientStateEnum::NOT_CONNECTED && $this->state !== ClientStateEnum::ERROR;
     }
 
     /**

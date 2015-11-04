@@ -194,4 +194,61 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(1, $processed);
     }
 
+    public function testGet()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(1, function () {
+            throw new TimeoutException();
+        });
+
+        $client = new Client($loop);
+        /** @var Channel $channel */
+        $channel = null;
+        $client->connect()->then(function (Client $client) {
+            return $client->channel();
+
+        })->then(function (Channel $ch) use (&$channel) {
+            $channel = $ch;
+
+            return Promise\all([
+                $channel->queueDeclare("get_test"),
+                $channel->publish(".", [], "", "get_test"),
+            ]);
+
+        })->then(function () use (&$channel) {
+            return $channel->get("get_test", true);
+
+        })->then(function (Message $message1 = null) use (&$channel) {
+            $this->assertNotNull($message1);
+            $this->assertInstanceOf("Bunny\\Message", $message1);
+            $this->assertEquals($message1->exchange, "");
+            $this->assertEquals($message1->content, ".");
+
+            return $channel->get("get_test", true);
+
+        })->then(function (Message $message2 = null) use (&$channel) {
+            $this->assertNull($message2);
+
+            return $channel->publish("..", [], "", "get_test");
+
+        })->then(function () use (&$channel) {
+            return $channel->get("get_test");
+
+        })->then(function (Message $message3 = null) use (&$channel) {
+            $this->assertNotNull($message3);
+            $this->assertInstanceOf("Bunny\\Message", $message3);
+            $this->assertEquals($message3->exchange, "");
+            $this->assertEquals($message3->content, "..");
+
+            $channel->ack($message3);
+
+            return $channel->getClient()->disconnect();
+
+        })->then(function () use ($loop) {
+            $loop->stop();
+        });
+
+        $loop->run();
+    }
 }

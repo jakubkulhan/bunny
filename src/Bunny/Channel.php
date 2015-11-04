@@ -3,15 +3,17 @@ namespace Bunny;
 
 use Bunny\Exception\ChannelException;
 use Bunny\Protocol\AbstractFrame;
-use Bunny\Protocol\MethodChannelCloseOkFrame;
-use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\Buffer;
 use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\ContentHeaderFrame;
 use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodBasicConsumeOkFrame;
 use Bunny\Protocol\MethodBasicDeliverFrame;
+use Bunny\Protocol\MethodBasicGetEmptyFrame;
+use Bunny\Protocol\MethodBasicGetOkFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
+use Bunny\Protocol\MethodChannelCloseOkFrame;
+use Bunny\Protocol\MethodFrame;
 use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
 
@@ -31,6 +33,7 @@ class Channel
         ChannelMethods::ack as basicAck;
         ChannelMethods::reject as basicReject;
         ChannelMethods::nack as basicNack;
+        ChannelMethods::get as basicGet;
     }
 
     /** @var AbstractClient */
@@ -47,6 +50,9 @@ class Channel
 
     /** @var MethodBasicDeliverFrame */
     protected $deliverFrame;
+
+    /** @var MethodBasicGetOkFrame */
+    protected $getOkFrame;
 
     /** @var ContentHeaderFrame */
     protected $headerFrame;
@@ -65,6 +71,9 @@ class Channel
 
     /** @var PromiseInterface */
     protected $closePromise;
+
+    /** @var Deferred */
+    protected $getDeferred;
 
     /**
      * Constructor.
@@ -234,6 +243,86 @@ class Channel
     }
 
     /**
+     * @param string $queue
+     * @param bool $noAck
+     * @return Message|PromiseInterface
+     */
+    public function get($queue = "", $noAck = false)
+    {
+        if ($this->getDeferred !== null) {
+            throw new ChannelException("Another 'basic.get' already in progress. You should use 'basic.consume' instead of multiple 'basic.get'.");
+        }
+
+        $response = $this->basicGet($queue, $noAck);
+
+        if ($response instanceof PromiseInterface) {
+            $this->getDeferred = new Deferred();
+
+            $response->then(function ($frame) {
+                if ($frame instanceof MethodBasicGetEmptyFrame) {
+                    // deferred has to be first nullified and then resolved, otherwise results in race condition
+                    $deferred = $this->getDeferred;
+                    $this->getDeferred = null;
+                    $deferred->resolve(null);
+
+                } elseif ($frame instanceof MethodBasicGetOkFrame) {
+                    $this->getOkFrame = $frame;
+                    $this->state = ChannelStateEnum::AWAITING_HEADER;
+
+                } else {
+                    throw new \LogicException("This statement should never be reached.");
+                }
+            });
+
+            return $this->getDeferred->promise();
+
+        } elseif ($response instanceof MethodBasicGetEmptyFrame) {
+            return null;
+
+        } elseif ($response instanceof MethodBasicGetOkFrame) {
+            $this->state = ChannelStateEnum::AWAITING_HEADER;
+
+            $headerFrame = $this->getClient()->awaitContentHeader($this->getChannelId());
+            $this->headerFrame = $headerFrame;
+            $this->bodySizeRemaining = $headerFrame->bodySize;
+            $this->state = ChannelStateEnum::AWAITING_BODY;
+
+            while ($this->bodySizeRemaining > 0) {
+                $bodyFrame = $this->getClient()->awaitContentBody($this->getChannelId());
+
+                $this->bodyBuffer->append($bodyFrame->payload);
+                $this->bodySizeRemaining -= $bodyFrame->payloadSize;
+
+                if ($this->bodySizeRemaining < 0) {
+                    $this->state = ChannelStateEnum::ERROR;
+                    $this->client->disconnect(Constants::STATUS_SYNTAX_ERROR, $errorMessage = "Body overflow, received " . (-$this->bodySizeRemaining) . " more bytes.");
+                    throw new ChannelException($errorMessage);
+
+                } elseif ($this->bodySizeRemaining === 0) {
+                    $this->state = ChannelStateEnum::READY;
+                }
+            }
+
+            $message = new Message(
+                null,
+                $response->deliveryTag,
+                $response->redelivered,
+                $response->exchange,
+                $response->routingKey,
+                $this->headerFrame->toArray(),
+                $this->bodyBuffer->consume($this->bodyBuffer->getLength())
+            );
+
+            $this->headerFrame = null;
+
+            return $message;
+
+        } else {
+            throw new \LogicException("This statement should never be reached.");
+        }
+    }
+
+    /**
      * Callback after channel-level frame has been received.
      *
      * @param AbstractFrame $frame
@@ -375,7 +464,7 @@ class Channel
         } elseif ($this->deliverFrame) {
             $content = $this->bodyBuffer->consume($this->bodyBuffer->getLength());
             if (isset($this->deliverCallbacks[$this->deliverFrame->consumerTag])) {
-                $msg = new Message(
+                $message = new Message(
                     $this->deliverFrame->consumerTag,
                     $this->deliverFrame->deliveryTag,
                     $this->deliverFrame->redelivered,
@@ -387,10 +476,29 @@ class Channel
 
                 $callback = $this->deliverCallbacks[$this->deliverFrame->consumerTag];
 
-                $callback($msg, $this, $this->client);
+                $callback($message, $this, $this->client);
             }
 
             $this->deliverFrame = null;
+            $this->headerFrame = null;
+
+        } elseif ($this->getOkFrame) {
+            $content = $this->bodyBuffer->consume($this->bodyBuffer->getLength());
+
+            // deferred has to be first nullified and then resolved, otherwise results in race condition
+            $deferred = $this->getDeferred;
+            $this->getDeferred = null;
+            $deferred->resolve(new Message(
+                null,
+                $this->getOkFrame->deliveryTag,
+                $this->getOkFrame->redelivered,
+                $this->getOkFrame->exchange,
+                $this->getOkFrame->routingKey,
+                $this->headerFrame->toArray(),
+                $content
+            ));
+
+            $this->getOkFrame = null;
             $this->headerFrame = null;
 
         } else {

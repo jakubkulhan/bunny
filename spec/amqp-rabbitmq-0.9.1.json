@@ -391,7 +391,7 @@
                          "name": "get-ok", "direction": "SC"},
                         {"id": 72,
                          "arguments": [{"type": "shortstr", "name": "cluster-id", "default-value": ""}],
-                         "name": "get-empty", "direction": "SC"},
+                         "name": "get-empty", "direction": "get-ok"},
                         {"id": 80,
                          "arguments": [{"type": "longlong", "name": "delivery-tag", "default-value": 0},
                                        {"type": "bit", "name": "multiple", "default-value": false}],
