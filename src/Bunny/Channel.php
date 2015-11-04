@@ -34,6 +34,7 @@ class Channel
         ChannelMethods::reject as basicReject;
         ChannelMethods::nack as basicNack;
         ChannelMethods::get as basicGet;
+        ChannelMethods::cancel as basicCancel;
     }
 
     /** @var AbstractClient */
@@ -243,6 +244,8 @@ class Channel
     }
 
     /**
+     * Synchronously returns message if there is any waiting in the queue.
+     *
      * @param string $queue
      * @param bool $noAck
      * @return Message|PromiseInterface
@@ -320,6 +323,20 @@ class Channel
         } else {
             throw new \LogicException("This statement should never be reached.");
         }
+    }
+
+    /**
+     * Cancels given consumer subscription.
+     *
+     * @param string $consumerTag
+     * @param bool $nowait
+     * @return bool|Protocol\MethodBasicCancelOkFrame|PromiseInterface
+     */
+    public function cancel($consumerTag, $nowait = false)
+    {
+        $response = $this->basicCancel($consumerTag, $nowait);
+        unset($this->deliverCallbacks[$consumerTag]);
+        return $response;
     }
 
     /**
