@@ -44,6 +44,9 @@ class Channel
     protected $channelId;
 
     /** @var callable[] */
+    protected $returnCallbacks = [];
+
+    /** @var callable[] */
     protected $deliverCallbacks = [];
 
     /** @var MethodBasicReturnFrame */
@@ -107,6 +110,36 @@ class Channel
     public function getChannelId()
     {
         return $this->channelId;
+    }
+
+    /**
+     * Listener is called whenever 'basic.return' frame is received with arguments (Message $returnedMessage, MethodBasicReturnFrame $frame)
+     *
+     * @param callable $callback
+     * @return $this
+     */
+    public function addReturnListener(callable $callback)
+    {
+        $this->removeReturnListener($callback); // remove if previously added to prevent calling multiple times
+        $this->returnCallbacks[] = $callback;
+        return $this;
+    }
+
+    /**
+     * Removes registered return listener. If the callback is not registered, this is noop.
+     *
+     * @param callable $callback
+     * @return $this
+     */
+    public function removeReturnListener(callable $callback)
+    {
+        foreach ($this->returnCallbacks as $k => $v) {
+            if ($v === $callback) {
+                unset($this->returnCallbacks[$k]);
+            }
+        }
+
+        return $this;
     }
 
     /**
@@ -476,7 +509,23 @@ class Channel
     protected function onBodyComplete()
     {
         if ($this->returnFrame) {
-            // TODO
+            $content = $this->bodyBuffer->consume($this->bodyBuffer->getLength());
+            $message = new Message(
+                null,
+                null,
+                false,
+                $this->returnFrame->exchange,
+                $this->returnFrame->routingKey,
+                $this->headerFrame->toArray(),
+                $content
+            );
+
+            foreach ($this->returnCallbacks as $callback) {
+                $callback($message, $this->returnFrame);
+            }
+
+            $this->returnFrame = null;
+            $this->headerFrame = null;
 
         } elseif ($this->deliverFrame) {
             $content = $this->bodyBuffer->consume($this->bodyBuffer->getLength());

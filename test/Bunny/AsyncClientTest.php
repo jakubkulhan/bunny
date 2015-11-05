@@ -2,6 +2,7 @@
 namespace Bunny;
 
 use Bunny\Async\Client;
+use Bunny\Protocol\MethodBasicReturnFrame;
 use Bunny\Test\Exception\TimeoutException;
 use React\EventLoop\Factory;
 use React\Promise;
@@ -251,4 +252,46 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
 
         $loop->run();
     }
+
+    public function testReturn()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(1, function () {
+            throw new TimeoutException();
+        });
+
+        $client = new Client($loop);
+
+        /** @var Channel $channel */
+        $channel = null;
+        /** @var Message $returnedMessage */
+        $returnedMessage = null;
+        /** @var MethodBasicReturnFrame $returnedFrame */
+        $returnedFrame = null;
+
+        $client->connect()->then(function (Client $client) {
+            return $client->channel();
+
+        })->then(function (Channel $ch) use ($loop, &$channel, &$returnedMessage, &$returnedFrame) {
+            $channel = $ch;
+
+            $channel->addReturnListener(function (Message $message, MethodBasicReturnFrame $frame) use ($loop, &$returnedMessage, &$returnedFrame) {
+                $returnedMessage = $message;
+                $returnedFrame = $frame;
+                $loop->stop();
+            });
+
+            return $channel->publish("xxx", [], "", "404", true);
+        });
+
+        $loop->run();
+
+        $this->assertNotNull($returnedMessage);
+        $this->assertInstanceOf("Bunny\\Message", $returnedMessage);
+        $this->assertEquals("xxx", $returnedMessage->content);
+        $this->assertEquals("", $returnedMessage->exchange);
+        $this->assertEquals("404", $returnedMessage->routingKey);
+    }
+
 }

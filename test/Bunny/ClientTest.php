@@ -1,6 +1,8 @@
 <?php
 namespace Bunny;
 
+use Bunny\Protocol\MethodBasicReturnFrame;
+
 class ClientTest extends \PHPUnit_Framework_TestCase
 {
 
@@ -131,6 +133,33 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         });
 
         $client->run(5);
+    }
+
+    public function testReturn()
+    {
+        $client = new Client();
+        $client->connect();
+        $channel  = $client->channel();
+
+        /** @var Message $returnedMessage */
+        $returnedMessage = null;
+        /** @var MethodBasicReturnFrame $returnedFrame */
+        $returnedFrame = null;
+        $channel->addReturnListener(function (Message $message, MethodBasicReturnFrame $frame) use ($client, &$returnedMessage, &$returnedFrame) {
+            $returnedMessage = $message;
+            $returnedFrame = $frame;
+            $client->stop();
+        });
+
+        $channel->publish("xxx", [], "", "404", true);
+
+        $client->run(1);
+
+        $this->assertNotNull($returnedMessage);
+        $this->assertInstanceOf("Bunny\\Message", $returnedMessage);
+        $this->assertEquals("xxx", $returnedMessage->content);
+        $this->assertEquals("", $returnedMessage->exchange);
+        $this->assertEquals("404", $returnedMessage->routingKey);
     }
 
 }
