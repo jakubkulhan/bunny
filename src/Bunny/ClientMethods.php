@@ -951,8 +951,12 @@ trait ClientMethods
         $frame->payloadSize = $buffer->getLength();
         $frame->payload = $buffer;
         $this->getWriter()->appendFrame($frame, $this->getWriteBuffer());
-        $this->flushWriteBuffer();
-        return $this->awaitExchangeDeclareOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitExchangeDeclareOk($channel);
+        }
     }
 
     /**
@@ -1015,8 +1019,12 @@ trait ClientMethods
         $buffer->appendUint8(strlen($exchange)); $buffer->append($exchange);
         $this->getWriter()->appendBits([$ifUnused, $nowait], $buffer);
         $buffer->appendUint8(206);
-        $this->flushWriteBuffer();
-        return $this->awaitExchangeDeleteOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitExchangeDeleteOk($channel);
+        }
     }
 
     /**
@@ -1083,8 +1091,12 @@ trait ClientMethods
         $frame->payloadSize = $buffer->getLength();
         $frame->payload = $buffer;
         $this->getWriter()->appendFrame($frame, $this->getWriteBuffer());
-        $this->flushWriteBuffer();
-        return $this->awaitExchangeBindOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitExchangeBindOk($channel);
+        }
     }
 
     /**
@@ -1151,8 +1163,12 @@ trait ClientMethods
         $frame->payloadSize = $buffer->getLength();
         $frame->payload = $buffer;
         $this->getWriter()->appendFrame($frame, $this->getWriteBuffer());
-        $this->flushWriteBuffer();
-        return $this->awaitExchangeUnbindOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitExchangeUnbindOk($channel);
+        }
     }
 
     /**
@@ -1217,8 +1233,12 @@ trait ClientMethods
         $frame->payloadSize = $buffer->getLength();
         $frame->payload = $buffer;
         $this->getWriter()->appendFrame($frame, $this->getWriteBuffer());
-        $this->flushWriteBuffer();
-        return $this->awaitQueueDeclareOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitQueueDeclareOk($channel);
+        }
     }
 
     /**
@@ -1285,8 +1305,12 @@ trait ClientMethods
         $frame->payloadSize = $buffer->getLength();
         $frame->payload = $buffer;
         $this->getWriter()->appendFrame($frame, $this->getWriteBuffer());
-        $this->flushWriteBuffer();
-        return $this->awaitQueueBindOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitQueueBindOk($channel);
+        }
     }
 
     /**
@@ -1349,8 +1373,12 @@ trait ClientMethods
         $buffer->appendUint8(strlen($queue)); $buffer->append($queue);
         $this->getWriter()->appendBits([$nowait], $buffer);
         $buffer->appendUint8(206);
-        $this->flushWriteBuffer();
-        return $this->awaitQueuePurgeOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitQueuePurgeOk($channel);
+        }
     }
 
     /**
@@ -1413,8 +1441,12 @@ trait ClientMethods
         $buffer->appendUint8(strlen($queue)); $buffer->append($queue);
         $this->getWriter()->appendBits([$ifUnused, $ifEmpty, $nowait], $buffer);
         $buffer->appendUint8(206);
-        $this->flushWriteBuffer();
-        return $this->awaitQueueDeleteOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitQueueDeleteOk($channel);
+        }
     }
 
     /**
@@ -1611,8 +1643,12 @@ trait ClientMethods
         $frame->payloadSize = $buffer->getLength();
         $frame->payload = $buffer;
         $this->getWriter()->appendFrame($frame, $this->getWriteBuffer());
-        $this->flushWriteBuffer();
-        return $this->awaitConsumeOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitConsumeOk($channel);
+        }
     }
 
     /**
@@ -1674,8 +1710,12 @@ trait ClientMethods
         $buffer->appendUint8(strlen($consumerTag)); $buffer->append($consumerTag);
         $this->getWriter()->appendBits([$nowait], $buffer);
         $buffer->appendUint8(206);
-        $this->flushWriteBuffer();
-        return $this->awaitCancelOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitCancelOk($channel);
+        }
     }
 
     /**
@@ -2482,8 +2522,12 @@ trait ClientMethods
         $buffer->appendUint16(10);
         $this->getWriter()->appendBits([$nowait], $buffer);
         $buffer->appendUint8(206);
-        $this->flushWriteBuffer();
-        return $this->awaitConfirmSelectOk($channel);
+        if ($nowait) {
+            return $this->flushWriteBuffer();
+        } else {
+            $this->flushWriteBuffer();
+            return $this->awaitConfirmSelectOk($channel);
+        }
     }
 
     /**

@@ -486,6 +486,7 @@ foreach ($spec->classes as $class) {
         $channelClientArguments = ["\$this->getChannelId()"];
         $channelArguments = [];
         $channelDocComment = "";
+        $hasNowait = false;
 
         if ($class->id !== 10) {
             $clientArguments[] = "\$channel";
@@ -516,6 +517,10 @@ foreach ($spec->classes as $class) {
                 $type = domainToType($argument->domain);
             } else {
                 throw new \InvalidArgumentException("{$class->name}.{$method->name}({$argument->name})");
+            }
+
+            if ($argument->name === "nowait") {
+                $hasNowait = true;
             }
 
             $name = lcfirst(dashedToCamel($argument->name));
@@ -806,7 +811,14 @@ foreach ($spec->classes as $class) {
                 $clientMethodsContent .= "        }\n";
             }
 
-            if (isset($method->synchronous) && $method->synchronous) {
+            if (isset($method->synchronous) && $method->synchronous && $hasNowait) {
+                $clientMethodsContent .= "        if (\$nowait) {\n";
+                $clientMethodsContent .= "            return \$this->flushWriteBuffer();\n";
+                $clientMethodsContent .= "        } else {\n";
+                $clientMethodsContent .= "            \$this->flushWriteBuffer();\n";
+                $clientMethodsContent .= "            return \$this->await" . $methodName . "Ok(" . ($class->id !== 10 ? "\$channel" : "") . ");\n";
+                $clientMethodsContent .= "        }\n";
+            } elseif (isset($method->synchronous) && $method->synchronous) {
                 $clientMethodsContent .= "        \$this->flushWriteBuffer();\n";
                 $clientMethodsContent .= "        return \$this->await" . $methodName . "Ok(" . ($class->id !== 10 ? "\$channel" : "") . ");\n";
             } else {

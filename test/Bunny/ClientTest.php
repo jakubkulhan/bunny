@@ -1,6 +1,7 @@
 <?php
 namespace Bunny;
 
+use Bunny\Protocol\MethodBasicAckFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
 
 class ClientTest extends \PHPUnit_Framework_TestCase
@@ -160,6 +161,62 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("xxx", $returnedMessage->content);
         $this->assertEquals("", $returnedMessage->exchange);
         $this->assertEquals("404", $returnedMessage->routingKey);
+    }
+
+    public function testTxs()
+    {
+        $client = new Client();
+        $client->connect();
+        $channel = $client->channel();
+
+        $channel->queueDeclare("tx_test");
+
+        $channel->txSelect();
+        $channel->publish(".", [], "", "tx_test");
+        $channel->txCommit();
+
+        $message = $channel->get("tx_test", true);
+        $this->assertNotNull($message);
+        $this->assertEquals(".", $message->content);
+
+        $channel->publish("..", [], "", "tx_test");
+        $channel->txRollback();
+
+        $nothing = $channel->get("tx_test", true);
+        $this->assertNull($nothing);
+    }
+
+    public function testTxSelectCannotBeCalledMultipleTimes()
+    {
+        $this->setExpectedException("Bunny\\Exception\\ChannelException");
+
+        $client = new Client();
+        $client->connect();
+        $channel = $client->channel();
+
+        $channel->txSelect();
+        $channel->txSelect();
+    }
+
+    public function testConfirmMode()
+    {
+        $client = new Client();
+        $client->connect();
+        $channel = $client->channel();
+
+        $deliveryTag = null;
+        $channel->confirmSelect(function (MethodBasicAckFrame $frame) use (&$deliveryTag, $client) {
+            if ($frame->deliveryTag === $deliveryTag) {
+                $deliveryTag = null;
+                $client->stop();
+            }
+        });
+
+        $deliveryTag = $channel->publish(".");
+
+        $client->run(1);
+
+        $this->assertNull($deliveryTag);
     }
 
 }
