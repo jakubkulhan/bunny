@@ -267,6 +267,14 @@ abstract class AbstractClient
     {
         $s = @fread($this->stream, $this->frameMax);
 
+        if ($s === false) {
+            $info = stream_get_meta_data($this->stream);
+
+            if (isset($info["timed_out"]) && $info["timed_out"]) {
+                throw new ClientException("Timeout reached while reading from stream.");
+            }
+        }
+
         if (@feof($this->stream)) {
             throw new ClientException("Broken pipe or closed connection.");
         }
