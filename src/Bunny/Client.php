@@ -53,7 +53,14 @@ class Client extends AbstractClient
     public function __destruct()
     {
         if ($this->isConnected()) {
-            $this->closeStream();
+            $this->disconnect()->then(function () {
+                $this->stop();
+            });
+
+            // has to re-check if connected, because disconnect() can set connection state immediately
+            if ($this->isConnected()) {
+                $this->run();
+            }
         }
     }
 
@@ -226,6 +233,7 @@ class Client extends AbstractClient
 
                 $this->channels[$frame->channel]->onFrameReceived($frame);
             }
+
 
         } while ($this->running);
     }
