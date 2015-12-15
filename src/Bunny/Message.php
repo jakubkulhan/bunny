@@ -44,7 +44,7 @@ class Message
      * @param array $headers
      * @param string $content
      */
-    public function __construct($consumerTag, $deliveryTag, $redelivered, $exchange, $routingKey, array $headers, $content)
+    public function __construct($consumerTag, $deliveryTag, $redelivered, $exchange, $routingKey, array $headers, $content, $channel)
     {
         $this->consumerTag = $consumerTag;
         $this->deliveryTag = $deliveryTag;
@@ -53,6 +53,7 @@ class Message
         $this->routingKey = $routingKey;
         $this->headers = $headers;
         $this->content = $content;
+        $this->channel = $channel;
     }
 
     /**
