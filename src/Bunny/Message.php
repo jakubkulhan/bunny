@@ -43,6 +43,7 @@ class Message
      * @param string $routingKey
      * @param array $headers
      * @param string $content
+     * @param \Bunny\Channel $channel
      */
     public function __construct($consumerTag, $deliveryTag, $redelivered, $exchange, $routingKey, array $headers, $content, $channel)
     {
