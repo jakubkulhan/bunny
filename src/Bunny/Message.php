@@ -29,6 +29,9 @@ class Message
 
     /** @var string */
     public $content;
+    
+    /** @var \Bunny\Channel */
+    public $channel;
 
     /**
      * Constructor.
