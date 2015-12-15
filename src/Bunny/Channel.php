@@ -400,7 +400,8 @@ class Channel
                 $response->exchange,
                 $response->routingKey,
                 $this->headerFrame->toArray(),
-                $this->bodyBuffer->consume($this->bodyBuffer->getLength())
+                $this->bodyBuffer->consume($this->bodyBuffer->getLength()),
+                $this
             );
 
             $this->headerFrame = null;
@@ -697,7 +698,8 @@ class Channel
                 $this->returnFrame->exchange,
                 $this->returnFrame->routingKey,
                 $this->headerFrame->toArray(),
-                $content
+                $content,
+                $this
             );
 
             foreach ($this->returnCallbacks as $callback) {
@@ -717,7 +719,8 @@ class Channel
                     $this->deliverFrame->exchange,
                     $this->deliverFrame->routingKey,
                     $this->headerFrame->toArray(),
-                    $content
+                    $content,
+                    $this
                 );
 
                 $callback = $this->deliverCallbacks[$this->deliverFrame->consumerTag];
@@ -741,7 +744,8 @@ class Channel
                 $this->getOkFrame->exchange,
                 $this->getOkFrame->routingKey,
                 $this->headerFrame->toArray(),
-                $content
+                $content,
+                $this
             ));
 
             $this->getOkFrame = null;
