@@ -8,6 +8,7 @@ use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\ContentHeaderFrame;
 use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodChannelOpenOkFrame;
+use Bunny\Protocol\MethodConnectionCloseFrame;
 use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
@@ -407,7 +408,11 @@ abstract class AbstractClient
     public function onFrameReceived(AbstractFrame $frame)
     {
         if ($frame instanceof MethodFrame) {
-            throw new ClientException("Unhandled method frame " . get_class($frame) . ".");
+            if ($frame instanceof MethodConnectionCloseFrame) {
+                throw new ClientException("Connection closed by server: " . $frame->replyText, $frame->replyCode);
+            } else {
+                throw new ClientException("Unhandled method frame " . get_class($frame) . ".");
+            }
 
         } elseif ($frame instanceof ContentHeaderFrame) {
             $this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, "Got header frame on connection channel (#0).");
