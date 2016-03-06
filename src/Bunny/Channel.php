@@ -387,11 +387,10 @@ class Channel
                     $this->state = ChannelStateEnum::ERROR;
                     $this->client->disconnect(Constants::STATUS_SYNTAX_ERROR, $errorMessage = "Body overflow, received " . (-$this->bodySizeRemaining) . " more bytes.");
                     throw new ChannelException($errorMessage);
-
-                } elseif ($this->bodySizeRemaining === 0) {
-                    $this->state = ChannelStateEnum::READY;
                 }
             }
+
+            $this->state = ChannelStateEnum::READY;
 
             $message = new Message(
                 null,
@@ -638,7 +637,13 @@ class Channel
 
             $this->headerFrame = $frame;
             $this->bodySizeRemaining = $frame->bodySize;
-            $this->state = ChannelStateEnum::AWAITING_BODY;
+
+            if ($this->bodySizeRemaining > 0) {
+                $this->state = ChannelStateEnum::AWAITING_BODY;
+            } else {
+                $this->state = ChannelStateEnum::READY;
+                $this->onBodyComplete();
+            }
 
         } elseif ($frame instanceof ContentBodyFrame) {
             if ($this->state === ChannelStateEnum::CLOSING) {

@@ -219,4 +219,34 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->assertNull($deliveryTag);
     }
 
+    public function testEmptyMessage()
+    {
+        $client = new Client();
+        $client->connect();
+        $channel = $client->channel();
+
+        $channel->queueDeclare("empty_body_message_test");
+
+        $channel->publish("", [], "", "empty_body_message_test");
+        $message = $channel->get("empty_body_message_test", true);
+        $this->assertNotNull($message);
+        $this->assertEquals("", $message->content);
+
+        $processed = 0;
+        $channel->consume(function (Message $message, Channel $channel) use ($client, &$processed) {
+            $this->assertEmpty($message->content);
+            $channel->ack($message);
+            if (++$processed === 2) {
+                $client->disconnect()->then(function () use ($client) {
+                    $client->stop();
+                });
+            }
+        }, "empty_body_message_test");
+
+        $channel->publish("", [], "", "empty_body_message_test");
+        $channel->publish("", [], "", "empty_body_message_test");
+
+        $client->run(1);
+    }
+
 }
