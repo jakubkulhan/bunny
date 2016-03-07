@@ -25,7 +25,7 @@ You might ask if there isn't a library/extension to connect to AMQP broker (e.g.
  multiple options:
  
 - [ext-amqp](http://pecl.php.net/package/amqp) - PHP extension
-- [php-amqplib](https://github.com/videlalvaro/php-amqplib) - pure-PHP AMQP protocol implementation
+- [php-amqplib](https://github.com/php-amqplib/php-amqplib) - pure-PHP AMQP protocol implementation
 - [react-amqp](https://github.com/JCook21/ReactAMQP) - ext-amqp binding to ReactPHP  
 
 Why should you want to choose BunnyPHP instead?
