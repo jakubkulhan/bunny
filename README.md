@@ -79,6 +79,12 @@ TODO, see `benchmarks/` for basic use.
   $ php ./spec/generate.php
   ```
 
+## Broker compatibility
+
+Works well with RabbitMQ
+
+Does not work with ActiveMQ because it requires AMQP 1.0 which is a completely different protocol (Bunny is implementing AMQP 0.9.1)
+
 ## License
 
 BunnyPHP is licensed under MIT license. See `LICENSE` file.
