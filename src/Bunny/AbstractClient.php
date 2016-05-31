@@ -92,6 +92,9 @@ abstract class AbstractClient
             if (isset($options["virtual_host"])) {
                 $options["vhost"] = $options["virtual_host"];
                 unset($options["virtual_host"]);
+            } elseif (isset($options["path"])) {
+                $options["vhost"] = $options["path"];
+                unset($options["path"]);
             } else {
                 $options["vhost"] = "/";
             }
