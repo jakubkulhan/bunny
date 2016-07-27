@@ -145,7 +145,7 @@ $channel->ack($message); // Acknowledge message
 
 ### Prefetch count
 
-A way to control how many messages are prefetched by bunny when consuming a queue is by using the channel's QOS method. In the example below only 5 messages will be prefetched. Conbined with acknowledging messages this this turns into an effetive flow controll for your applications. (Especially asynchronous applications.) No new messages will be fetched unless one has been acknowledged.
+A way to control how many messages are prefetched by bunny when consuming a queue is by using the channel's QOS method. In the example below only 5 messages will be prefetched. Combined with acknowledging messages this turns into an effetive flow controll for your applications. (Especially asynchronous applications.) No new messages will be fetched unless one has been acknowledged.
 
 ```php
 $channel->qos(
