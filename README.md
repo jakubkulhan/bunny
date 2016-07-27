@@ -135,6 +135,16 @@ $channel->consume(
 $bunny->run(12); // Client runs for 12 seconds and then stops
 ```
 
+### Pop a single message from a queue
+
+```php
+$message = $channel->get('queue_name');
+
+// Handle message
+
+$channel->ack($message); // Acknowledge message
+```
+
 ## Contributing
 
 * Large part of the PHP code (almost everything in `Bunny\Protocol` namespace) is generated from spec in file
