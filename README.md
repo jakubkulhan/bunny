@@ -84,6 +84,25 @@ $bunny = new Client($connection);
 $bunny->connect();
 ```
 
+### Publish a message
+
+Now that we have a connecting with the server we need to create a channel to communicate over before we can publish a message, or subscribe to a queue for that matter.
+
+```php
+$channel = $bunny->channel();
+```
+
+With out communication channel set up we can now publish a message to the queue:
+
+```php
+$channel->publish(
+ $message,    // The message you're publishing as a string
+ [],          // Any headers you want to add to the message
+ '',          // Exchange name
+ 'queue_name' // Routing key, in this example the queue's name
+);
+```
+
 ## Contributing
 
 * Large part of the PHP code (almost everything in `Bunny\Protocol` namespace) is generated from spec in file
