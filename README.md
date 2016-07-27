@@ -96,11 +96,43 @@ With out communication channel set up we can now publish a message to the queue:
 
 ```php
 $channel->publish(
- $message,    // The message you're publishing as a string
- [],          // Any headers you want to add to the message
- '',          // Exchange name
- 'queue_name' // Routing key, in this example the queue's name
+    $message,    // The message you're publishing as a string
+    [],          // Any headers you want to add to the message
+    '',          // Exchange name
+    'queue_name' // Routing key, in this example the queue's name
 );
+```
+
+### Subscribing to a queue
+
+Subscribing to a queue can be done in two ways. The first way will run indefinetly:
+
+```php
+$channel->run(
+    function (Message $message, Channel $channel, Client $bunny) {
+        // Handle your message here
+        
+        if ($success) {
+            $channel->ack($message);
+            return;
+        }
+        
+        $channel->nack($message);
+    },
+    'queue_name'
+);
+```
+
+The other way lets you run the client for a specific amount of time consuming the queue before it stops:
+
+```php
+$channel->consume(
+    function (Message $message, Channel $channel, Client $client){
+        $channel->ack($message);
+    },
+    'queue_name'
+);
+$bunny->run(12); // Client runs for 12 seconds and then stops
 ```
 
 ## Contributing
