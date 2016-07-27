@@ -108,7 +108,7 @@ Subscribing to a queue can be done in two ways. The first way will run indefinet
 ```php
 $channel->run(
     function (Message $message, Channel $channel, Client $bunny) {
-        // Handle your message here
+        $success = handleMessage($message); // Handle your message here
         
         if ($success) {
             $channel->ack($message); // Acknowledge message
