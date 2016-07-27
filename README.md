@@ -154,6 +154,29 @@ $channel->qos(
 );
 ```
 
+### Asynchronous usage
+
+Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](https://github.com/reactphp). The following example shows setting up a client and consuming a queue indefinitely.
+
+```php
+(new Async\Client($connection)->connect()->then(function (Client $client) {
+   return $client->channel();
+})->then(function (Channel $channel) {
+   return $channel->qos(0, 5)->then(function () use ($channel) {
+       return $channel;
+   });
+})->then(function (Channel $channel) use ($event) {
+   $channel->consume(
+       function (Message $message, Channel $channel, Client $client) use ($event) {
+           // Handle message
+           
+           $channel->ack($message);
+       },
+       'queue_name'
+   );
+});
+```
+
 ## Contributing
 
 * Large part of the PHP code (almost everything in `Bunny\Protocol` namespace) is generated from spec in file
