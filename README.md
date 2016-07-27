@@ -66,8 +66,6 @@ $ php benchmark/producer.php N & php benchmark/consumer.php
 
 ## Tutorial
 
-TODO, see `benchmarks/` for basic use.
-
 ### Connecting
 
 When instanciating the bunny `Client` accepts an array with connection options:
