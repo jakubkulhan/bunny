@@ -68,6 +68,22 @@ $ php benchmark/producer.php N & php benchmark/consumer.php
 
 TODO, see `benchmarks/` for basic use.
 
+### Connecting
+
+When instanciating the bunny `Client` accepts an array with connection options:
+
+```php
+$connection = [
+    'host'      => 'HOSTNAME',
+    'vhost'     => 'VHOST', // The default vhost is /
+    'user'      => 'USERNAME',
+    'password'  => 'PASSWORD',
+];
+
+$bunny = new Client($connection);
+$bunny->connect();
+```
+
 ## Contributing
 
 * Large part of the PHP code (almost everything in `Bunny\Protocol` namespace) is generated from spec in file
