@@ -113,11 +113,11 @@ $channel->run(
         // Handle your message here
         
         if ($success) {
-            $channel->ack($message);
+            $channel->ack($message); // Acknowledge message
             return;
         }
         
-        $channel->nack($message);
+        $channel->nack($message); // Mark message fail, message will be redelivered
     },
     'queue_name'
 );
@@ -128,7 +128,7 @@ The other way lets you run the client for a specific amount of time consuming th
 ```php
 $channel->consume(
     function (Message $message, Channel $channel, Client $client){
-        $channel->ack($message);
+        $channel->ack($message); // Acknowledge message
     },
     'queue_name'
 );
