@@ -90,7 +90,7 @@ Now that we have a connecting with the server we need to create a channel to com
 $channel = $bunny->channel();
 ```
 
-With out communication channel set up we can now publish a message to the queue:
+With a communication channel set up, we can now publish a message to the queue:
 
 ```php
 $channel->publish(
@@ -145,7 +145,7 @@ $channel->ack($message); // Acknowledge message
 
 ### Prefetch count
 
-A way to controll how many messages are prefetched by bunny when consuming a queue is by using the channels QOS method. In the example below only 5 messages will be prefetched. Conbined with acknowledging messages this this turns into an effetive flow controll for your applications. (Especially asynchronous applications.) No new messages will be fetched unless one has been acknowledged.
+A way to control how many messages are prefetched by bunny when consuming a queue is by using the channel's QOS method. In the example below only 5 messages will be prefetched. Conbined with acknowledging messages this this turns into an effetive flow controll for your applications. (Especially asynchronous applications.) No new messages will be fetched unless one has been acknowledged.
 
 ```php
 $channel->qos(
