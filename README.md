@@ -84,7 +84,7 @@ $bunny->connect();
 
 ### Publish a message
 
-Now that we have a connecting with the server we need to create a channel to communicate over before we can publish a message, or subscribe to a queue for that matter.
+Now that we have a connection with the server we need to create a channel to communicate over before we can publish a message, or subscribe to a queue for that matter.
 
 ```php
 $channel = $bunny->channel();
@@ -145,7 +145,7 @@ $channel->ack($message); // Acknowledge message
 
 ### Prefetch count
 
-A way to control how many messages are prefetched by BunnyPHP when consuming a queue is by using the channel's QOS method. In the example below only 5 messages will be prefetched. Combined with acknowledging messages this turns into an effetive flow controll for your applications. (Especially asynchronous applications.) No new messages will be fetched unless one has been acknowledged.
+A way to control how many messages are prefetched by BunnyPHP when consuming a queue is by using the channel's QOS method. In the example below only 5 messages will be prefetched. Combined with acknowledging messages this turns into an effective flow control for your applications, especially asynchronous applications. No new messages will be fetched unless one has been acknowledged.
 
 ```php
 $channel->qos(
@@ -182,7 +182,7 @@ Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](http
 * Large part of the PHP code (almost everything in `Bunny\Protocol` namespace) is generated from spec in file
   [`spec/amqp-rabbitmq-0.9.1.json`](spec/amqp-rabbitmq-0.9.1.json). Look for `DO NOT EDIT!` in doc comments.
 
-  To change geneted files change [`spec/generate.php`](spec/generate.php) and run:
+  To change generated files change [`spec/generate.php`](spec/generate.php) and run:
 
   ```sh
   $ php ./spec/generate.php
