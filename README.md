@@ -66,7 +66,116 @@ $ php benchmark/producer.php N & php benchmark/consumer.php
 
 ## Tutorial
 
-TODO, see `benchmarks/` for basic use.
+### Connecting
+
+When instantiating the BunnyPHP `Client` accepts an array with connection options:
+
+```php
+$connection = [
+    'host'      => 'HOSTNAME',
+    'vhost'     => 'VHOST',    // The default vhost is /
+    'user'      => 'USERNAME', // The default user is guest
+    'password'  => 'PASSWORD', // The default password is guest
+];
+
+$bunny = new Client($connection);
+$bunny->connect();
+```
+
+### Publish a message
+
+Now that we have a connecting with the server we need to create a channel to communicate over before we can publish a message, or subscribe to a queue for that matter.
+
+```php
+$channel = $bunny->channel();
+```
+
+With a communication channel set up, we can now publish a message to the queue:
+
+```php
+$channel->publish(
+    $message,    // The message you're publishing as a string
+    [],          // Any headers you want to add to the message
+    '',          // Exchange name
+    'queue_name' // Routing key, in this example the queue's name
+);
+```
+
+### Subscribing to a queue
+
+Subscribing to a queue can be done in two ways. The first way will run indefinitely:
+
+```php
+$channel->run(
+    function (Message $message, Channel $channel, Client $bunny) {
+        $success = handleMessage($message); // Handle your message here
+        
+        if ($success) {
+            $channel->ack($message); // Acknowledge message
+            return;
+        }
+        
+        $channel->nack($message); // Mark message fail, message will be redelivered
+    },
+    'queue_name'
+);
+```
+
+The other way lets you run the client for a specific amount of time consuming the queue before it stops:
+
+```php
+$channel->consume(
+    function (Message $message, Channel $channel, Client $client){
+        $channel->ack($message); // Acknowledge message
+    },
+    'queue_name'
+);
+$bunny->run(12); // Client runs for 12 seconds and then stops
+```
+
+### Pop a single message from a queue
+
+```php
+$message = $channel->get('queue_name');
+
+// Handle message
+
+$channel->ack($message); // Acknowledge message
+```
+
+### Prefetch count
+
+A way to control how many messages are prefetched by BunnyPHP when consuming a queue is by using the channel's QOS method. In the example below only 5 messages will be prefetched. Combined with acknowledging messages this turns into an effetive flow controll for your applications. (Especially asynchronous applications.) No new messages will be fetched unless one has been acknowledged.
+
+```php
+$channel->qos(
+    0, // Prefetch size
+    5  // Prefetch count
+);
+```
+
+### Asynchronous usage
+
+Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](https://github.com/reactphp). The following example shows setting up a client and consuming a queue indefinitely.
+
+```php
+(new Async\Client($connection)->connect()->then(function (Client $client) {
+   return $client->channel();
+})->then(function (Channel $channel) {
+   return $channel->qos(0, 5)->then(function () use ($channel) {
+       return $channel;
+   });
+})->then(function (Channel $channel) use ($event) {
+   $channel->consume(
+       function (Message $message, Channel $channel, Client $client) use ($event) {
+           // Handle message
+           
+           $channel->ack($message);
+       },
+       'queue_name'
+   );
+});
+```
 
 ## Contributing
 
