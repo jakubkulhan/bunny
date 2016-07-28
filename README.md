@@ -68,14 +68,14 @@ $ php benchmark/producer.php N & php benchmark/consumer.php
 
 ### Connecting
 
-When instanciating the bunny `Client` accepts an array with connection options:
+When instantiating the BunnyPHP `Client` accepts an array with connection options:
 
 ```php
 $connection = [
     'host'      => 'HOSTNAME',
-    'vhost'     => 'VHOST', // The default vhost is /
-    'user'      => 'USERNAME',
-    'password'  => 'PASSWORD',
+    'vhost'     => 'VHOST',    // The default vhost is /
+    'user'      => 'USERNAME', // The default user is guest
+    'password'  => 'PASSWORD', // The default password is guest
 ];
 
 $bunny = new Client($connection);
@@ -103,7 +103,7 @@ $channel->publish(
 
 ### Subscribing to a queue
 
-Subscribing to a queue can be done in two ways. The first way will run indefinetly:
+Subscribing to a queue can be done in two ways. The first way will run indefinitely:
 
 ```php
 $channel->run(
@@ -145,7 +145,7 @@ $channel->ack($message); // Acknowledge message
 
 ### Prefetch count
 
-A way to control how many messages are prefetched by bunny when consuming a queue is by using the channel's QOS method. In the example below only 5 messages will be prefetched. Combined with acknowledging messages this turns into an effetive flow controll for your applications. (Especially asynchronous applications.) No new messages will be fetched unless one has been acknowledged.
+A way to control how many messages are prefetched by BunnyPHP when consuming a queue is by using the channel's QOS method. In the example below only 5 messages will be prefetched. Combined with acknowledging messages this turns into an effetive flow controll for your applications. (Especially asynchronous applications.) No new messages will be fetched unless one has been acknowledged.
 
 ```php
 $channel->qos(
