@@ -23,20 +23,20 @@ $ composer require bunny/bunny:@dev
 
 You might ask if there isn't a library/extension to connect to AMQP broker (e.g. RabbitMQ) already. Yes, there are
  multiple options:
- 
+
 - [ext-amqp](http://pecl.php.net/package/amqp) - PHP extension
 - [php-amqplib](https://github.com/php-amqplib/php-amqplib) - pure-PHP AMQP protocol implementation
-- [react-amqp](https://github.com/JCook21/ReactAMQP) - ext-amqp binding to ReactPHP  
+- [react-amqp](https://github.com/JCook21/ReactAMQP) - ext-amqp binding to ReactPHP
 
 Why should you want to choose BunnyPHP instead?
 
 * You want **nice idiomatic PHP API** to work with (I'm looking at you, php-amqplib). BunnyPHP interface follows PHP's common
   **coding standards** and **naming conventions**. See tutorial.
-  
+
 * You **can't (don't want to) install PECL extension** that has latest stable version in 2014. BunnyPHP isn't as such marked
   as stable yet. But it is already being used in production.
-  
-* You have **both classic CLI/FPM and [ReactPHP](http://reactphp.org/)** applications and need to connect to RabbitMQ. 
+
+* You have **both classic CLI/FPM and [ReactPHP](http://reactphp.org/)** applications and need to connect to RabbitMQ.
   BunnyPHP comes with both **synchronous and asynchronous** clients with same PHP-idiomatic interface. Async client uses
   [react/promise](https://github.com/reactphp/promise).
 
@@ -48,7 +48,7 @@ Benchmarks were run as:
 ```sh
 $ php benchmark/producer.php N & php benchmark/consumer.php
 ```
- 
+
 | Library     | N (# messages) | Produce sec | Produce msg/sec | Consume sec | Consume msg/sec |
 |-------------|---------------:|------------:|----------------:|------------:|----------------:|
 | php-amqplib | 100            | 0.0131      | 7633            | 0.0446      | 2242            |
@@ -84,10 +84,11 @@ $bunny->connect();
 
 ### Publish a message
 
-Now that we have a connection with the server we need to create a channel to communicate over before we can publish a message, or subscribe to a queue for that matter.
+Now that we have a connection with the server we need to create a channel and declare a queue to communicate over before we can publish a message, or subscribe to a queue for that matter.
 
 ```php
 $channel = $bunny->channel();
+$channel->queueDeclare('queue_name'); // Queue name
 ```
 
 With a communication channel set up, we can now publish a message to the queue:
@@ -109,12 +110,12 @@ Subscribing to a queue can be done in two ways. The first way will run indefinit
 $channel->run(
     function (Message $message, Channel $channel, Client $bunny) {
         $success = handleMessage($message); // Handle your message here
-        
+
         if ($success) {
             $channel->ack($message); // Acknowledge message
             return;
         }
-        
+
         $channel->nack($message); // Mark message fail, message will be redelivered
     },
     'queue_name'
@@ -169,7 +170,7 @@ Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](http
    $channel->consume(
        function (Message $message, Channel $channel, Client $client) use ($event) {
            // Handle message
-           
+
            $channel->ack($message);
        },
        'queue_name'
