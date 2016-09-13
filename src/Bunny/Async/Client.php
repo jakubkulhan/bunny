@@ -324,7 +324,7 @@ class Client extends AbstractClient
 
         if ($now >= $nextHeartbeat) {
             $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
-            $this->flushWriteBuffer()->then(function () {
+            $this->flushWriteBuffer()->done(function () {
                 $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
             });
 

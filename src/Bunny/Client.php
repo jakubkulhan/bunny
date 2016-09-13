@@ -53,7 +53,7 @@ class Client extends AbstractClient
     public function __destruct()
     {
         if ($this->isConnected()) {
-            $this->disconnect()->then(function () {
+            $this->disconnect()->done(function () {
                 $this->stop();
             });
 

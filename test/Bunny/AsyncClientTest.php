@@ -23,7 +23,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
             return $client->disconnect();
         })->then(function () use ($loop) {
             $loop->stop();
-        });
+        })->done();
 
         $loop->run();
     }
@@ -45,7 +45,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
             return $client->disconnect();
         })->then(function () use ($loop) {
             $loop->stop();
-        });
+        })->done();
 
         $loop->run();
     }
@@ -68,9 +68,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         $client->connect()->then(function () use ($loop) {
             $this->fail("client should not connect");
             $loop->stop();
-        }, function ($e) use ($loop) {
-            throw $e;
-        });
+        })->done();
 
         $loop->run();
     }
@@ -90,7 +88,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
             return $ch->getClient()->disconnect();
         })->then(function () use ($loop) {
             $loop->stop();
-        });
+        })->done();
 
         $loop->run();
     }
@@ -124,7 +122,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
 
         })->then(function () use ($loop) {
             $loop->stop();
-        });
+        })->done();
 
         $loop->run();
     }
@@ -151,7 +149,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         }, function (\Exception $e) use ($loop) {
             $this->assertInstanceOf("Bunny\\Exception\\ClientException", $e);
             $loop->stop();
-        });
+        })->done();
 
         $loop->run();
     }
@@ -178,7 +176,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
 
                     ++$processed;
 
-                    $client->disconnect()->then(function () use ($loop) {
+                    $client->disconnect()->done(function () use ($loop) {
                         $loop->stop();
                     });
 
@@ -187,7 +185,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
                 $channel->publish(".", [], "", "disconnect_test"),
                 $channel->publish(".", [], "", "disconnect_test"),
             ]);
-        });
+        })->done();
 
         $loop->run();
 
@@ -248,7 +246,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
 
         })->then(function () use ($loop) {
             $loop->stop();
-        });
+        })->done();
 
         $loop->run();
     }
@@ -283,7 +281,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
             });
 
             return $channel->publish("xxx", [], "", "404", true);
-        });
+        })->done();
 
         $loop->run();
 

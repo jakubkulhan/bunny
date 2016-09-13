@@ -335,12 +335,12 @@ $clientMethodsContent .= "                if (\$frame instanceof Protocol\\Conte
 $clientMethodsContent .= "                    \$deferred->resolve(\$frame);\n";
 $clientMethodsContent .= "                    return true;\n";
 $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->then(function () use (\$frame, \$deferred) {\n";
+$clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->done(function () use (\$frame, \$deferred) {\n";
 $clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
 $clientMethodsContent .= "                    });\n";
 $clientMethodsContent .= "                    return true;\n";
 $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-$clientMethodsContent .= "                    \$this->connectionCloseOk()->then(function () use (\$frame, \$deferred) {\n";
+$clientMethodsContent .= "                    \$this->connectionCloseOk()->done(function () use (\$frame, \$deferred) {\n";
 $clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
 $clientMethodsContent .= "                    });\n";
 $clientMethodsContent .= "                    return true;\n";
@@ -382,12 +382,12 @@ $clientMethodsContent .= "                if (\$frame instanceof Protocol\\Conte
 $clientMethodsContent .= "                    \$deferred->resolve(\$frame);\n";
 $clientMethodsContent .= "                    return true;\n";
 $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->then(function () use (\$frame, \$deferred) {\n";
+$clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->done(function () use (\$frame, \$deferred) {\n";
 $clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
 $clientMethodsContent .= "                    });\n";
 $clientMethodsContent .= "                    return true;\n";
 $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-$clientMethodsContent .= "                    \$this->connectionCloseOk()->then(function () use (\$frame, \$deferred) {\n";
+$clientMethodsContent .= "                    \$this->connectionCloseOk()->done(function () use (\$frame, \$deferred) {\n";
 $clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
 $clientMethodsContent .= "                    });\n";
 $clientMethodsContent .= "                    return true;\n";
@@ -853,13 +853,13 @@ foreach ($spec->classes as $class) {
             }
             if ($class->id !== 10) {
                 $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-                $clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->then(function () use (\$frame, \$deferred) {\n";
+                $clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->done(function () use (\$frame, \$deferred) {\n";
                 $clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
                 $clientMethodsContent .= "                    });\n";
                 $clientMethodsContent .= "                    return true;\n";
             }
             $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-            $clientMethodsContent .= "                    \$this->connectionCloseOk()->then(function () use (\$frame, \$deferred) {\n";
+            $clientMethodsContent .= "                    \$this->connectionCloseOk()->done(function () use (\$frame, \$deferred) {\n";
             $clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
             $clientMethodsContent .= "                    });\n";
             $clientMethodsContent .= "                    return true;\n";

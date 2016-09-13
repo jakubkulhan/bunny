@@ -10,7 +10,7 @@ class ChannelTest extends \PHPUnit_Framework_TestCase
         $c->connect();
         $promise = $c->channel()->close();
         $this->assertInstanceOf("React\\Promise\\PromiseInterface", $promise);
-        $promise->then(function () use ($c) {
+        $promise->done(function () use ($c) {
             $c->stop();
         });
         $c->run();

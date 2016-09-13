@@ -81,7 +81,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $channel->consume(function (Message $message, Channel $channel) use ($client, &$processed) {
             $channel->ack($message);
             ++$processed;
-            $client->disconnect()->then(function () use ($client) {
+            $client->disconnect()->done(function () use ($client) {
                 $client->stop();
             });
         });
@@ -131,7 +131,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         })->then(function () use ($client) {
             $client->stop();
-        });
+        })->done();
 
         $client->run(5);
     }
@@ -237,7 +237,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
             $this->assertEmpty($message->content);
             $channel->ack($message);
             if (++$processed === 2) {
-                $client->disconnect()->then(function () use ($client) {
+                $client->disconnect()->done(function () use ($client) {
                     $client->stop();
                 });
             }
