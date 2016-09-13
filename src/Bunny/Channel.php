@@ -280,7 +280,7 @@ class Channel
             $this->client->run();
 
         } elseif ($response instanceof PromiseInterface) {
-            $response->then(function () {
+            $response->done(function () {
                 $this->client->run();
             });
 
@@ -348,7 +348,7 @@ class Channel
         if ($response instanceof PromiseInterface) {
             $this->getDeferred = new Deferred();
 
-            $response->then(function ($frame) {
+            $response->done(function ($frame) {
                 if ($frame instanceof MethodBasicGetEmptyFrame) {
                     // deferred has to be first nullified and then resolved, otherwise results in race condition
                     $deferred = $this->getDeferred;
