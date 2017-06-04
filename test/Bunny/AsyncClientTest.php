@@ -93,7 +93,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         $loop->run();
     }
 
-    public function testOpenMultipleChannel()
+    public function testOpenMultipleChannelWithForceOpen()
     {
         $loop = Factory::create();
 
@@ -120,6 +120,42 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
 
             return $chs[0]->getClient()->disconnect();
 
+        })->then(function () use ($loop) {
+            $loop->stop();
+        })->done();
+
+        $loop->run();
+    }
+
+    /**
+     *
+     */
+    public function testOpenMultipleChannelWithReuse()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(5, function () {
+            throw new TimeoutException();
+        });
+
+        $client = new Client($loop);
+        $client->connect()->then(function (Client $client) {
+            return Promise\all([
+                $client->channel(false),
+                $client->channel(false),
+                $client->channel(false),
+            ]);
+        })->then(function (array $chs) {
+            /** @var Channel[] $chs */
+            $this->assertCount(3, $chs);
+            for ($i = 0, $l = count($chs); $i < $l; ++$i) {
+                $this->assertInstanceOf("Bunny\\Channel", $chs[$i]);
+                for ($j = 0; $j < $i; ++$j) {
+                    $this->assertEquals($chs[$i]->getChannelId(), $chs[$j]->getChannelId());
+                }
+            }
+
+            return $chs[0]->getClient()->disconnect();
         })->then(function () use ($loop) {
             $loop->stop();
         })->done();

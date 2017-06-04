@@ -66,6 +66,12 @@ abstract class AbstractClient
     /** @var int */
     protected $frameMax = 0xFFFF;
 
+    /** @var int  */
+    protected $nextChannelId = 1;
+
+    /** @var int  */
+    protected $channelMax = 255;
+
     /** @var float microtime of last read*/
     protected $lastRead = 0.0;
 
@@ -364,12 +370,27 @@ abstract class AbstractClient
      *
      * Channel gets first available channel id.
      *
+     * @param bool $forceOpen Open new channel without check existent ready channels
+     *
      * @return Channel|Promise\PromiseInterface
      */
-    public function channel()
+    public function channel($forceOpen = true)
     {
-        // TODO: improve next channel id selection
-        for ($channelId = 1; isset($this->channels[$channelId]); ++$channelId) ;
+        if (false === $forceOpen) {
+            /**
+             * @var int $channelId
+             * @var Channel $channel
+             */
+            foreach ($this->channels as $channelId => $channel) {
+                if ($channel->getState() === ChannelStateEnum::READY) {
+                    return $channel;
+                }
+            }
+        }
+
+        // since we not found any free channel, then make one
+        $channelId = $this->findChannelId();
+
         $this->channels[$channelId] = new Channel($this, $channelId);
         $response = $this->channelOpen($channelId);
 
@@ -446,5 +467,40 @@ abstract class AbstractClient
      * @return void
      */
     abstract public function run($maxSeconds = null);
+
+
+    /**
+     * @return int
+     */
+    protected function findChannelId()
+    {
+        // first check in range [next, max] ...
+        for (
+            $channelId = $this->nextChannelId;
+            $channelId <= $this->channelMax;
+            ++$channelId
+        ) {
+            if (!isset($this->channels[$channelId])) {
+                $this->nextChannelId = $channelId + 1;
+
+                return $channelId;
+            }
+        }
+
+        // then check in range [min, next) ...
+        for (
+            $channelId = 1;
+            $channelId < $this->nextChannelId;
+            ++$channelId
+        ) {
+            if (!isset($this->channels[$channelId])) {
+                $this->nextChannelId = $channelId + 1;
+
+                return $channelId;
+            }
+        }
+
+        throw new ClientException('No available channels');
+    }
 
 }

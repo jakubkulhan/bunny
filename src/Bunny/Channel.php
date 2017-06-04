@@ -757,4 +757,11 @@ class Channel
         }
     }
 
+    /**
+     * @return int
+     */
+    public function getState()
+    {
+        return $this->state;
+    }
 }
