@@ -1,0 +1,5 @@
+benchmark/ export-ignore
+spec/ export-ignore
+test/ export-ignore
+.travis.yml export-ignore
+phpunit.xml export-ignore
