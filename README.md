@@ -102,6 +102,12 @@ $channel->publish(
 );
 ```
 
+To reuse already opened channel use $forceOpen = false variable in *channel* method. If can't found opened and free channel then method will open new one:
+  
+```php
+$channel = $bunny->channel(false);
+```
+
 ### Subscribing to a queue
 
 Subscribing to a queue can be done in two ways. The first way will run indefinitely:
