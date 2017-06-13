@@ -20,7 +20,7 @@ $data = implode(' ', array_slice($argv, 1));
     return $channel->publish(
         $data,
         [
-            'delivery_mode' => 2
+            'delivery-mode' => 2
         ],
         '',
         'task_queue'
