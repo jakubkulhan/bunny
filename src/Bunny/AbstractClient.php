@@ -374,20 +374,8 @@ abstract class AbstractClient
      *
      * @return Channel|Promise\PromiseInterface
      */
-    public function channel($forceOpen = true)
+    public function channel()
     {
-        if (false === $forceOpen) {
-            /**
-             * @var int $channelId
-             * @var Channel $channel
-             */
-            foreach ($this->channels as $channelId => $channel) {
-                if ($channel->getState() === ChannelStateEnum::READY) {
-                    return $channel;
-                }
-            }
-        }
-
         // since we not found any free channel, then make one
         $channelId = $this->findChannelId();
 
