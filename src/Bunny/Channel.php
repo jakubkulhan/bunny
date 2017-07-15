@@ -756,5 +756,5 @@ class Channel
             throw new \LogicException("Either return or deliver frame has to be handled here.");
         }
     }
-
 }
+

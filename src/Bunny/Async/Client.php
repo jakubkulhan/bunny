@@ -208,6 +208,9 @@ class Client extends AbstractClient
 
         })->then(function (MethodConnectionTuneFrame $tune) {
             $this->frameMax = $tune->frameMax;
+            if ($tune->channelMax > 0) {
+                $this->channelMax = $tune->channelMax;
+            }
             return $this->connectionTuneOk($tune->channelMax, $tune->frameMax, $this->options["heartbeat"]);
 
         })->then(function () {

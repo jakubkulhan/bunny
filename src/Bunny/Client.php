@@ -109,6 +109,9 @@ class Client extends AbstractClient
             $tune = $this->awaitConnectionTune();
             $this->connectionTuneOk($tune->channelMax, $tune->frameMax, $this->options["heartbeat"]); // FIXME: options heartbeat
             $this->frameMax = $tune->frameMax;
+            if ($tune->channelMax > 0) {
+                $this->channelMax = $tune->channelMax;
+            }
             $this->connectionOpen($this->options["vhost"]);
 
             $this->state = ClientStateEnum::CONNECTED;
