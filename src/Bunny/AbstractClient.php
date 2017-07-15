@@ -70,7 +70,7 @@ abstract class AbstractClient
     protected $nextChannelId = 1;
 
     /** @var int  */
-    protected $channelMax = 255;
+    protected $channelMax = 0xFFFF;
 
     /** @var float microtime of last read*/
     protected $lastRead = 0.0;
@@ -370,8 +370,6 @@ abstract class AbstractClient
      *
      * Channel gets first available channel id.
      *
-     * @param bool $forceOpen Open new channel without check existent ready channels
-     *
      * @return Channel|Promise\PromiseInterface
      */
     public function channel()
@@ -488,7 +486,7 @@ abstract class AbstractClient
             }
         }
 
-        throw new ClientException('No available channels');
+        throw new ClientException("No available channels");
     }
 
 }
