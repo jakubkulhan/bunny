@@ -178,6 +178,10 @@ Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](http
 });
 ```
 
+## AMQP interop
+
+There is [amqp interop](https://github.com/queue-interop/amqp-interop) compatible wrapper(s) for the bunny library.
+
 ## Contributing
 
 * Large part of the PHP code (almost everything in `Bunny\Protocol` namespace) is generated from spec in file
