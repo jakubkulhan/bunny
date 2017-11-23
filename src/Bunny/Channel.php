@@ -322,12 +322,12 @@ class Channel
      * Rejects given message.
      *
      * @param Message $message
-     * @param bool $reqeue
+     * @param bool $requeue
      * @return boolean|PromiseInterface
      */
-    public function reject(Message $message, $reqeue = true)
+    public function reject(Message $message, $requeue = true)
     {
-        return $this->rejectImpl($message->deliveryTag, $reqeue);
+        return $this->rejectImpl($message->deliveryTag, $requeue);
     }
 
     /**
