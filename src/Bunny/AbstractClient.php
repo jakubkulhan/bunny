@@ -449,7 +449,7 @@ abstract class AbstractClient
     /**
      * Wait for messages on connection and process them. Will process messages for at most $maxSeconds.
      *
-     * @param float $maxSeconds
+     * @param int $maxSeconds
      * @return void
      */
     abstract public function run($maxSeconds = null);
