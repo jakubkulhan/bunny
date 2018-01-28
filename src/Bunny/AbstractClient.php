@@ -36,7 +36,7 @@ abstract class AbstractClient
     /** @var LoggerInterface */
     protected $log;
 
-    /** @var resource */
+    /** @var resource|null */
     protected $stream;
 
     /** @var int */
@@ -60,7 +60,7 @@ abstract class AbstractClient
     /** @var Channel[] */
     protected $channels = [];
 
-    /** @var Promise\PromiseInterface */
+    /** @var Promise\PromiseInterface|null */
     protected $disconnectPromise;
 
     /** @var int */

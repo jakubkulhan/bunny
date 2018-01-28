@@ -1,6 +1,7 @@
 <?php
 namespace Bunny\Protocol;
 
+use Bunny\Exception\BufferUnderflowException;
 use PHPUnit\Framework\TestCase;
 
 class BufferTest extends TestCase
@@ -80,7 +81,7 @@ class BufferTest extends TestCase
 
     public function testReadThrows()
     {
-        $this->expectException("Bunny\\Exception\\BufferUnderflowException");
+        $this->expectException(BufferUnderflowException::class);
         $buf = new Buffer();
         $buf->read(1);
     }
@@ -101,7 +102,7 @@ class BufferTest extends TestCase
 
     public function testConsumeThrows()
     {
-        $this->expectException("Bunny\\Exception\\BufferUnderflowException");
+        $this->expectException(BufferUnderflowException::class);
         $buf = new Buffer();
         $buf->consume(1);
     }
@@ -125,7 +126,7 @@ class BufferTest extends TestCase
 
     public function testDiscardThrows()
     {
-        $this->expectException("Bunny\\Exception\\BufferUnderflowException");
+        $this->expectException(BufferUnderflowException::class);
         $buf = new Buffer();
         $buf->discard(1);
     }
@@ -153,7 +154,7 @@ class BufferTest extends TestCase
 
     public function testSliceThrows()
     {
-        $this->expectException("Bunny\\Exception\\BufferUnderflowException");
+        $this->expectException(BufferUnderflowException::class);
         $buf = new Buffer();
         $buf->slice(1);
     }
@@ -177,7 +178,7 @@ class BufferTest extends TestCase
 
     public function testConsumeSliceThrows()
     {
-        $this->expectException("Bunny\\Exception\\BufferUnderflowException");
+        $this->expectException(BufferUnderflowException::class);
         $buf = new Buffer();
         $buf->consumeSlice(1);
     }

@@ -47,7 +47,7 @@ class Client extends AbstractClient
     /** @var LoopInterface */
     protected $eventLoop;
 
-    /** @var Promise\PromiseInterface */
+    /** @var Promise\PromiseInterface|null */
     protected $flushWriteBufferPromise;
 
     /** @var callable[] */

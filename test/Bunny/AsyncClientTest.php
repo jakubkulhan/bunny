@@ -2,6 +2,7 @@
 namespace Bunny;
 
 use Bunny\Async\Client;
+use Bunny\Exception\ClientException;
 use Bunny\Protocol\MethodBasicReturnFrame;
 use Bunny\Test\Exception\TimeoutException;
 use PHPUnit\Framework\TestCase;
@@ -57,7 +58,7 @@ class AsyncClientTest extends TestCase
 
     public function testConnectFailure()
     {
-        $this->expectException("Bunny\\Exception\\ClientException");
+        $this->expectException(ClientException::class);
 
         $loop = Factory::create();
 
@@ -119,7 +120,7 @@ class AsyncClientTest extends TestCase
             /** @var Channel[] $chs */
             $this->assertCount(3, $chs);
             for ($i = 0, $l = count($chs); $i < $l; ++$i) {
-                $this->assertInstanceOf("Bunny\\Channel", $chs[$i]);
+                $this->assertInstanceOf(Channel::class, $chs[$i]);
                 for ($j = 0; $j < $i; ++$j) {
                     $this->assertNotEquals($chs[$i]->getChannelId(), $chs[$j]->getChannelId());
                 }
@@ -154,7 +155,7 @@ class AsyncClientTest extends TestCase
             $this->fail("Promise should get rejected");
             $loop->stop();
         }, function (\Exception $e) use ($loop) {
-            $this->assertInstanceOf("Bunny\\Exception\\ClientException", $e);
+            $this->assertInstanceOf(ClientException::class, $e);
             $loop->stop();
         })->done();
 
@@ -227,7 +228,7 @@ class AsyncClientTest extends TestCase
 
         })->then(function (Message $message1 = null) use (&$channel) {
             $this->assertNotNull($message1);
-            $this->assertInstanceOf("Bunny\\Message", $message1);
+            $this->assertInstanceOf(Message::class, $message1);
             $this->assertEquals($message1->exchange, "");
             $this->assertEquals($message1->content, ".");
 
@@ -243,7 +244,7 @@ class AsyncClientTest extends TestCase
 
         })->then(function (Message $message3 = null) use (&$channel) {
             $this->assertNotNull($message3);
-            $this->assertInstanceOf("Bunny\\Message", $message3);
+            $this->assertInstanceOf(Message::class, $message3);
             $this->assertEquals($message3->exchange, "");
             $this->assertEquals($message3->content, "..");
 
@@ -293,7 +294,7 @@ class AsyncClientTest extends TestCase
         $loop->run();
 
         $this->assertNotNull($returnedMessage);
-        $this->assertInstanceOf("Bunny\\Message", $returnedMessage);
+        $this->assertInstanceOf(Message::class, $returnedMessage);
         $this->assertEquals("xxx", $returnedMessage->content);
         $this->assertEquals("", $returnedMessage->exchange);
         $this->assertEquals("404", $returnedMessage->routingKey);
