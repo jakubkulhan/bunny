@@ -35,14 +35,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Bunny\\": [
-                "src/Bunny/",
-                "test/Bunny/"
-            ]
-        },
-        "classmap": [
-            "src/Bunny/",
-            "test/Bunny/"
-        ]
+            "Bunny\\": "src/Bunny/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bunny\\": "test/Bunny/"
+        }
     }
 }
