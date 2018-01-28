@@ -1,7 +1,9 @@
 <?php
 namespace Bunny;
 
-class ChannelTest extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class ChannelTest extends TestCase
 {
 
     public function testClose()
@@ -21,6 +23,8 @@ class ChannelTest extends \PHPUnit_Framework_TestCase
         $ch = (new Client())->connect()->channel();
         $ch->exchangeDeclare("test_exchange", "direct", false, false, true);
         $ch->getClient()->disconnect();
+
+        $this->assertTrue(true);
     }
 
     public function testQueueDeclare()
@@ -28,6 +32,8 @@ class ChannelTest extends \PHPUnit_Framework_TestCase
         $ch = (new Client())->connect()->channel();
         $ch->queueDeclare("test_queue", false, false, false, true);
         $ch->getClient()->disconnect();
+
+        $this->assertTrue(true);
     }
 
     public function testQueueBind()
@@ -37,6 +43,8 @@ class ChannelTest extends \PHPUnit_Framework_TestCase
         $ch->queueDeclare("test_queue", false, false, false, true);
         $ch->queueBind("test_queue", "test_exchange");
         $ch->getClient()->disconnect();
+
+        $this->assertTrue(true);
     }
 
     public function testPublish()
@@ -44,6 +52,8 @@ class ChannelTest extends \PHPUnit_Framework_TestCase
         $ch = (new Client())->connect()->channel();
         $ch->publish("test publish", []);
         $ch->getClient()->disconnect();
+
+        $this->assertTrue(true);
     }
 
     public function testConsume()

@@ -3,8 +3,9 @@ namespace Bunny;
 
 use Bunny\Protocol\MethodBasicAckFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
+use PHPUnit\Framework\TestCase;
 
-class ClientTest extends \PHPUnit_Framework_TestCase
+class ClientTest extends TestCase
 {
 
     public function testConnectAsGuest()
@@ -12,6 +13,8 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $client = new Client();
         $client->connect();
         $client->disconnect();
+
+        $this->assertTrue(true);
     }
 
     public function testConnectAuth()
@@ -23,11 +26,13 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         ]);
         $client->connect();
         $client->disconnect();
+
+        $this->assertTrue(true);
     }
 
     public function testConnectFailure()
     {
-        $this->setExpectedException("Bunny\\Exception\\ClientException");
+        $this->expectException("Bunny\\Exception\\ClientException");
 
         $client = new Client([
             "user" => "testuser",
@@ -188,7 +193,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
     public function testTxSelectCannotBeCalledMultipleTimes()
     {
-        $this->setExpectedException("Bunny\\Exception\\ChannelException");
+        $this->expectException("Bunny\\Exception\\ChannelException");
 
         $client = new Client();
         $client->connect();

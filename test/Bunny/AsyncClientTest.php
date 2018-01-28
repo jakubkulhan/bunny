@@ -4,10 +4,11 @@ namespace Bunny;
 use Bunny\Async\Client;
 use Bunny\Protocol\MethodBasicReturnFrame;
 use Bunny\Test\Exception\TimeoutException;
+use PHPUnit\Framework\TestCase;
 use React\EventLoop\Factory;
 use React\Promise;
 
-class AsyncClientTest extends \PHPUnit_Framework_TestCase
+class AsyncClientTest extends TestCase
 {
 
     public function testConnectAsGuest()
@@ -26,6 +27,8 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         })->done();
 
         $loop->run();
+
+        $this->assertTrue(true);
     }
 
     public function testConnectAuth()
@@ -48,11 +51,13 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         })->done();
 
         $loop->run();
+
+        $this->assertTrue(true);
     }
 
     public function testConnectFailure()
     {
-        $this->setExpectedException("Bunny\\Exception\\ClientException");
+        $this->expectException("Bunny\\Exception\\ClientException");
 
         $loop = Factory::create();
 
@@ -91,6 +96,8 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         })->done();
 
         $loop->run();
+
+        $this->assertTrue(true);
     }
 
     public function testOpenMultipleChannel()
