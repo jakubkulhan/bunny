@@ -217,7 +217,7 @@ class Client extends AbstractClient
             return $this->connectionOpen($this->options["vhost"]);
 
         })->then(function () {
-            $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
+            $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"]/2, [$this, "onHeartbeat"]);
 
             $this->state = ClientStateEnum::CONNECTED;
             return $this;
