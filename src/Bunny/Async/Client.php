@@ -323,12 +323,12 @@ class Client extends AbstractClient
     public function onHeartbeat()
     {
         $now = microtime(true);
-        $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
+        $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options["heartbeat"]/2;
 
         if ($now >= $nextHeartbeat) {
             $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
             $this->flushWriteBuffer()->done(function () {
-                $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
+                $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"]/2, [$this, "onHeartbeat"]);
             });
 
         } else {
