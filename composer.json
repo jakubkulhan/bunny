@@ -27,7 +27,7 @@
     "require": {
         "php": "~7.0",
         "psr/log": "~1.0",
-        "react/event-loop": "~0.4",
+        "react/event-loop": "^1.0 || ^0.5 || ^0.4",
         "react/promise": "~2.2"
     },
     "require-dev": {
