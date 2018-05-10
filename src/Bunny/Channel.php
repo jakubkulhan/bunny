@@ -587,7 +587,7 @@ class Channel
                 }
 
                 // break reference cycle, must be called after resolving promise
-                unset($this->client);
+                $this->client = null;
                 // break consumers' reference cycle
                 $this->deliverCallbacks = [];
 
