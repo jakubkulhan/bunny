@@ -129,6 +129,16 @@ class Channel
     }
 
     /**
+     * Returns the channel mode.
+     *
+     * @return int
+     */
+    public function getMode()
+    {
+        return $this->mode;
+    }
+
+    /**
      * Listener is called whenever 'basic.return' frame is received with arguments (Message $returnedMessage, MethodBasicReturnFrame $frame)
      *
      * @param callable $callback
