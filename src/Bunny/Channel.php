@@ -2,6 +2,7 @@
 namespace Bunny;
 
 use Bunny\Exception\ChannelException;
+use Bunny\Exception\ClientException;
 use Bunny\Protocol\AbstractFrame;
 use Bunny\Protocol\Buffer;
 use Bunny\Protocol\ContentBodyFrame;
@@ -227,7 +228,12 @@ class Channel
 
         $this->state = ChannelStateEnum::CLOSING;
 
-        $this->client->channelClose($this->channelId, $replyCode, $replyText, 0, 0);
+        try {
+            $this->client->channelClose($this->channelId, $replyCode, $replyText, 0, 0);
+        } catch (ClientException $e) {
+            // no op
+        }
+
         $this->closeDeferred = new Deferred();
         return $this->closePromise = $this->closeDeferred->promise()->then(function () {
             $this->client->removeChannel($this->channelId);
