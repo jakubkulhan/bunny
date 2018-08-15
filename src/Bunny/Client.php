@@ -1,4 +1,5 @@
 <?php
+
 namespace Bunny;
 
 use Bunny\Exception\ClientException;
@@ -200,7 +201,21 @@ class Client extends AbstractClient
                     $e = null;
 
                     if (($n = @stream_select($r, $w, $e, $tvSec, $tvUsec)) === false) {
-                        throw new ClientException("stream_select() failed.");
+                        $lastError = error_get_last();
+                        if ($lastError !== null &&
+                            preg_match("/^stream_select\\(\\): unable to select \\[(\\d+)\\]:/", $lastError["message"], $m) &&
+                            intval($m[1]) === PCNTL_EINTR
+                        ) {
+                            // got interrupted by signal, dispatch signals & continue
+                            pcntl_signal_dispatch();
+                            $n = 0;
+
+                        } else {
+                            throw new ClientException(sprintf(
+                                "stream_select() failed: %s",
+                                $lastError ? $lastError["message"] : "Unknown error."
+                            ));
+                        }
                     }
 
                     $now = microtime(true);
