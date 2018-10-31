@@ -160,7 +160,7 @@ $channel->qos(
 Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](https://github.com/reactphp). The following example shows setting up a client and consuming a queue indefinitely.
 
 ```php
-(new Async\Client($eventLoop, $options))->connect()->then(function (Client $client) {
+(new Async\Client($eventLoop, $options))->connect()->then(function (Async\Client $client) {
    return $client->channel();
 })->then(function (Channel $channel) {
    return $channel->qos(0, 5)->then(function () use ($channel) {
@@ -168,7 +168,7 @@ Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](http
    });
 })->then(function (Channel $channel) use ($event) {
    $channel->consume(
-       function (Message $message, Channel $channel, Client $client) use ($event) {
+       function (Message $message, Channel $channel, Async\Client $client) use ($event) {
            // Handle message
 
            $channel->ack($message);
