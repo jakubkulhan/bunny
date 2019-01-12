@@ -58,6 +58,78 @@ function amqpTypeToPhpType($type)
     }
 }
 
+/**
+ * Returns only the spec's soft-error and hard-error constants
+ *
+ * @param array $spec_constants
+ * @return array
+ */
+function specErrorConstants($spec_constants)
+{
+    return array_filter($spec_constants, function ($constant) {
+        return
+            property_exists($constant, 'class') &&
+            ($constant->class === 'soft-error' || $constant->class === 'hard-error');
+    });
+}
+
+/**
+ * Returns an Exception name for the given spec constant.
+ *
+ * @param \StdClass $error_constant
+ * @return string
+ */
+function specErrorExceptionName($error_constant)
+{
+    if (property_exists($error_constant, 'class')) {
+        if ($error_constant->class === 'soft-error') {
+            return "SoftError{$error_constant->value}Exception";
+        } else if ($error_constant->class === 'hard-error') {
+            return "HardError{$error_constant->value}Exception";
+        }
+    }
+
+    return "Error{$error_constant->value}Exception";
+}
+
+/**
+ * Returns an Exception name for the given spec constant.
+ *
+ * @param  int $class_name
+ * @return string
+ */
+function specClassType($class_name)
+{
+    switch ($class_name) {
+        case 'connection':
+            return 'client';
+
+        case 'channel':
+            return 'channel';
+
+        case 'access':
+            return 'channel';
+
+        case 'exchange':
+            return 'channel';
+
+        case 'queue':
+            return 'channel';
+
+        case 'basic':
+            return 'channel';
+
+        case 'tx':
+            return 'channel';
+
+        case 'confirm':
+            return 'channel';
+
+        default:
+            return 'unknown';
+    }
+}
+
 function amqpTypeToConsume($type)
 {
     switch ($type) {
@@ -949,3 +1021,187 @@ file_put_contents(__DIR__ . "/../src/Bunny/ClientMethods.php", $clientMethodsCon
 
 $channelMethodsContent .= "}\n";
 file_put_contents(__DIR__ . "/../src/Bunny/ChannelMethods.php", $channelMethodsContent);
+
+foreach (specErrorConstants($spec->constants) as $constant)
+{
+    $exception = specErrorExceptionName($constant);
+
+    $exceptionContent = "<?php\n";
+    $exceptionContent .= "namespace Bunny\\Exception;\n";
+    $exceptionContent .= "\n";
+    $exceptionContent .= "/**\n";
+    $exceptionContent .= " * AMQP-{$spec->{'major-version'}}-{$spec->{'minor-version'}}-{$spec->{'revision'}} Error {$constant->value} '{$constant->name}' ({$constant->class}). \n";
+    $exceptionContent .= " *\n";
+    $exceptionContent .= " * THIS CLASS IS GENERATED FROM {$specFileName}. **DO NOT EDIT!**\n";
+    $exceptionContent .= " *\n";
+    $exceptionContent .= " * @author Jakub Kulhan <jakub.kulhan@gmail.com>\n";
+    $exceptionContent .= " */\n";
+    $exceptionContent .= "\n";
+    $exceptionContent .= "class {$exception} extends ClientException\n";
+    $exceptionContent .= "{\n";
+    $exceptionContent .= "}\n";
+    $exceptionContent .= "\n";
+    file_put_contents(__DIR__ . "/../src/Bunny/Exception/{$exception}.php", $exceptionContent);
+}
+
+$frameErrorContent = "<?php\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "namespace Bunny\\Protocol;\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "use Bunny\Exception\BunnyException;\n";
+$frameErrorContent .= "use Bunny\Exception\ChannelException;\n";
+$frameErrorContent .= "use Bunny\Exception\ClientException;\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "/**\n";
+$frameErrorContent .= " * AMQP-{$spec->{'major-version'}}-{$spec->{'minor-version'}}-{$spec->{'revision'}} Error fetcher. \n";
+$frameErrorContent .= " *\n";
+$frameErrorContent .= " * THIS CLASS IS GENERATED FROM {$specFileName}. **DO NOT EDIT!**\n";
+$frameErrorContent .= " *\n";
+$frameErrorContent .= " * Returns the appropriate exception instance based on the frame type.\n";
+$frameErrorContent .= " *\n";
+$frameErrorContent .= " * For MethodChannelCloseFrame, MethodConnectionCloseFrame and MethodBasicReturnFrame frames\n";
+$frameErrorContent .= " * a unique SoftError???Exception or HardError???Exception will be returned as these\n";
+$frameErrorContent .= " * frames each have a replyCode and replyText property.\n";
+$frameErrorContent .= " *\n";
+$frameErrorContent .= " * For all other frames either a ClientException or ChannelException will be returned, depending\n";
+$frameErrorContent .= " * on the frame's class id.\n";
+$frameErrorContent .= " *\n";
+$frameErrorContent .= " * The Frame's class and method properties is appended to the default message (if one was supplied).\n";
+$frameErrorContent .= " *\n";
+$frameErrorContent .= " * @author Jakub Kulhan <jakub.kulhan@gmail.com>\n";
+$frameErrorContent .= " */\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "class FrameError\n";
+$frameErrorContent .= "{\n";
+
+$frameErrorContent .= "    /**\n";
+$frameErrorContent .= "     * Returns the appropriate exception for the response frame.\n";
+$frameErrorContent .= "     *\n";
+$frameErrorContent .= "     * @param MethodFrame \$frame\n";
+$frameErrorContent .= "     * @param string      \$defaultErrorMsg\n";
+$frameErrorContent .= "     *\n";
+$frameErrorContent .= "     * @return \Bunny\Exception\BunnyException\n";
+$frameErrorContent .= "     */\n";
+$frameErrorContent .= "    public function get(MethodFrame \$frame, \$defaultErrorMsg = '')\n";
+$frameErrorContent .= "    {\n";
+
+
+
+$frameErrorContent .= "        \$className = get_class(\$frame);\n";
+$frameErrorContent .= "        \$class = \$this->getClass(\$frame->classId);\n";
+$frameErrorContent .= "        if (\$class === null) {\n";
+$frameErrorContent .= "            \$amqpClassName = 'unknown';\n";
+$frameErrorContent .= "            \$amqpMethodName = (string)\$frame->methodId;\n";
+$frameErrorContent .= "            \$classType = (string)\$frame->classId;\n";
+$frameErrorContent .= "        } else {\n";
+$frameErrorContent .= "            \$amqpClassName = \$class['name'];\n";
+$frameErrorContent .= "            \$amqpMethodName = \$this->getClassMethod(\$class, \$frame->methodId, 'unknown');\n";
+$frameErrorContent .= "            \$classType = \$class['type'];\n";
+$frameErrorContent .= "        }\n";
+
+$frameErrorContent .= "        if (\$frame instanceof MethodChannelCloseFrame ||\n";
+$frameErrorContent .= "            \$frame instanceof MethodConnectionCloseFrame ||\n";
+$frameErrorContent .= "            \$frame instanceof MethodBasicReturnFrame) {\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "            \$errorCode = \$frame->replyCode;\n";
+$frameErrorContent .= "            if (empty(\$defaultErrorMsg)) {\n";
+$frameErrorContent .= "                \$errorMsg = \"AMQP Error: \\\"{\$errorCode} {\$frame->replyText}.\\\" \" .\n";
+$frameErrorContent .= "                    \"Class: {\$className} ({\$amqpClassName}:{\$amqpMethodName})\";\n";
+$frameErrorContent .= "            } else {\n";
+$frameErrorContent .= "                \$errorMsg = \"{\$defaultErrorMsg} : \" .\n";
+$frameErrorContent .= "                    \"AMQP Error: \\\"{\$errorCode} {\$frame->replyText}.\\\" \" .\n";
+$frameErrorContent .= "                    \"Class: {\$className} ({\$amqpClassName}:{\$amqpMethodName})\";\n";
+$frameErrorContent .= "            }\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "            switch (\$frame->replyCode) {\n";
+
+foreach (specErrorConstants($spec->constants) as $constant)
+{
+    $exception = specErrorExceptionName($constant);
+    $frameErrorContent .= "                case {$constant->value}:\n";
+    $frameErrorContent .= "                    throw new \\Bunny\\Exception\\{$exception}(\$errorMsg, \$errorCode);\n";
+}
+$frameErrorContent .= "            }\n";
+
+
+$frameErrorContent .= "        } else {\n";
+$frameErrorContent .= "            \$errorCode = 0;\n";
+$frameErrorContent .= "            if (empty(\$defaultErrorMsg)) {\n";
+$frameErrorContent .= "                \$errorMsg = \"AMQP Error in: {\$className} ({\$amqpClassName}:{\$amqpMethodName})\";\n";
+$frameErrorContent .= "            } else {\n";
+$frameErrorContent .= "                \$errorMsg = \"{\$defaultErrorMsg} : AMQP Error in: \" .\n";
+$frameErrorContent .= "                    \"{\$className} ({\$amqpClassName}:{\$amqpMethodName})\";\n";
+$frameErrorContent .= "            }\n";
+$frameErrorContent .= "        }\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "        // Handle all other exceptions based on the class type\n";
+$frameErrorContent .= "        switch (\$classType) {\n";
+$frameErrorContent .= "            case 'client':\n";
+$frameErrorContent .= "                return new ClientException(\$errorMsg, \$errorCode);\n";
+$frameErrorContent .= "            case 'channel':\n";
+$frameErrorContent .= "                return new ChannelException(\$errorMsg, \$errorCode);\n";
+$frameErrorContent .= "            default:\n";
+$frameErrorContent .= "                return new BunnyException(\$errorMsg, \$errorCode);\n";
+$frameErrorContent .= "        }\n";
+$frameErrorContent .= "    }\n";
+$frameErrorContent .= "\n";
+
+$frameErrorContent .= "    /**\n";
+$frameErrorContent .= "     * Returns the class details for the given class id,\n";
+$frameErrorContent .= "     * returns null if class was not found.\n";
+$frameErrorContent .= "     *\n";
+$frameErrorContent .= "     * @param int \$classId\n";
+$frameErrorContent .= "     *\n";
+$frameErrorContent .= "     * @return array|null\n";
+$frameErrorContent .= "     */\n";
+$frameErrorContent .= "    protected function getClass(\$classId)\n";
+$frameErrorContent .= "    {\n";
+$frameErrorContent .= "        switch (\$classId) {\n";
+
+
+foreach ($spec->classes as $class) {
+    $classType = specClassType($class->name);
+
+    $frameErrorContent .= "            // {$class->name}\n";
+    $frameErrorContent .= "            case {$class->id}:\n";
+    $frameErrorContent .= "                return [\n";
+    $frameErrorContent .= "                    'name'    => '{$class->name}',\n";
+    $frameErrorContent .= "                    'type'    => '{$classType}',\n";
+    $frameErrorContent .= "                    'methods' => [\n";
+
+    foreach ($class->methods as $index => $method) {
+        if ($index < count($class->methods) - 1) {
+            $frameErrorContent .= "                        {$method->id} => '{$method->name}',\n";
+        } else {
+            $frameErrorContent .= "                        {$method->id} => '{$method->name}'\n";
+        }
+    }
+    $frameErrorContent .= "                    ]\n";
+    $frameErrorContent .= "                ];\n";
+    $frameErrorContent .= "\n";
+}
+
+$frameErrorContent .= "\n";
+$frameErrorContent .= "            default:\n";
+$frameErrorContent .= "                return null;\n";
+$frameErrorContent .= "        }\n";
+$frameErrorContent .= "    }\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "    /**\n";
+$frameErrorContent .= "     * Returns the method name for the given class (as called by getClass())\n";
+$frameErrorContent .= "     * and method id, returns the \$default if not found.\n";
+$frameErrorContent .= "     *\n";
+$frameErrorContent .= "     * @param array  \$class\n";
+$frameErrorContent .= "     * @param int    \$methodId\n";
+$frameErrorContent .= "     * @param string \$default\n";
+$frameErrorContent .= "     *\n";
+$frameErrorContent .= "     * @return string\n";
+$frameErrorContent .= "     */\n";
+$frameErrorContent .= "    protected function getClassMethod(\$class, \$methodId, \$default = 'unknown')\n";
+$frameErrorContent .= "    {\n";
+$frameErrorContent .= "        return \$class['methods'][\$methodId] ?? \$default;\n";
+$frameErrorContent .= "    }\n";
+$frameErrorContent .= "\n";
+$frameErrorContent .= "}\n";
+$frameErrorContent .= "\n";
+file_put_contents(__DIR__ . "/../src/Bunny/Protocol/FrameError.php", $frameErrorContent);
