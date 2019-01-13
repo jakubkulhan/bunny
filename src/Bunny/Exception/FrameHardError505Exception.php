@@ -2,14 +2,14 @@
 namespace Bunny\Exception;
 
 /**
- * AMQP-0-9-1 Error 540 'NOT-IMPLEMENTED' (hard-error). 
+ * AMQP-0-9-1 Error 505 'UNEXPECTED-FRAME' (hard-error). 
  *
  * THIS CLASS IS GENERATED FROM amqp-rabbitmq-0.9.1.json. **DO NOT EDIT!**
  *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
 
-class HardError540Exception extends ClientException
+class FrameHardError505Exception extends FrameHardErrorException
 {
 }
 

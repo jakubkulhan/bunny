@@ -2,12 +2,10 @@
 
 namespace Bunny\Protocol;
 
-use Bunny\Exception\BunnyException;
-use Bunny\Exception\ChannelException;
-use Bunny\Exception\ClientException;
+use Bunny\Exception\FrameException;
 
 /**
- * AMQP-0-9-1 Error fetcher. 
+ * AMQP-0-9-1 Frame Error fetcher. 
  *
  * THIS CLASS IS GENERATED FROM amqp-rabbitmq-0.9.1.json. **DO NOT EDIT!**
  *
@@ -17,8 +15,7 @@ use Bunny\Exception\ClientException;
  * a unique SoftError???Exception or HardError???Exception will be returned as these
  * frames each have a replyCode and replyText property.
  *
- * For all other frames either a ClientException or ChannelException will be returned, depending
- * on the frame's class id.
+ * For all other frames either a FrameException instance will be returned.
  *
  * The Frame's class and method properties is appended to the default message (if one was supplied).
  *
@@ -30,94 +27,164 @@ class FrameError
     /**
      * Returns the appropriate exception for the response frame.
      *
-     * @param MethodFrame $frame
-     * @param string      $defaultErrorMsg
+     * @param AbstractFrame $frame
+     * @param string        $defaultErrorMsg
      *
-     * @return \Bunny\Exception\BunnyException
+     * @return \Bunny\Exception\FrameException
      */
-    public function get(MethodFrame $frame, $defaultErrorMsg = '')
+    public function get(AbstractFrame $frame, $defaultErrorMsg = '')
     {
-        $className = get_class($frame);
-        $class = $this->getClass($frame->classId);
-        if ($class === null) {
-            $amqpClassName = 'unknown';
-            $amqpMethodName = (string)$frame->methodId;
-            $classType = (string)$frame->classId;
-        } else {
-            $amqpClassName = $class['name'];
-            $amqpMethodName = $this->getClassMethod($class, $frame->methodId, 'unknown');
-            $classType = $class['type'];
-        }
         if ($frame instanceof MethodChannelCloseFrame ||
             $frame instanceof MethodConnectionCloseFrame ||
             $frame instanceof MethodBasicReturnFrame) {
 
-            $errorCode = $frame->replyCode;
-            if (empty($defaultErrorMsg)) {
-                $errorMsg = "AMQP Error: \"{$errorCode} {$frame->replyText}.\" " .
-                    "Class: {$className} ({$amqpClassName}:{$amqpMethodName})";
-            } else {
-                $errorMsg = "{$defaultErrorMsg} : " .
-                    "AMQP Error: \"{$errorCode} {$frame->replyText}.\" " .
-                    "Class: {$className} ({$amqpClassName}:{$amqpMethodName})";
-            }
+            // These frames all have replyCode and replyText properties
+            $errorMsg = $this->buildErrorMsg(
+                get_class($frame),
+                $defaultErrorMsg,
+                $frame->classId,
+                $frame->methodId,
+                $frame->replyCode,
+                $frame->replyText
+            );
 
-            switch ($frame->replyCode) {
-                case 311:
-                    throw new \Bunny\Exception\SoftError311Exception($errorMsg, $errorCode);
-                case 312:
-                    throw new \Bunny\Exception\SoftError312Exception($errorMsg, $errorCode);
-                case 313:
-                    throw new \Bunny\Exception\SoftError313Exception($errorMsg, $errorCode);
-                case 403:
-                    throw new \Bunny\Exception\SoftError403Exception($errorMsg, $errorCode);
-                case 404:
-                    throw new \Bunny\Exception\SoftError404Exception($errorMsg, $errorCode);
-                case 405:
-                    throw new \Bunny\Exception\SoftError405Exception($errorMsg, $errorCode);
-                case 406:
-                    throw new \Bunny\Exception\SoftError406Exception($errorMsg, $errorCode);
-                case 320:
-                    throw new \Bunny\Exception\HardError320Exception($errorMsg, $errorCode);
-                case 402:
-                    throw new \Bunny\Exception\HardError402Exception($errorMsg, $errorCode);
-                case 501:
-                    throw new \Bunny\Exception\HardError501Exception($errorMsg, $errorCode);
-                case 502:
-                    throw new \Bunny\Exception\HardError502Exception($errorMsg, $errorCode);
-                case 503:
-                    throw new \Bunny\Exception\HardError503Exception($errorMsg, $errorCode);
-                case 504:
-                    throw new \Bunny\Exception\HardError504Exception($errorMsg, $errorCode);
-                case 505:
-                    throw new \Bunny\Exception\HardError505Exception($errorMsg, $errorCode);
-                case 506:
-                    throw new \Bunny\Exception\HardError506Exception($errorMsg, $errorCode);
-                case 530:
-                    throw new \Bunny\Exception\HardError530Exception($errorMsg, $errorCode);
-                case 540:
-                    throw new \Bunny\Exception\HardError540Exception($errorMsg, $errorCode);
-                case 541:
-                    throw new \Bunny\Exception\HardError541Exception($errorMsg, $errorCode);
-            }
+            /** @noinspection PhpIncompatibleReturnTypeInspection */
+            return $this->getFrameException($errorMsg, $frame->replyCode);
+
+        } else if ($frame instanceof MethodFrame) {
+            // These frames don't have replyCode and replyText properties but they do
+            // have classId and methodId properties.
+            $errorMsg = $this->buildErrorMsg(
+                get_class($frame),
+                $defaultErrorMsg,
+                $frame->classId,
+                $frame->methodId
+            );
+
+            return new FrameException($errorMsg);
         } else {
-            $errorCode = 0;
-            if (empty($defaultErrorMsg)) {
-                $errorMsg = "AMQP Error in: {$className} ({$amqpClassName}:{$amqpMethodName})";
-            } else {
-                $errorMsg = "{$defaultErrorMsg} : AMQP Error in: " .
-                    "{$className} ({$amqpClassName}:{$amqpMethodName})";
-            }
+            // These frames don't have any useful details for us to use.
+            $errorMsg = $this->buildErrorMsg(
+                get_class($frame),
+                $defaultErrorMsg
+            );
+
+            return new FrameException($errorMsg);
+        }
+    }
+
+    /**
+     * Constructs an error message based on the supplied data.
+     *
+     * @param string      $frameClass
+     * @param string      $defaultErrorMsg
+     * @param int|null    $classId
+     * @param int|null    $methodId
+     * @param int|null    $replyCode
+     * @param string|null $replyText
+     *
+     * @return string
+     */
+    protected function buildErrorMsg($frameClass, $defaultErrorMsg = '',
+                                     $classId = null, $methodId = null,
+                                     $replyCode = null, $replyText = null)
+    {
+        if (empty($defaultErrorMsg)) {
+            $errPrefix = '';
+        } else {
+            $errPrefix = $defaultErrorMsg . ': ';
         }
 
-        // Handle all other exceptions based on the class type
-        switch ($classType) {
-            case 'client':
-                return new ClientException($errorMsg, $errorCode);
-            case 'channel':
-                return new ChannelException($errorMsg, $errorCode);
+        if ($methodId !== null && $classId !== null) {
+            $amqpClass = $this->getClass($classId);
+            if ($amqpClass === null) {
+                $amqpClassName = 'unknown';
+                $amqpMethodName = 'unknown';
+            } else {
+                $amqpClassName = $amqpClass['name'];
+                $amqpMethodName = $this->getClassMethod($amqpClass, $methodId);
+            }
+        } else {
+            $amqpClassName = '';
+            $amqpMethodName = '';
+        }
+
+        if ($methodId !== null && $classId !== null && $replyCode !== null && $replyText !== null) {
+            // Full error message
+            return sprintf('%sAMQP Error: "%s %s" in class %s (%s:%s).',
+                $errPrefix,
+                $replyCode,
+                $replyText,
+                $frameClass,
+                $amqpClassName,
+                $amqpMethodName
+            );
+        } else if ($methodId !== null && $classId !== null && $replyCode === null && $replyText === null) {
+            // Full error message except for replyCode and replyText
+            return sprintf('%sAMQP Error in class %s (%s:%s).',
+                $errPrefix,
+                $frameClass,
+                $amqpClassName,
+                $amqpMethodName
+            );
+        } else {
+            // Bare-bones error message, we only have the frame class.
+            return sprintf('%sAMQP Error in class %s.',
+                $errPrefix,
+                $frameClass
+            );
+        }
+    }
+
+    /**
+     * Returns the appropriate exception for the given reply code.
+     *
+     * @param string $errorMsg
+     * @param int    $replyCode
+     *
+     * @return \Exception
+     */
+    protected function getFrameException($errorMsg, $replyCode)
+    {
+        switch ($replyCode) {
+            case 311:
+                return new \Bunny\Exception\FrameSoftError311Exception($errorMsg, $replyCode);
+            case 312:
+                return new \Bunny\Exception\FrameSoftError312Exception($errorMsg, $replyCode);
+            case 313:
+                return new \Bunny\Exception\FrameSoftError313Exception($errorMsg, $replyCode);
+            case 403:
+                return new \Bunny\Exception\FrameSoftError403Exception($errorMsg, $replyCode);
+            case 404:
+                return new \Bunny\Exception\FrameSoftError404Exception($errorMsg, $replyCode);
+            case 405:
+                return new \Bunny\Exception\FrameSoftError405Exception($errorMsg, $replyCode);
+            case 406:
+                return new \Bunny\Exception\FrameSoftError406Exception($errorMsg, $replyCode);
+            case 320:
+                return new \Bunny\Exception\FrameHardError320Exception($errorMsg, $replyCode);
+            case 402:
+                return new \Bunny\Exception\FrameHardError402Exception($errorMsg, $replyCode);
+            case 501:
+                return new \Bunny\Exception\FrameHardError501Exception($errorMsg, $replyCode);
+            case 502:
+                return new \Bunny\Exception\FrameHardError502Exception($errorMsg, $replyCode);
+            case 503:
+                return new \Bunny\Exception\FrameHardError503Exception($errorMsg, $replyCode);
+            case 504:
+                return new \Bunny\Exception\FrameHardError504Exception($errorMsg, $replyCode);
+            case 505:
+                return new \Bunny\Exception\FrameHardError505Exception($errorMsg, $replyCode);
+            case 506:
+                return new \Bunny\Exception\FrameHardError506Exception($errorMsg, $replyCode);
+            case 530:
+                return new \Bunny\Exception\FrameHardError530Exception($errorMsg, $replyCode);
+            case 540:
+                return new \Bunny\Exception\FrameHardError540Exception($errorMsg, $replyCode);
+            case 541:
+                return new \Bunny\Exception\FrameHardError541Exception($errorMsg, $replyCode);
             default:
-                return new BunnyException($errorMsg, $errorCode);
+                return new FrameException($errorMsg, $replyCode);
         }
     }
 

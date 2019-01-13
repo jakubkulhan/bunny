@@ -621,7 +621,7 @@ class Channel
                 }
 
             } else {
-                throw (new FrameError())->get($frame);
+                throw (new FrameError())->get($frame, 'Channel method frame error received.');
             }
 
         } elseif ($frame instanceof ContentHeaderFrame) {
@@ -695,7 +695,7 @@ class Channel
             throw new ChannelException("Unexpected heartbeat frame.");
 
         } else {
-            throw (new FrameError())->get($frame);
+            throw (new FrameError())->get($frame, 'Channel content body frame error received.');
         }
     }
 

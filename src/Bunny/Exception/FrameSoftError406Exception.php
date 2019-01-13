@@ -2,14 +2,14 @@
 namespace Bunny\Exception;
 
 /**
- * AMQP-0-9-1 Error 504 'CHANNEL-ERROR' (hard-error). 
+ * AMQP-0-9-1 Error 406 'PRECONDITION-FAILED' (soft-error). 
  *
  * THIS CLASS IS GENERATED FROM amqp-rabbitmq-0.9.1.json. **DO NOT EDIT!**
  *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
 
-class HardError504Exception extends ClientException
+class FrameSoftError406Exception extends FrameSoftErrorException
 {
 }
 
