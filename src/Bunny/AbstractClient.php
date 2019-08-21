@@ -132,6 +132,10 @@ abstract class AbstractClient
             $options["heartbeat"] = 60.0;
         }
 
+        if (is_callable($options['heartbeat_callback'] ?? null)) {
+            $this->options['heartbeat_callback'] = $options['heartbeat_callback'];
+        }
+
         $this->options = $options;
         $this->log = $log;
 
