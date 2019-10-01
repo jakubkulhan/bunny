@@ -14,6 +14,7 @@ use Bunny\Protocol\MethodBasicGetEmptyFrame;
 use Bunny\Protocol\MethodBasicGetOkFrame;
 use Bunny\Protocol\MethodBasicNackFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
+use Bunny\Protocol\MethodChannelCloseFrame;
 use Bunny\Protocol\MethodChannelCloseOkFrame;
 use Bunny\Protocol\MethodFrame;
 use React\Promise\Deferred;
@@ -618,6 +619,8 @@ class Channel
                 foreach ($this->ackCallbacks as $callback) {
                     $callback($frame);
                 }
+            } elseif ($frame instanceof MethodChannelCloseFrame) {
+                throw new ChannelException("Channel closed by server: " . $frame->replyText, $frame->replyCode);
 
             } else {
                 throw new ChannelException("Unhandled method frame " . get_class($frame) . ".");
