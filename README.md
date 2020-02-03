@@ -82,6 +82,33 @@ $bunny = new Client($connection);
 $bunny->connect();
 ```
 
+### Connecting with SSL/TLS
+
+Options for SSL/TLS-connections should be specified as array `tls`:
+
+```php
+$connection = [
+    'host'      => 'HOSTNAME',
+    'vhost'     => 'VHOST',    // The default vhost is /
+    'user'      => 'USERNAME', // The default user is guest
+    'password'  => 'PASSWORD', // The default password is guest
+    'tls'       => [
+        'cafile'      => 'ca.pem',
+        'local_cert'  => 'client.cert',
+        'local_pk'    => 'client.key',
+    ],
+];
+
+$bunny = new Client($connection);
+$bunny->connect();
+```
+
+For options description - please see [SSL/TLS context options](https://www.php.net/manual/en/context.ssl.php).
+
+Note: invalid SSL/TLS configuration will cause connection failure.
+
+See also [common configuration variants](examples/tls/).
+
 ### Publish a message
 
 Now that we have a connection with the server we need to create a channel and declare a queue to communicate over before we can publish a message, or subscribe to a queue for that matter.

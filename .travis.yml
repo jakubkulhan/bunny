@@ -20,15 +20,18 @@ env:
   jobs:
     - PREFER_LOWEST="--prefer-lowest"
     - PREFER_LOWEST=""
+    - TLS_TEST="yes" TLS_CA="tls/ca.pem" TLS_PEER_NAME="server.rmq"
+    - TLS_TEST="yes" TLS_CA="tls/ca.pem" TLS_PEER_NAME="server.rmq" TLS_CLIENT_CERT="tls/client.pem" TLS_CLIENT_KEY="tls/client.key"
 
 jobs:
   allow_failures:
     - php: nightly
 
 install:
-  - composer update --dev --prefer-source $PREFER_LOWEST
+  - composer update --prefer-source $PREFER_LOWEST
 
 before_script:
+  - if [ ! -z "$TLS_TEST" ] ; then test/tls/travis.sh; fi
   - sudo rabbitmqctl add_vhost testvhost
   - sudo rabbitmqctl add_user testuser testpassword
   - sudo rabbitmqctl set_permissions -p testvhost testuser ".*" ".*" ".*"
