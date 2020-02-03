@@ -1,6 +1,6 @@
 dist: trusty
 
-sudo: required
+os: linux
 
 language: php
 
@@ -15,11 +15,11 @@ cache:
     - $HOME/.composer/cache
 
 env:
-  matrix:
+  jobs:
     - PREFER_LOWEST="--prefer-lowest"
     - PREFER_LOWEST=""
 
-matrix:
+jobs:
   allow_failures:
     - php: nightly
 
