@@ -16,6 +16,10 @@ use Bunny\Protocol\ProtocolWriter;
 use Psr\Log\LoggerInterface;
 use React\Promise;
 
+use function is_array;
+use function stream_context_create;
+use function stream_context_set_option;
+
 /**
  * Base class for synchronous and asynchronous AMQP/RabbitMQ client.
  *
@@ -209,10 +213,18 @@ abstract class AbstractClient
     protected function getStream()
     {
         if ($this->stream === null) {
-            // TODO: SSL
+            $streamScheme = 'tcp';
+
+            $context = stream_context_create();
+            if (isset($this->options['ssl']) && is_array($this->options['ssl'])) {
+                if (!stream_context_set_option($context, ['ssl' => $this->options['ssl']])) {
+                    throw new ClientException("Failed to set SSL-options.");
+                }
+                $streamScheme = 'ssl';
+            }
 
             // see https://github.com/nrk/predis/blob/v1.0/src/Connection/StreamConnection.php
-            $uri = "tcp://{$this->options["host"]}:{$this->options["port"]}";
+            $uri = $streamScheme."://{$this->options["host"]}:{$this->options["port"]}";
             $flags = STREAM_CLIENT_CONNECT;
 
             if (isset($this->options["async_connect"]) && !!$this->options["async_connect"]) {
@@ -228,16 +240,15 @@ abstract class AbstractClient
 
                 $uri .= (strpos($this->options["path"], "/") === 0) ? $this->options["path"] : "/" . $this->options["path"];
             }
-            
+
             // tcp_nodelay was added in 7.1.0
             if (PHP_VERSION_ID >= 70100) {
-                $context = stream_context_create([
+                stream_context_set_option(
+                    $context, [
                     "socket" => [
                         "tcp_nodelay" => true
                     ]
                 ]);
-            } else {
-                $context = stream_context_create();
             }
             
             $this->stream = @stream_socket_client($uri, $errno, $errstr, (float)$this->options["timeout"], $flags, $context);
