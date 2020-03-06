@@ -271,7 +271,7 @@ class ClientTest extends TestCase
         $client->run(2);
         $client->disconnect();
 
-        $this->assertEquals(2, $called);
+        $this->assertGreaterThan(0, $called);
     }
 
 }
