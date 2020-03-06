@@ -331,6 +331,9 @@ class Client extends AbstractClient
                 $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
             });
 
+            if (is_callable($this->options['heartbeat_callback'] ?? null)) {
+                $this->options['heartbeat_callback']->call($this);
+            }
         } else {
             $this->heartbeatTimer = $this->eventLoop->addTimer($nextHeartbeat - $now, [$this, "onHeartbeat"]);
         }

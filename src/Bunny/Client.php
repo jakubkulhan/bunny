@@ -223,6 +223,10 @@ class Client extends AbstractClient
                     if ($now >= $nextHeartbeat) {
                         $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
                         $this->flushWriteBuffer();
+
+                        if (is_callable($this->options['heartbeat_callback'] ?? null)) {
+                            $this->options['heartbeat_callback']->call($this);
+                        }
                     }
 
                     if ($stopTime !== null && $now >= $stopTime) {
