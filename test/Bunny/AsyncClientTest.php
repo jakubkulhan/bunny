@@ -300,4 +300,40 @@ class AsyncClientTest extends TestCase
         $this->assertEquals("404", $returnedMessage->routingKey);
     }
 
+    public function testHeartBeatCallback()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(3, function () {
+            throw new TimeoutException();
+        });
+
+        $called = 0;
+
+        $client = new Client($loop, [
+            'heartbeat' => 1.0,
+            'heartbeat_callback' => function () use (&$called) {
+                $called += 1;
+            }
+        ]);
+
+        $client->connect()->then(function (Client $client) {
+            sleep(1);
+            return $client->channel();
+        })->then(function (Channel $ch) {
+            sleep(1);
+            return $ch->queueDeclare('hello', false, false, false, false)->then(function () use ($ch) {
+                return $ch;
+            });
+        })->then(function (Channel $ch) {
+            return $ch->getClient()->disconnect();
+        })->then(function () use ($loop) {
+            $loop->stop();
+        })->done();
+
+        $loop->run();
+
+        $this->assertEquals(2, $called);
+    }
+
 }

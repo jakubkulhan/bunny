@@ -256,4 +256,22 @@ class ClientTest extends TestCase
         $client->run(1);
     }
 
+    public function testHeartBeatCallback()
+    {
+        $called = 0;
+
+        $client = new Client([
+            'heartbeat' => 1.0,
+            'heartbeat_callback' => function () use (&$called) {
+                $called += 1;
+            }
+        ]);
+
+        $client->connect();
+        $client->run(2);
+        $client->disconnect();
+
+        $this->assertEquals(2, $called);
+    }
+
 }
