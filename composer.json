@@ -40,7 +40,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Bunny\\": "test/Bunny/"
+            "Bunny\\": "test/Bunny/",
+            "Bunny\\Test\\Library\\": "test/Library/"
         }
     }
 }
