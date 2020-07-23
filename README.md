@@ -209,6 +209,49 @@ Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](http
 
 There is [amqp interop](https://github.com/queue-interop/amqp-interop) compatible wrapper(s) for the bunny library.
 
+## Testing
+
+You need access to a RabbitMQ instance to run the test suite. You can either connect to an existing instance or use the
+provided Docker Compose setup to create an isolated environment, including a RabbitMQ container, to run the test suite
+in.
+
+**Local RabbitMQ**
+
+- Change `TEST_RABBITMQ_CONNECTION_URI` in `phpunit.xml` to fit your environment. Then run:
+
+  ```
+  $ vendor/bin/phpunit
+  ```
+  
+**Docker Compose**
+
+- Use Docker Compose to create a network with a RabbitMQ container and a PHP container to run the tests in. The project
+  directory will be mounted into the PHP container.
+  
+  ```
+  $ docker-compose up -d
+  ```
+  
+- Optionally use `docker ps` to display the running containers.  
+
+  ```
+  $ docker ps --filter name=bunny
+  [...] bunny_rabbit_node_1_1
+  [...] bunny_bunny_1
+  ```
+
+- Enter the PHP container.
+
+  ```
+  $ docker exec -it bunny_bunny_1 bash
+  ```
+  
+- Within the container, run:
+
+  ```
+  $ vendor/bin/phpunit
+  ```
+
 ## Contributing
 
 * Large part of the PHP code (almost everything in `Bunny\Protocol` namespace) is generated from spec in file
