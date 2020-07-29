@@ -37,7 +37,7 @@ before_script:
   - sudo rabbitmqctl set_permissions -p testvhost testuser ".*" ".*" ".*"
 
 script:
-  - ./vendor/bin/phpunit
+  - TEST_RABBITMQ_CONNECTION_URI=amqp://testuser:testpassword@localhost:5672/testvhost ./vendor/bin/phpunit
 
 services:
   - rabbitmq
