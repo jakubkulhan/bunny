@@ -131,8 +131,8 @@ abstract class AbstractClient
 
         if (!isset($options["heartbeat"])) {
             $options["heartbeat"] = 60.0;
-        } elseif ($options['heartbeat'] >= 2**16) {
-            throw new InvalidArgumentException('Heartbeat too high: the value is int16.');
+        } elseif ($options["heartbeat"] >= 2**15) {
+            throw new InvalidArgumentException("Heartbeat too high: the value is a signed int16.");
         }
 
         if (is_callable($options['heartbeat_callback'] ?? null)) {
