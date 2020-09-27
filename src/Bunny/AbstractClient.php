@@ -13,6 +13,7 @@ use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
+use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use React\Promise;
 
@@ -134,6 +135,8 @@ abstract class AbstractClient
 
         if (!isset($options["heartbeat"])) {
             $options["heartbeat"] = 60.0;
+        } elseif ($options["heartbeat"] >= 2**15) {
+            throw new InvalidArgumentException("Heartbeat too high: the value is a signed int16.");
         }
 
         if (is_callable($options['heartbeat_callback'] ?? null)) {
