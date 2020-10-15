@@ -448,6 +448,7 @@ abstract class AbstractClient
     {
         if ($frame instanceof MethodFrame) {
             if ($frame instanceof MethodConnectionCloseFrame) {
+                $this->disconnect(Constants::STATUS_CONNECTION_FORCED, "Connection closed by server: ({$frame->replyCode}) " . $frame->replyText);
                 throw new ClientException("Connection closed by server: " . $frame->replyText, $frame->replyCode);
             } else {
                 throw new ClientException("Unhandled method frame " . get_class($frame) . ".");

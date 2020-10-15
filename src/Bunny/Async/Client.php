@@ -254,6 +254,11 @@ class Client extends AbstractClient
                 $promises[] = $channel->close($replyCode, $replyText);
             }
         }
+        else{
+            foreach($this->channels as $channel){
+                $this->removeChannel($channel->getChannelId());
+            }
+        }
 
         if ($this->heartbeatTimer) {
             $this->eventLoop->cancelTimer($this->heartbeatTimer);
