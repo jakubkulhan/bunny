@@ -269,7 +269,7 @@ class Client extends AbstractClient
             if (!empty($this->channels)) {
                 throw new \LogicException("All channels have to be closed by now.");
             }
-            if(feof($this->getStream())){
+            if($replyCode !== 0){
                 return null;
             }
             return $this->connectionClose($replyCode, $replyText, 0, 0);
