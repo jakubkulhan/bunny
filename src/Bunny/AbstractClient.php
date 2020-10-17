@@ -310,11 +310,13 @@ abstract class AbstractClient
             $info = stream_get_meta_data($this->stream);
 
             if (isset($info["timed_out"]) && $info["timed_out"]) {
+                $this->disconnect(Constants::STATUS_RESOURCE_ERROR, "Connection closed by server unexpectedly");
                 throw new ClientException("Timeout reached while reading from stream.");
             }
         }
 
         if (@feof($this->stream)) {
+            $this->disconnect(Constants::STATUS_RESOURCE_ERROR, "Connection closed by server unexpectedly");
             throw new ClientException("Broken pipe or closed connection.");
         }
 
@@ -448,6 +450,7 @@ abstract class AbstractClient
     {
         if ($frame instanceof MethodFrame) {
             if ($frame instanceof MethodConnectionCloseFrame) {
+                $this->disconnect(Constants::STATUS_CONNECTION_FORCED, "Connection closed by server: ({$frame->replyCode}) " . $frame->replyText);
                 throw new ClientException("Connection closed by server: " . $frame->replyText, $frame->replyCode);
             } else {
                 throw new ClientException("Unhandled method frame " . get_class($frame) . ".");
