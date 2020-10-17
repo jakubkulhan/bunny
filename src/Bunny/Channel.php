@@ -346,7 +346,7 @@ class Channel
      *
      * @param string $queue
      * @param bool $noAck
-     * @return Message|PromiseInterface
+     * @return Message|PromiseInterface|null
      */
     public function get($queue = "", $noAck = false)
     {
