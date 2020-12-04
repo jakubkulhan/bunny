@@ -1,0 +1,24 @@
+version: '3'
+networks:
+  main:
+services:
+  rabbit_node_1:
+    image: 'rabbitmq:3-management'
+    environment:
+      RABBITMQ_DEFAULT_USER: testuser
+      RABBITMQ_DEFAULT_PASS: testpassword
+      RABBITMQ_DEFAULT_VHOST: testvhost
+      RABBITMQ_ERLANG_COOKIE: bunny-test-secret
+    networks:
+      - main
+    hostname: rabbit_node_1
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    tty: true
+  bunny:
+    build: docker/bunny
+    volumes:
+      - .:/opt/bunny
+    networks:
+      - main

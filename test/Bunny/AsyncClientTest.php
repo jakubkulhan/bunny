@@ -1,38 +1,35 @@
 <?php
+
+/** @noinspection PhpUnhandledExceptionInspection */
+
+declare(strict_types=1);
+
 namespace Bunny;
 
 use Bunny\Async\Client;
 use Bunny\Exception\ClientException;
 use Bunny\Protocol\MethodBasicReturnFrame;
 use Bunny\Test\Exception\TimeoutException;
+use Bunny\Test\Library\AsynchronousClientHelper;
 use PHPUnit\Framework\TestCase;
 use React\EventLoop\Factory;
 use React\Promise;
 
 class AsyncClientTest extends TestCase
 {
+    /**
+     * @var AsynchronousClientHelper
+     */
+    private $helper;
 
-    public function testConnectAsGuest()
+    public function setUp()
     {
-        $loop = Factory::create();
+        parent::setUp();
 
-        $loop->addTimer(5, function () {
-            throw new TimeoutException();
-        });
-
-        $client = new Client($loop);
-        $client->connect()->then(function (Client $client) {
-            return $client->disconnect();
-        })->then(function () use ($loop) {
-            $loop->stop();
-        })->done();
-
-        $loop->run();
-
-        $this->assertTrue(true);
+        $this->helper = new AsynchronousClientHelper();
     }
 
-    public function testConnectAuth()
+    public function testConnect()
     {
         $loop = Factory::create();
 
@@ -40,20 +37,22 @@ class AsyncClientTest extends TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop, [
-            "user" => "testuser",
-            "password" => "testpassword",
-            "vhost" => "testvhost",
-        ]);
+        $client = $this->helper->createClient($loop);
+
+        $this->assertFalse($client->isConnected());
+
         $client->connect()->then(function (Client $client) {
+            $this->assertTrue($client->isConnected());
+
             return $client->disconnect();
-        })->then(function () use ($loop) {
+        })->then(function (Client $client) use ($loop) {
+            $this->assertFalse($client->isConnected());
             $loop->stop();
         })->done();
 
         $loop->run();
 
-        $this->assertTrue(true);
+        $this->assertFalse($client->isConnected());
     }
 
     public function testConnectFailure()
@@ -66,11 +65,12 @@ class AsyncClientTest extends TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop, [
-            "user" => "testuser",
-            "password" => "testpassword",
-            "vhost" => "/",
-        ]);
+        $options = $this->helper->getDefaultOptions();
+
+        $options['vhost'] = 'bogus-vhost';
+
+        $client = $this->helper->createClient($loop, $options);
+
         $client->connect()->then(function () use ($loop) {
             $this->fail("client should not connect");
             $loop->stop();
@@ -87,7 +87,7 @@ class AsyncClientTest extends TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop);
+        $client = $this->helper->createClient($loop);
         $client->connect()->then(function (Client $client) {
             return $client->channel();
         })->then(function (Channel $ch) {
@@ -109,7 +109,7 @@ class AsyncClientTest extends TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop);
+        $client = $this->helper->createClient($loop);
         $client->connect()->then(function (Client $client) {
             return Promise\all([
                 $client->channel(),
@@ -143,7 +143,7 @@ class AsyncClientTest extends TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop);
+        $client = $this->helper->createClient($loop);
         $client->connect()->then(function (Client $client) {
             return $client->channel();
         })->then(function (Channel $ch) {
@@ -172,7 +172,7 @@ class AsyncClientTest extends TestCase
 
         $processed = 0;
 
-        $client = new Client($loop);
+        $client = $this->helper->createClient($loop);
         $client->connect()->then(function (Client $client) {
             return $client->channel();
         })->then(function (Channel $channel) use ($client, $loop, &$processed) {
@@ -209,7 +209,7 @@ class AsyncClientTest extends TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop);
+        $client = $this->helper->createClient($loop);
         /** @var Channel $channel */
         $channel = null;
         $client->connect()->then(function (Client $client) {
@@ -267,7 +267,7 @@ class AsyncClientTest extends TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop);
+        $client = $this->helper->createClient($loop);
 
         /** @var Channel $channel */
         $channel = null;
@@ -298,6 +298,44 @@ class AsyncClientTest extends TestCase
         $this->assertEquals("xxx", $returnedMessage->content);
         $this->assertEquals("", $returnedMessage->exchange);
         $this->assertEquals("404", $returnedMessage->routingKey);
+    }
+
+    public function testHeartBeatCallback()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(3, function () {
+            throw new TimeoutException();
+        });
+
+        $called = 0;
+
+        $defaultOptions = $this->helper->getDefaultOptions();
+
+        $client = $this->helper->createClient($loop, array_merge($defaultOptions, [
+            'heartbeat' => 1.0,
+            'heartbeat_callback' => function () use (&$called) {
+                $called += 1;
+            }
+        ]));
+
+        $client->connect()->then(function (Client $client) {
+            sleep(1);
+            return $client->channel();
+        })->then(function (Channel $ch) {
+            sleep(1);
+            return $ch->queueDeclare('hello', false, false, false, false)->then(function () use ($ch) {
+                return $ch;
+            });
+        })->then(function (Channel $ch) {
+            return $ch->getClient()->disconnect();
+        })->then(function () use ($loop) {
+            $loop->stop();
+        })->done();
+
+        $loop->run();
+
+        $this->assertEquals(2, $called);
     }
 
 }

@@ -1,60 +1,76 @@
 <?php
+
+/** @noinspection PhpUnhandledExceptionInspection */
+
+declare(strict_types=1);
+
 namespace Bunny;
 
 use Bunny\Exception\ChannelException;
 use Bunny\Exception\ClientException;
 use Bunny\Protocol\MethodBasicAckFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
+use Bunny\Test\Library\SynchronousClientHelper;
 use PHPUnit\Framework\TestCase;
 
 class ClientTest extends TestCase
 {
+    /**
+     * @var SynchronousClientHelper
+     */
+    private $helper;
 
-    public function testConnectAsGuest()
+    public function setUp()
     {
-        $client = new Client();
-        $client->connect();
-        $client->disconnect();
+        parent::setUp();
 
-        $this->assertTrue(true);
+        $this->helper = new SynchronousClientHelper();
     }
 
-    public function testConnectAuth()
+    public function testConnect()
     {
-        $client = new Client([
-            "user" => "testuser",
-            "password" => "testpassword",
-            "vhost" => "testvhost",
-        ]);
-        $client->connect();
-        $client->disconnect();
+        $client = $this->helper->createClient();
 
-        $this->assertTrue(true);
+        $this->assertFalse($client->isConnected());
+
+        $client->connect();
+
+        $this->assertTrue($client->isConnected());
+        $client->disconnect();
+        $this->assertFalse($client->isConnected());
     }
 
     public function testConnectFailure()
     {
         $this->expectException(ClientException::class);
 
-        $client = new Client([
-            "user" => "testuser",
-            "password" => "testpassword",
-            "vhost" => "/"
-        ]);
+        $options = $this->helper->getDefaultOptions();
+
+        $options['vhost'] = 'bogus-vhost';
+
+        $client = $this->helper->createClient($options);
 
         $client->connect();
     }
 
     public function testOpenChannel()
     {
-        $client = new Client();
-        $this->assertInstanceOf(Channel::class, $client->connect()->channel());
-        $client->disconnect();
+        $client = $this->helper->createClient();
+
+        $client->connect();
+
+        $channel = $client->channel();
+
+        $this->assertInstanceOf(Channel::class, $channel);
+
+        $this->assertTrue($client->isConnected());
+        $this->helper->disconnectClientWithEventLoop($client);
+        $this->assertFalse($client->isConnected());
     }
 
     public function testOpenMultipleChannel()
     {
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
         $this->assertInstanceOf(Channel::class, $ch1 = $client->channel());
         $this->assertInstanceOf(Channel::class, $ch2 = $client->channel());
@@ -62,12 +78,15 @@ class ClientTest extends TestCase
         $this->assertInstanceOf(Channel::class, $ch3 = $client->channel());
         $this->assertNotEquals($ch1->getChannelId(), $ch3->getChannelId());
         $this->assertNotEquals($ch2->getChannelId(), $ch3->getChannelId());
-        $client->disconnect();
+
+        $this->assertTrue($client->isConnected());
+        $this->helper->disconnectClientWithEventLoop($client);
+        $this->assertFalse($client->isConnected());
     }
 
     public function testRunMaxSeconds()
     {
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
         $s = microtime(true);
         $client->run(1.0);
@@ -77,7 +96,7 @@ class ClientTest extends TestCase
 
     public function testDisconnectWithBufferedMessages()
     {
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
         $channel = $client->channel();
 
@@ -99,13 +118,14 @@ class ClientTest extends TestCase
         $client->run(5);
 
         $this->assertEquals(1, $processed);
+        $this->assertFalse($client->isConnected());
     }
 
     public function testGet()
     {
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
-        $channel  = $client->channel();
+        $channel = $client->channel();
 
         $channel->queueDeclare("get_test");
         $channel->publish(".", [], "", "get_test");
@@ -141,21 +161,30 @@ class ClientTest extends TestCase
         })->done();
 
         $client->run(5);
+
+        $this->assertFalse($client->isConnected());
     }
 
     public function testReturn()
     {
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
-        $channel  = $client->channel();
+        $channel = $client->channel();
 
         /** @var Message $returnedMessage */
         $returnedMessage = null;
         /** @var MethodBasicReturnFrame $returnedFrame */
         $returnedFrame = null;
-        $channel->addReturnListener(function (Message $message, MethodBasicReturnFrame $frame) use ($client, &$returnedMessage, &$returnedFrame) {
+        $channel->addReturnListener(function (
+            Message $message,
+            MethodBasicReturnFrame $frame
+        ) use (
+            $client,
+            &$returnedMessage,
+            &$returnedFrame
+        ) {
             $returnedMessage = $message;
-            $returnedFrame = $frame;
+            $returnedFrame   = $frame;
             $client->stop();
         });
 
@@ -168,11 +197,15 @@ class ClientTest extends TestCase
         $this->assertEquals("xxx", $returnedMessage->content);
         $this->assertEquals("", $returnedMessage->exchange);
         $this->assertEquals("404", $returnedMessage->routingKey);
+
+        $this->assertTrue($client->isConnected());
+        $this->helper->disconnectClientWithEventLoop($client);
+        $this->assertFalse($client->isConnected());
     }
 
     public function testTxs()
     {
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
         $channel = $client->channel();
 
@@ -191,13 +224,17 @@ class ClientTest extends TestCase
 
         $nothing = $channel->get("tx_test", true);
         $this->assertNull($nothing);
+
+        $this->assertTrue($client->isConnected());
+        $this->helper->disconnectClientWithEventLoop($client);
+        $this->assertFalse($client->isConnected());
     }
 
     public function testTxSelectCannotBeCalledMultipleTimes()
     {
         $this->expectException(ChannelException::class);
 
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
         $channel = $client->channel();
 
@@ -207,7 +244,7 @@ class ClientTest extends TestCase
 
     public function testConfirmMode()
     {
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
         $channel = $client->channel();
 
@@ -224,11 +261,15 @@ class ClientTest extends TestCase
         $client->run(1);
 
         $this->assertNull($deliveryTag);
+
+        $this->assertTrue($client->isConnected());
+        $this->helper->disconnectClientWithEventLoop($client);
+        $this->assertFalse($client->isConnected());
     }
 
     public function testEmptyMessage()
     {
-        $client = new Client();
+        $client = $this->helper->createClient();
         $client->connect();
         $channel = $client->channel();
 
@@ -240,20 +281,46 @@ class ClientTest extends TestCase
         $this->assertEquals("", $message->content);
 
         $processed = 0;
-        $channel->consume(function (Message $message, Channel $channel) use ($client, &$processed) {
-            $this->assertEmpty($message->content);
-            $channel->ack($message);
-            if (++$processed === 2) {
-                $client->disconnect()->done(function () use ($client) {
-                    $client->stop();
-                });
-            }
-        }, "empty_body_message_test");
+        $channel->consume(
+            function (Message $message, Channel $channel) use ($client, &$processed) {
+                $this->assertEmpty($message->content);
+                $channel->ack($message);
+                if (++$processed === 2) {
+                    $client->disconnect()->done(function () use ($client) {
+                        $client->stop();
+                    });
+                }
+            },
+            "empty_body_message_test"
+        );
 
         $channel->publish("", [], "", "empty_body_message_test");
         $channel->publish("", [], "", "empty_body_message_test");
 
         $client->run(1);
+
+        $this->assertFalse($client->isConnected());
     }
 
+    public function testHeartBeatCallback()
+    {
+        $called = 0;
+
+        $options = $this->helper->getDefaultOptions();
+
+        $options['heartbeat']          = 1.0;
+        $options['heartbeat_callback'] = function () use (&$called) {
+            $called += 1;
+        };
+
+        $client = $this->helper->createClient($options);
+
+        $client->connect();
+        $client->run(2);
+        $client->disconnect();
+
+        $this->assertGreaterThan(0, $called);
+
+        $this->assertFalse($client->isConnected());
+    }
 }

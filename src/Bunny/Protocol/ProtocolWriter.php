@@ -172,10 +172,10 @@ class ProtocolWriter
     /**
      * Appends AMQP timestamp to buffer.
      *
-     * @param \DateTime $value
+     * @param \DateTimeInterface $value
      * @param Buffer $buffer
      */
-    public function appendTimestamp(\DateTime $value, Buffer $buffer)
+    public function appendTimestamp(\DateTimeInterface $value, Buffer $buffer)
     {
         $buffer->appendUint64($value->getTimestamp());
     }
@@ -233,7 +233,7 @@ class ProtocolWriter
         } elseif (is_null($value)) {
             $buffer->appendUint8(Constants::FIELD_NULL);
 
-        } elseif ($value instanceof \DateTime) {
+        } elseif ($value instanceof \DateTimeInterface) {
             $buffer->appendUint8(Constants::FIELD_TIMESTAMP);
             $this->appendTimestamp($value, $buffer);
 

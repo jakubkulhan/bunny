@@ -82,6 +82,33 @@ $bunny = new Client($connection);
 $bunny->connect();
 ```
 
+### Connecting with SSL/TLS
+
+Options for SSL-connections should be specified as array `ssl`:  
+
+```php
+$connection = [
+    'host'      => 'HOSTNAME',
+    'vhost'     => 'VHOST',    // The default vhost is /
+    'user'      => 'USERNAME', // The default user is guest
+    'password'  => 'PASSWORD', // The default password is guest
+    'ssl'       => [
+        'cafile'      => 'ca.pem',
+        'local_cert'  => 'client.cert',
+        'local_pk'    => 'client.key',
+    ],
+];
+
+$bunny = new Client($connection);
+$bunny->connect();
+```
+
+For options description - please see [SSL context options](https://www.php.net/manual/en/context.ssl.php).
+
+Note: invalid SSL configuration will cause connection failure.
+
+See also [common configuration variants](examples/ssl/).
+
 ### Publish a message
 
 Now that we have a connection with the server we need to create a channel and declare a queue to communicate over before we can publish a message, or subscribe to a queue for that matter.
@@ -181,6 +208,49 @@ Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](http
 ## AMQP interop
 
 There is [amqp interop](https://github.com/queue-interop/amqp-interop) compatible wrapper(s) for the bunny library.
+
+## Testing
+
+You need access to a RabbitMQ instance to run the test suite. You can either connect to an existing instance or use the
+provided Docker Compose setup to create an isolated environment, including a RabbitMQ container, to run the test suite
+in.
+
+**Local RabbitMQ**
+
+- Change `TEST_RABBITMQ_CONNECTION_URI` in `phpunit.xml` to fit your environment. Then run:
+
+  ```
+  $ vendor/bin/phpunit
+  ```
+  
+**Docker Compose**
+
+- Use Docker Compose to create a network with a RabbitMQ container and a PHP container to run the tests in. The project
+  directory will be mounted into the PHP container.
+  
+  ```
+  $ docker-compose up -d
+  ```
+  
+- Optionally use `docker ps` to display the running containers.  
+
+  ```
+  $ docker ps --filter name=bunny
+  [...] bunny_rabbit_node_1_1
+  [...] bunny_bunny_1
+  ```
+
+- Enter the PHP container.
+
+  ```
+  $ docker exec -it bunny_bunny_1 bash
+  ```
+  
+- Within the container, run:
+
+  ```
+  $ vendor/bin/phpunit
+  ```
 
 ## Contributing
 

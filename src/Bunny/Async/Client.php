@@ -254,6 +254,11 @@ class Client extends AbstractClient
                 $promises[] = $channel->close($replyCode, $replyText);
             }
         }
+        else{
+            foreach($this->channels as $channel){
+                $this->removeChannel($channel->getChannelId());
+            }
+        }
 
         if ($this->heartbeatTimer) {
             $this->eventLoop->cancelTimer($this->heartbeatTimer);
@@ -264,7 +269,9 @@ class Client extends AbstractClient
             if (!empty($this->channels)) {
                 throw new \LogicException("All channels have to be closed by now.");
             }
-
+            if($replyCode !== 0){
+                return null;
+            }
             return $this->connectionClose($replyCode, $replyText, 0, 0);
         })->then(function () {
             $this->eventLoop->removeReadStream($this->getStream());

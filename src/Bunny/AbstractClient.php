@@ -13,8 +13,13 @@ use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
+use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use React\Promise;
+
+use function is_array;
+use function stream_context_create;
+use function stream_context_set_option;
 
 /**
  * Base class for synchronous and asynchronous AMQP/RabbitMQ client.
@@ -130,6 +135,8 @@ abstract class AbstractClient
 
         if (!isset($options["heartbeat"])) {
             $options["heartbeat"] = 60.0;
+        } elseif ($options["heartbeat"] >= 2**15) {
+            throw new InvalidArgumentException("Heartbeat too high: the value is a signed int16.");
         }
 
         if (is_callable($options['heartbeat_callback'] ?? null)) {
@@ -213,10 +220,18 @@ abstract class AbstractClient
     protected function getStream()
     {
         if ($this->stream === null) {
-            // TODO: SSL
+            $streamScheme = 'tcp';
+
+            $context = stream_context_create();
+            if (isset($this->options['ssl']) && is_array($this->options['ssl'])) {
+                if (!stream_context_set_option($context, ['ssl' => $this->options['ssl']])) {
+                    throw new ClientException("Failed to set SSL-options.");
+                }
+                $streamScheme = 'ssl';
+            }
 
             // see https://github.com/nrk/predis/blob/v1.0/src/Connection/StreamConnection.php
-            $uri = "tcp://{$this->options["host"]}:{$this->options["port"]}";
+            $uri = $streamScheme."://{$this->options["host"]}:{$this->options["port"]}";
             $flags = STREAM_CLIENT_CONNECT;
 
             if (isset($this->options["async_connect"]) && !!$this->options["async_connect"]) {
@@ -233,7 +248,17 @@ abstract class AbstractClient
                 $uri .= (strpos($this->options["path"], "/") === 0) ? $this->options["path"] : "/" . $this->options["path"];
             }
 
-            $this->stream = @stream_socket_client($uri, $errno, $errstr, (float)$this->options["timeout"], $flags);
+            // tcp_nodelay was added in 7.1.0
+            if (PHP_VERSION_ID >= 70100) {
+                stream_context_set_option(
+                    $context, [
+                    "socket" => [
+                        "tcp_nodelay" => true
+                    ]
+                ]);
+            }
+            
+            $this->stream = @stream_socket_client($uri, $errno, $errstr, (float)$this->options["timeout"], $flags, $context);
 
             if (!$this->stream) {
                 throw new ClientException(
@@ -285,11 +310,13 @@ abstract class AbstractClient
             $info = stream_get_meta_data($this->stream);
 
             if (isset($info["timed_out"]) && $info["timed_out"]) {
+                $this->disconnect(Constants::STATUS_RESOURCE_ERROR, "Connection closed by server unexpectedly");
                 throw new ClientException("Timeout reached while reading from stream.");
             }
         }
 
         if (@feof($this->stream)) {
+            $this->disconnect(Constants::STATUS_RESOURCE_ERROR, "Connection closed by server unexpectedly");
             throw new ClientException("Broken pipe or closed connection.");
         }
 
@@ -423,6 +450,7 @@ abstract class AbstractClient
     {
         if ($frame instanceof MethodFrame) {
             if ($frame instanceof MethodConnectionCloseFrame) {
+                $this->disconnect(Constants::STATUS_CONNECTION_FORCED, "Connection closed by server: ({$frame->replyCode}) " . $frame->replyText);
                 throw new ClientException("Connection closed by server: " . $frame->replyText, $frame->replyCode);
             } else {
                 throw new ClientException("Unhandled method frame " . get_class($frame) . ".");
