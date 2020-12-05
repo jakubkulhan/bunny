@@ -208,7 +208,7 @@ trait ClientMethods
         throw new \LogicException('This statement should be never reached.');
     }
 
-    public function connectionStartOk($clientProperties = [], $mechanism = 'PLAIN', $response, $locale = 'en_US')
+    public function connectionStartOk($clientProperties, $mechanism, $response, $locale = 'en_US')
     {
         $buffer = new Buffer();
         $buffer->appendUint16(10);
@@ -383,7 +383,7 @@ trait ClientMethods
         throw new \LogicException('This statement should be never reached.');
     }
 
-    public function connectionClose($replyCode, $replyText = '', $closeClassId, $closeMethodId)
+    public function connectionClose($replyCode, $replyText, $closeClassId, $closeMethodId)
     {
         $buffer = $this->getWriteBuffer();
         $buffer->appendUint8(1);
@@ -749,7 +749,7 @@ trait ClientMethods
         throw new \LogicException('This statement should be never reached.');
     }
 
-    public function channelClose($channel, $replyCode, $replyText = '', $closeClassId, $closeMethodId)
+    public function channelClose($channel, $replyCode, $replyText, $closeClassId, $closeMethodId)
     {
         $buffer = $this->getWriteBuffer();
         $buffer->appendUint8(1);
@@ -1289,7 +1289,7 @@ trait ClientMethods
         throw new \LogicException('This statement should be never reached.');
     }
 
-    public function queueBind($channel, $queue = '', $exchange, $routingKey = '', $nowait = false, $arguments = [])
+    public function queueBind($channel, $queue, $exchange, $routingKey = '', $nowait = false, $arguments = [])
     {
         $buffer = new Buffer();
         $buffer->appendUint16(50);
@@ -1497,7 +1497,7 @@ trait ClientMethods
         throw new \LogicException('This statement should be never reached.');
     }
 
-    public function queueUnbind($channel, $queue = '', $exchange, $routingKey = '', $arguments = [])
+    public function queueUnbind($channel, $queue, $exchange, $routingKey = '', $arguments = [])
     {
         $buffer = new Buffer();
         $buffer->appendUint16(50);

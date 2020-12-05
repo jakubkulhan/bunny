@@ -9,7 +9,7 @@
 
 ## Requirements
 
-BunnyPHP requires PHP 7.0 and newer.
+BunnyPHP requires PHP 7.1 and newer.
 
 ## Installation
 
