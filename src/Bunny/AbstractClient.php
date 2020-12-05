@@ -248,16 +248,13 @@ abstract class AbstractClient
                 $uri .= (strpos($this->options["path"], "/") === 0) ? $this->options["path"] : "/" . $this->options["path"];
             }
 
-            // tcp_nodelay was added in 7.1.0
-            if (PHP_VERSION_ID >= 70100) {
-                stream_context_set_option(
-                    $context, [
-                    "socket" => [
-                        "tcp_nodelay" => true
-                    ]
-                ]);
-            }
-            
+            stream_context_set_option(
+                $context, [
+                "socket" => [
+                    "tcp_nodelay" => true
+                ]
+            ]);
+
             $this->stream = @stream_socket_client($uri, $errno, $errstr, (float)$this->options["timeout"], $flags, $context);
 
             if (!$this->stream) {
