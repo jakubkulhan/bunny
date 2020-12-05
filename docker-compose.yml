@@ -4,11 +4,16 @@ networks:
 services:
   rabbit_node_1:
     image: 'rabbitmq:3-management'
+    entrypoint: /opt/bunny/docker/rabbitmq/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+    command: rabbitmq-server
     environment:
       RABBITMQ_DEFAULT_USER: testuser
       RABBITMQ_DEFAULT_PASS: testpassword
       RABBITMQ_DEFAULT_VHOST: testvhost
       RABBITMQ_ERLANG_COOKIE: bunny-test-secret
+      CONFIG_NAME: "${CONFIG_NAME:-rabbitmq.ssl.verify_peer}"
+    volumes:
+      - .:/opt/bunny
     networks:
       - main
     hostname: rabbit_node_1
@@ -18,6 +23,13 @@ services:
     tty: true
   bunny:
     build: docker/bunny
+    init: true
+    environment:
+      SSL_TEST: 'yes'
+      SSL_CA: ssl/ca.pem
+      SSL_PEER_NAME: server.rmq
+      SSL_CLIENT_CERT: ssl/client.pem
+      SSL_CLIENT_KEY: ssl/client.key
     volumes:
       - .:/opt/bunny
     networks:

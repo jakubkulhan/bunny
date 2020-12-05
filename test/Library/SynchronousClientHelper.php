@@ -16,7 +16,7 @@ final class SynchronousClientHelper extends AbstractClientHelper
      */
     public function createClient(array $options = null): Client
     {
-        $options = $options ?? $this->getDefaultOptions();
+        $options = array_merge($this->getDefaultOptions(), $options ?? []);
 
         return new Client($options);
     }
