@@ -199,6 +199,20 @@ class AsyncClientTest extends TestCase
 
         // all messages should be processed
         $this->assertEquals(1, $processed);
+
+        // Clean-up Queue
+        $client->connect()->then(function (Client $client) {
+            return $client->channel();
+        })->then(function (Channel $channel) use ($client, $loop, &$processed) {
+            return Promise\all([
+                $channel->queueDelete("disconnect_test"),
+                $client->disconnect()->done(function () use ($loop) {
+                    $loop->stop();
+                })
+            ]);
+        })->done();
+
+        $loop->run();
     }
 
     public function testGet()
