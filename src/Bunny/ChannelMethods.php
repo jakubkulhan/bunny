@@ -122,7 +122,7 @@ trait ChannelMethods
      *
      * @return boolean|Promise\PromiseInterface|Protocol\MethodQueueBindOkFrame
      */
-    public function queueBind($queue = '', $exchange, $routingKey = '', $nowait = false, $arguments = [])
+    public function queueBind($queue, $exchange, $routingKey = '', $nowait = false, $arguments = [])
     {
         return $this->getClient()->queueBind($this->getChannelId(), $queue, $exchange, $routingKey, $nowait, $arguments);
     }
@@ -165,7 +165,7 @@ trait ChannelMethods
      *
      * @return boolean|Promise\PromiseInterface|Protocol\MethodQueueUnbindOkFrame
      */
-    public function queueUnbind($queue = '', $exchange, $routingKey = '', $arguments = [])
+    public function queueUnbind($queue, $exchange, $routingKey = '', $arguments = [])
     {
         return $this->getClient()->queueUnbind($this->getChannelId(), $queue, $exchange, $routingKey, $arguments);
     }

@@ -5,6 +5,8 @@ namespace Bunny;
 use Bunny\Async\Client as AsyncClient;
 use Bunny\Exception\ClientException;
 use Bunny\Test\Exception\TimeoutException;
+use Bunny\Test\Library\AsynchronousClientHelper;
+use Bunny\Test\Library\SynchronousClientHelper;
 use PHPUnit\Framework\TestCase;
 
 use React\EventLoop\Factory;
@@ -17,12 +19,29 @@ use function putenv;
 
 class SSLTest extends TestCase
 {
+    /**
+     * @var SynchronousClientHelper
+     */
+    private $helper;
+
+    /**
+     * @var AsynchronousClientHelper
+     */
+    private $asyncHelper;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->helper = new SynchronousClientHelper();
+        $this->asyncHelper = new AsynchronousClientHelper();
+    }
 
     public function testConnect()
     {
         $options = $this->getOptions();
 
-        $client = new Client($options);
+        $client = $this->helper->createClient($options);
         $client->connect();
         $client->disconnect();
 
@@ -37,7 +56,7 @@ class SSLTest extends TestCase
             throw new TimeoutException();
         });
 
-        $client = new AsyncClient($loop, $options);
+        $client = $this->asyncHelper->createClient($loop, $options);
         $client->connect()->then(function (AsyncClient $client) {
             return $client->disconnect();
         })->then(function () use ($loop) {
@@ -61,7 +80,7 @@ class SSLTest extends TestCase
 
         $this->expectException(ClientException::class);
 
-        $client = new Client($options);
+        $client = $this->helper->createClient($options);
         $client->connect();
         $client->disconnect();
     }
@@ -73,7 +92,7 @@ class SSLTest extends TestCase
 
         $this->expectException(ClientException::class);
 
-        $client = new Client($options);
+        $client = $this->helper->createClient($options);
         $client->connect();
         $client->disconnect();
     }
@@ -85,7 +104,7 @@ class SSLTest extends TestCase
 
         $this->expectException(ClientException::class);
 
-        $client = new Client($options);
+        $client = $this->helper->createClient($options);
         $client->connect();
         $client->disconnect();
     }

@@ -17,7 +17,7 @@ final class AsynchronousClientHelper extends AbstractClientHelper
      */
     public function createClient(LoopInterface $loop, array $options = null): Client
     {
-        $options = $options ?? $this->getDefaultOptions();
+        $options = array_merge($this->getDefaultOptions(), $options ?? []);
 
         return new Client($loop, $options);
     }

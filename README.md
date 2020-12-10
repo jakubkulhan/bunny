@@ -9,7 +9,7 @@
 
 ## Requirements
 
-BunnyPHP requires PHP 7.0 and newer.
+BunnyPHP requires PHP 7.1 and newer.
 
 ## Installation
 
@@ -231,6 +231,8 @@ in.
   ```
   $ docker-compose up -d
   ```
+
+  To test against different SSL configurations (as in CI builds), you can set environment variable `CONFIG_NAME=rabbitmq.ssl.verify_none` before running `docker-compose up`.
   
 - Optionally use `docker ps` to display the running containers.  
 
