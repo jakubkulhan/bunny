@@ -518,4 +518,13 @@ abstract class AbstractClient
         throw new ClientException("No available channels");
     }
 
+    /**
+     * @return void
+     */
+    public function sendHeartbeat()
+    {
+        $this->getWriter()->appendFrame(new HeartbeatFrame(), $this->getWriteBuffer());
+        $this->flushWriteBuffer();
+    }
+
 }
