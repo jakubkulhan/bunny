@@ -119,6 +119,12 @@ class ClientTest extends TestCase
 
         $this->assertEquals(1, $processed);
         $this->assertFalse($client->isConnected());
+
+        // Clean-up Queue
+        $client = $this->helper->createClient();
+        $client->connect();
+        $channel = $client->channel();
+        $channel->queueDelete("disconnect_test");
     }
 
     public function testGet()
