@@ -66,6 +66,10 @@ abstract class AbstractClientHelper
             $options['vhost'] = $vhostCandidate;
         }
 
+        if ($options['vhost'] === '') {
+            $options['vhost'] = '/';
+        }
+
         return $options;
     }
 }

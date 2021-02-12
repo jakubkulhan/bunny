@@ -20,7 +20,7 @@
     <php>
         <!-- This is the default configuration when running the test suite
              through the docker-compose setup -->
-        <env name="TEST_RABBITMQ_CONNECTION_URI" value="amqp://testuser:testpassword@rabbit_node_1:5672/testvhost"/>
+        <env name="TEST_RABBITMQ_CONNECTION_URI" value="amqp://guest:guest@localhost:5672/"/>
 
         <!-- RabbitMQ running on localhost with default user (guest:guest) and
              vhost "/" would be (slashes in the actual vhost name need to be
