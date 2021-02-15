@@ -111,30 +111,24 @@ class Channel
 
     /**
      * Returns underlying client instance.
-     *
-     * @return AbstractClient
      */
-    public function getClient()
+    public function getClient(): AbstractClient
     {
         return $this->client;
     }
 
     /**
      * Returns channel id.
-     *
-     * @return int
      */
-    public function getChannelId()
+    public function getChannelId(): int
     {
         return $this->channelId;
     }
 
     /**
      * Returns the channel mode.
-     *
-     * @return int
      */
-    public function getMode()
+    public function getMode(): int
     {
         return $this->mode;
     }
@@ -143,9 +137,8 @@ class Channel
      * Listener is called whenever 'basic.return' frame is received with arguments (Message $returnedMessage, MethodBasicReturnFrame $frame)
      *
      * @param callable $callback
-     * @return $this
      */
-    public function addReturnListener(callable $callback)
+    public function addReturnListener(callable $callback): self
     {
         $this->removeReturnListener($callback); // remove if previously added to prevent calling multiple times
         $this->returnCallbacks[] = $callback;
@@ -156,9 +149,8 @@ class Channel
      * Removes registered return listener. If the callback is not registered, this is noop.
      *
      * @param callable $callback
-     * @return $this
      */
-    public function removeReturnListener(callable $callback)
+    public function removeReturnListener(callable $callback): self
     {
         foreach ($this->returnCallbacks as $k => $v) {
             if ($v === $callback) {
@@ -173,9 +165,8 @@ class Channel
      * Listener is called whenever 'basic.ack' or 'basic.nack' is received.
      *
      * @param callable $callback
-     * @return $this
      */
-    public function addAckListener(callable $callback)
+    public function addAckListener(callable $callback): self
     {
         if ($this->mode !== ChannelModeEnum::CONFIRM) {
             throw new ChannelException("Ack/nack listener can be added when channel in confirm mode.");
@@ -190,9 +181,8 @@ class Channel
      * Removes registered ack/nack listener. If the callback is not registered, this is noop.
      *
      * @param callable $callback
-     * @return $this
      */
-    public function removeAckListener(callable $callback)
+    public function removeAckListener(callable $callback): self
     {
         if ($this->mode !== ChannelModeEnum::CONFIRM) {
             throw new ChannelException("Ack/nack listener can be removed when channel in confirm mode.");
@@ -214,9 +204,8 @@ class Channel
      *
      * @param int $replyCode
      * @param string $replyText
-     * @return PromiseInterface
      */
-    public function close($replyCode = 0, $replyText = "")
+    public function close($replyCode = 0, $replyText = ""): PromiseInterface
     {
         if ($this->state === ChannelStateEnum::CLOSED) {
             throw new ChannelException("Trying to close already closed channel #{$this->channelId}.");
@@ -283,7 +272,7 @@ class Channel
      * @param bool $nowait
      * @param array $arguments
      */
-    public function run(callable $callback, $queue = "", $consumerTag = "", $noLocal = false, $noAck = false, $exclusive = false, $nowait = false, $arguments = [])
+    public function run(callable $callback, $queue = "", $consumerTag = "", $noLocal = false, $noAck = false, $exclusive = false, $nowait = false, $arguments = []): void
     {
         $response = $this->consume($callback, $queue, $consumerTag, $noLocal, $noAck, $exclusive, $nowait, $arguments);
 
@@ -558,7 +547,7 @@ class Channel
      *
      * @param AbstractFrame $frame
      */
-    public function onFrameReceived(AbstractFrame $frame)
+    public function onFrameReceived(AbstractFrame $frame): void
     {
         if ($this->state === ChannelStateEnum::ERROR) {
             throw new ChannelException("Channel in error state.");
@@ -704,7 +693,7 @@ class Channel
     /**
      * Callback after content body has been completely received.
      */
-    protected function onBodyComplete()
+    protected function onBodyComplete(): void
     {
         if ($this->returnFrame) {
             $content = $this->bodyBuffer->consume($this->bodyBuffer->getLength());
