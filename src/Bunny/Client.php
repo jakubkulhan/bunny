@@ -67,10 +67,8 @@ class Client extends AbstractClient
 
     /**
      * Reads data from stream to {@link readBuffer}.
-     *
-     * @return boolean
      */
-    protected function feedReadBuffer()
+    protected function feedReadBuffer(): bool
     {
         $this->read();
         return true;
@@ -78,10 +76,8 @@ class Client extends AbstractClient
 
     /**
      * Writes all data from {@link writeBuffer} to stream.
-     *
-     * @return boolean
      */
-    protected function flushWriteBuffer()
+    protected function flushWriteBuffer(): bool
     {
         while (!$this->writeBuffer->isEmpty()) {
             $this->write();
@@ -93,9 +89,8 @@ class Client extends AbstractClient
      * Synchronously connects to AMQP server.
      *
      * @throws \Exception
-     * @return self
      */
-    public function connect()
+    public function connect(): self
     {
         if ($this->state !== ClientStateEnum::NOT_CONNECTED) {
             throw new ClientException("Client already connected/connecting.");
@@ -130,9 +125,9 @@ class Client extends AbstractClient
      *
      * @param int $replyCode
      * @param string $replyText
-     * @return Promise\PromiseInterface
+     * @return
      */
-    public function disconnect($replyCode = 0, $replyText = "")
+    public function disconnect($replyCode = 0, $replyText = ""): Promise\PromiseInterface
     {
         if ($this->state === ClientStateEnum::DISCONNECTING) {
             return $this->disconnectPromise;
@@ -169,7 +164,7 @@ class Client extends AbstractClient
      *
      * @param float $maxSeconds
      */
-    public function run($maxSeconds = null)
+    public function run($maxSeconds = null): void
     {
         if (!$this->isConnected()) {
             throw new ClientException("Client has to be connected.");
@@ -263,7 +258,7 @@ class Client extends AbstractClient
     /**
      * Stops client's event loop.
      */
-    public function stop()
+    public function stop(): void
     {
         $this->running = false;
     }
