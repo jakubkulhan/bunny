@@ -365,7 +365,9 @@ class AsyncClientTest extends TestCase
         $client->connect()->then(function (Client $client) {
             return $client->channel();
         })->then(function (Channel $channel) {
-            return $channel->queueDeclare('issue36', false, false);
+            return $channel->queueDeclare('issue36', false, false)->then(function () use ($channel) {
+                return $channel;
+            });
         })->then(function (Channel $channel) {
             return $channel->queueDeclare('issue36', false, true);
         })->done();
@@ -388,7 +390,9 @@ class AsyncClientTest extends TestCase
         $client->connect()->then(function (Client $client) {
             return $client->channel();
         })->then(function (Channel $channel) {
-            return $channel->queueDeclare('issue36', false, false);
+            return $channel->queueDeclare('issue36', false, false)->then(function () use ($channel) {
+                return $channel;
+            });
         })->then(function (Channel $channel) {
             return $channel->queueDeclare('issue36', false, true);
         })->done(null, function ($reason) use ($loop) {
