@@ -352,4 +352,51 @@ class AsyncClientTest extends TestCase
         $this->assertEquals(2, $called);
     }
 
+    public function testThrowsExceptionsWithoutDoneCallback()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(1, function () {
+            throw new TimeoutException();
+        });
+
+        $client = $this->helper->createClient($loop);
+
+        $client->connect()->then(function (Client $client) {
+            return $client->channel();
+        })->then(function (Channel $channel) {
+            return $channel->queueDeclare('issue36', false, false);
+        })->then(function (Channel $channel) {
+            return $channel->queueDeclare('issue36', false, true);
+        })->done();
+
+        $this->expectException(ClientException::class);
+
+        $loop->run();
+    }
+
+    public function testDoesNotThrowExceptionsWithDoneCallback()
+    {
+        $loop = Factory::create();
+
+        $loop->addTimer(1, function () {
+            throw new TimeoutException();
+        });
+
+        $client = $this->helper->createClient($loop);
+
+        $client->connect()->then(function (Client $client) {
+            return $client->channel();
+        })->then(function (Channel $channel) {
+            return $channel->queueDeclare('issue36', false, false);
+        })->then(function (Channel $channel) {
+            return $channel->queueDeclare('issue36', false, true);
+        })->done(null, function ($reason) use ($loop) {
+            $this->assertInstanceOf(ClientException::class, $reason);
+            $this->assertStringContainsString('PRECONDITION_FAILED', $reason->getMessage());
+            $loop->stop();
+        });
+
+        $loop->run();
+    }
 }
