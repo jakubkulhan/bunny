@@ -7,7 +7,6 @@ use Bunny\Exception\ClientException;
 use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodConnectionTuneFrame;
-use Psr\Log\LoggerInterface;
 use React\EventLoop\Factory;
 use React\EventLoop\LoopInterface;
 use React\EventLoop\Timer\Timer;
@@ -64,12 +63,11 @@ class Client extends AbstractClient
      *
      * @param LoopInterface $eventLoop
      * @param array $options see {@link AbstractClient} for available options
-     * @param LoggerInterface $log if argument is passed, AMQP communication will be recorded in debug level
      */
-    public function __construct(LoopInterface $eventLoop = null, array $options = [], LoggerInterface $log = null)
+    public function __construct(LoopInterface $eventLoop = null, array $options = [])
     {
         $options["async"] = true;
-        parent::__construct($options, $log);
+        parent::__construct($options);
 
         if ($eventLoop === null) {
             $eventLoop = Factory::create();

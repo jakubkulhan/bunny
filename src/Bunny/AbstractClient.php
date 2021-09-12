@@ -14,7 +14,6 @@ use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
 use InvalidArgumentException;
-use Psr\Log\LoggerInterface;
 use React\Promise;
 
 use function is_array;
@@ -37,9 +36,6 @@ abstract class AbstractClient
 
     /** @var array */
     protected $options;
-
-    /** @var LoggerInterface */
-    protected $log;
 
     /** @var resource|null */
     protected $stream;
@@ -87,9 +83,8 @@ abstract class AbstractClient
      * Constructor.
      *
      * @param array $options
-     * @param LoggerInterface $log
      */
-    public function __construct(array $options = [], LoggerInterface $log = null)
+    public function __construct(array $options = [])
     {
         if (!isset($options["host"])) {
             $options["host"] = "127.0.0.1";
@@ -144,7 +139,6 @@ abstract class AbstractClient
         }
 
         $this->options = $options;
-        $this->log = $log;
 
         $this->init();
     }
