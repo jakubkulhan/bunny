@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 use React\EventLoop\Factory;
 
+use React\EventLoop\Loop;
 use function dirname;
 use function file_exists;
 use function is_file;
@@ -50,20 +51,18 @@ class SSLTest extends TestCase
 
     public function testConnectAsync() {
         $options = $this->getOptions();
-        $loop = Factory::create();
-
-        $loop->addTimer(5, function () {
+        Loop::addTimer(5, function () {
             throw new TimeoutException();
         });
 
-        $client = $this->asyncHelper->createClient($loop, $options);
+        $client = $this->asyncHelper->createClient($options);
         $client->connect()->then(function (AsyncClient $client) {
             return $client->disconnect();
-        })->then(function () use ($loop) {
-            $loop->stop();
+        })->then(function () {
+            Loop::stop();
         })->done();
 
-        $loop->run();
+        Loop::run();
 
         $this->assertTrue(true);
     }

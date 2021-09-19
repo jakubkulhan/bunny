@@ -4,11 +4,10 @@ use Bunny\Channel;
 use Bunny\Async\Client;
 use Bunny\Message;
 use Bunny\Protocol\MethodBasicConsumeOkFrame;
-use React\EventLoop\Factory;
+use React\EventLoop\Loop;
 
 require '../vendor/autoload.php';
 
-$loop = Factory::create();
 $channelRef = null;
 $consumerTag = null;
 
@@ -20,7 +19,7 @@ $clientConfig = [
     "password" => "apppass",
 ];
 
-$client = new Client($loop, $clientConfig);
+$client = new Client($clientConfig);
 $client->connect()->then(function (Client $client) {
     return $client->channel();
 }, function($reason) {
@@ -75,17 +74,15 @@ $client->connect()->then(function (Client $client) {
 })->done();
 
 // Capture signals - SIGINT = Ctrl+C; SIGTERM = `kill`
-$loop->addSignal(SIGINT, function (int $signal) use (&$channelRef, &$consumerTag) {
+Loop::addSignal(SIGINT, function (int $signal) use (&$channelRef, &$consumerTag) {
     print "Consumer cancelled\n";
     $channelRef->cancel($consumerTag)->done(function() {
         exit();
     });
 });
-$loop->addSignal(SIGTERM, function (int $signal) use (&$channelRef, &$consumerTag) {
+Loop::addSignal(SIGTERM, function (int $signal) use (&$channelRef, &$consumerTag) {
     print "Consumer cancelled\n";
     $channelRef->cancel($consumerTag)->done(function() {
         exit();
     });
 });
-
-$loop->run();
