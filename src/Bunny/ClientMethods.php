@@ -292,6 +292,9 @@ trait ClientMethods
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
+                } elseif ($frame instanceof \Throwable) {
+                    $deferred->reject(new ClientException($frame->getMessage(), Constants::STATUS_ACCESS_REFUSED));
+                    return true;
                 }
                 return false;
             });
