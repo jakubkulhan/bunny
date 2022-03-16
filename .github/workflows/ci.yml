@@ -1,0 +1,101 @@
+name: Continuous Integration
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  supported-versions-matrix:
+    name: Supported Versions Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.supported-versions-matrix.outputs.version }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: supported-versions-matrix
+        uses: WyriHaximus/github-action-composer-php-versions-in-range@v1
+  test:
+    name: "Run Tests on PHP ${{ matrix.php }} against RabbitMQ ${{ matrix.rabbitmq }} (Composer: ${{ matrix.composer }}; TLS: ${{ matrix.ssl_test }})"
+    runs-on: ubuntu-latest
+    needs:
+      - supported-versions-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ${{ fromJson(needs.supported-versions-matrix.outputs.version) }}
+        composer: [lowest, locked, highest]
+        rabbitmq: ["3", "3.9"]
+        ssl_test: ["no", "yes", "client"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, ctype, iconv, bcmath, filter, json
+          tools: composer
+      - name: Install Dependencies
+        uses: ramsey/composer-install@v2
+        with:
+          dependency-versions: ${{ matrix.composer }}
+      - name: RabbitMQ TLS Certificates
+        if: matrix.ssl_test != 'no'
+        run: |
+          cd test/ssl
+          make all
+          ls -lasth
+          sudo chown 999:999 ./{ca.pem,server.pem,server.key}
+          ls -lasth
+      - name: Start RabbitMQ
+        if: matrix.ssl_test == 'no'
+        uses: namoshek/rabbitmq-github-action@v1
+        with:
+          version: '${{ matrix.rabbitmq }}-management'
+          ports: '5672:5672 15672:15672'
+          container-name: 'rabbitmq'
+      - name: Start RabbitMQ
+        if: matrix.ssl_test == 'yes'
+        uses: namoshek/rabbitmq-github-action@v1
+        with:
+          version: '${{ matrix.rabbitmq }}-management'
+          ports: '5673:5673 5672:5672 15672:15672'
+          container-name: 'rabbitmq'
+          certificates: ${{ github.workspace }}/test/ssl
+          config: ${{ github.workspace }}/test/ssl/rabbitmq.ssl.verify_none.conf
+      - name: Start RabbitMQ
+        if: matrix.ssl_test == 'client'
+        uses: namoshek/rabbitmq-github-action@v1
+        with:
+          version: '${{ matrix.rabbitmq }}-management'
+          ports: '5673:5673 5672:5672 15672:15672'
+          container-name: 'rabbitmq'
+          certificates: ${{ github.workspace }}/test/ssl
+          config: ${{ github.workspace }}/test/ssl/rabbitmq.ssl.verify_peer.conf
+      - uses: ifaxity/wait-on-action@v1
+        with:
+          resource: http://localhost:15672/
+          timeout: 13000
+          interval: 100
+      - name: Run UnitTests
+        if: matrix.ssl_test == 'no'
+        run: ./vendor/bin/phpunit
+      - name: Run UnitTests
+        if: matrix.ssl_test == 'yes'
+        run: ./vendor/bin/phpunit
+        env:
+          SSL_TEST: "yes"
+          SSL_CA: "ssl/ca.pem"
+          SSL_PEER_NAME: "server.rmq"
+      - name: Run UnitTests
+        if: matrix.ssl_test == 'client'
+        run: ./vendor/bin/phpunit
+        env:
+          SSL_TEST: "yes"
+          SSL_CA: "ssl/ca.pem"
+          SSL_PEER_NAME: "server.rmq"
+          SSL_CLIENT_CERT: "ssl/client.pem"
+          SSL_CLIENT_KEY: "ssl/client.key"
+      - name: Docker Logs
+        if: ${{ failure() }}
+        run: docker logs rabbitmq
