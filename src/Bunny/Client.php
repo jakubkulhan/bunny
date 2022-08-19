@@ -203,7 +203,7 @@ class Client extends AbstractClient
                     if (($n = @stream_select($r, $w, $e, $tvSec, $tvUsec)) === false) {
                         $lastError = error_get_last();
                         if ($lastError !== null &&
-                            preg_match("/^stream_select\\(\\): unable to select \\[(\\d+)\\]:/", $lastError["message"], $m) &&
+                            preg_match("/^stream_select\\(\\): unable to select \\[(\\d+)\\]:/i", $lastError["message"], $m) &&
                             intval($m[1]) === PCNTL_EINTR
                         ) {
                             // got interrupted by signal, dispatch signals & continue
