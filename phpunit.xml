@@ -10,12 +10,4 @@
       <directory suffix="Test.php">test/Bunny</directory>
     </testsuite>
   </testsuites>
-  <php>
-    <!--
-    SSL_TEST can have the following values:
-    - "client"        -> run all SSL tests, expect peer cert (c.f. rabbitmq.ssl.verify_peer.conf)
-    - "yes"           -> run all SSL tests, do *not* expect peer cert (c.f. rabbitmq.ssl.verify_none.conf)
-    - "no" (or other) -> skip SSL-related tests
-    -->
-  </php>
 </phpunit>
