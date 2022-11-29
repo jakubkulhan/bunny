@@ -93,7 +93,7 @@ jobs:
         if: matrix.ssl_test == 'client'
         run: ./vendor/bin/phpunit
         env:
-          SSL_TEST: "yes"
+          SSL_TEST: "client"
           SSL_CA: "ssl/ca.pem"
           SSL_PEER_NAME: "server.rmq"
           SSL_CLIENT_CERT: "ssl/client.pem"

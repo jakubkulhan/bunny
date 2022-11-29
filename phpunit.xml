@@ -11,7 +11,13 @@
     </testsuite>
   </testsuites>
   <php>
-    <env name="SSL_TEST" value="yes"/>
+    <!--
+    SSL_TEST can have the following values:
+    - "client"        -> run all SSL tests, expect peer cert (c.f. rabbitmq.ssl.verify_peer.conf)
+    - "yes"           -> run all SSL tests, do *not* expect peer cert (c.f. rabbitmq.ssl.verify_none.conf)
+    - "no" (or other) -> skip SSL-related tests
+    -->
+    <env name="SSL_TEST" value="client"/>
     <env name="SSL_CA" value="ssl/ca.pem"/>
     <env name="SSL_CLIENT_CERT" value="ssl/client.pem"/>
     <env name="SSL_CLIENT_KEY" value="ssl/client.key"/>

@@ -78,7 +78,9 @@ class SSLTest extends TestCase
         // let's try without client certificate - it should fail
         unset($options['ssl']['local_cert'], $options['ssl']['local_pk']);
 
-        $this->expectException(ClientException::class);
+        if (getenv('SSL_TEST') === 'client') {
+            $this->expectException(ClientException::class);
+        }
 
         $client = $this->helper->createClient($options);
         $client->connect();
@@ -112,8 +114,8 @@ class SSLTest extends TestCase
     protected function getOptions()
     {
         // should we do SSL-tests
-        if (empty(getenv('SSL_TEST')) || getenv('SSL_TEST') !== 'yes') {
-            $this->markTestSkipped('Skipped due empty ENV-variable "SSL_TEST"');
+        if (empty(getenv('SSL_TEST')) || !in_array(getenv('SSL_TEST'), ['yes', 'client'], true)) {
+            $this->markTestSkipped('Skipped because env var SSL_TEST not set to "yes" or "client"');
         }
 
         // checking CA-file
