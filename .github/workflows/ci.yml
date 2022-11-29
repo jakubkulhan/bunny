@@ -80,6 +80,8 @@ jobs:
       - name: Run UnitTests
         if: matrix.ssl_test == 'no'
         run: ./vendor/bin/phpunit
+        env:
+          SSL_TEST: "no"
       - name: Run UnitTests
         if: matrix.ssl_test == 'yes'
         run: ./vendor/bin/phpunit
