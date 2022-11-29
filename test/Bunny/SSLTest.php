@@ -112,7 +112,7 @@ class SSLTest extends TestCase
     protected function getOptions()
     {
         // should we do SSL-tests
-        if (empty(getenv('SSL_TEST'))) {
+        if (empty(getenv('SSL_TEST')) || getenv('SSL_TEST') !== 'yes') {
             $this->markTestSkipped('Skipped due empty ENV-variable "SSL_TEST"');
         }
 
