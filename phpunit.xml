@@ -17,14 +17,5 @@
     - "yes"           -> run all SSL tests, do *not* expect peer cert (c.f. rabbitmq.ssl.verify_none.conf)
     - "no" (or other) -> skip SSL-related tests
     -->
-    <env name="SSL_TEST" value="client"/>
-    <env name="SSL_CA" value="ssl/ca.pem"/>
-    <env name="SSL_CLIENT_CERT" value="ssl/client.pem"/>
-    <env name="SSL_CLIENT_KEY" value="ssl/client.key"/>
-    <env name="SSL_PEER_NAME" value="server.rmq"/>
-
-    <!-- Note: This is the connection URI used within the GitHub CI actions. For the local docker-compose setup, the
-         value is overwritten in docker-compose.yaml. -->
-    <env name="TEST_RABBITMQ_CONNECTION_URI" value="amqp://guest:guest@localhost:5672/"/>
   </php>
 </phpunit>
