@@ -10,8 +10,14 @@ use Bunny\Exception\ChannelException;
 use Bunny\Exception\ClientException;
 use Bunny\Protocol\MethodBasicAckFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
+use Bunny\Test\Library\Environment;
+use Bunny\Test\Library\Paths;
 use Bunny\Test\Library\SynchronousClientHelper;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
+
+use const SIGINT;
 
 class ClientTest extends TestCase
 {
@@ -125,6 +131,35 @@ class ClientTest extends TestCase
         $client->connect();
         $channel = $client->channel();
         $channel->queueDelete("disconnect_test");
+    }
+
+    /**
+     * Spawns an external consumer process, and tries to stop it with SIGINT.
+     */
+    public function testStopConsumerWithSigInt()
+    {
+        $queueName = 'stop-consumer-with-sigint';
+
+        $path = Paths::getTestsRootPath() . '/scripts/bunny-consumer.php';
+
+        $process = new Process([$path, Environment::getTestRabbitMqConnectionUri(), $queueName, '0']);
+
+        $process->start();
+
+        $signalSent = false;
+        $starttime = microtime(true);
+
+        // Send SIGINT after 1.0 seconds
+        while ($process->isRunning()) {
+            if (!$signalSent && microtime(true) > $starttime + 1.0) {
+                $process->signal(SIGINT);
+                $signalSent = true;
+            }
+
+            usleep(10000);
+        }
+
+        self::assertTrue($process->isSuccessful(), $process->getOutput() . "\n" . $process->getErrorOutput());
     }
 
     public function testGet()

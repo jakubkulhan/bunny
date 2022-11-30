@@ -73,7 +73,7 @@ final class SynchronousClientHelper extends AbstractClientHelper
     {
         $options = [];
 
-        $options = array_merge($options, $this->parseAmqpUri(Environment::getTestRabbitMqConnectionUri()));
+        $options = array_merge($options, parseAmqpUri(Environment::getTestRabbitMqConnectionUri()));
 
         return $options;
     }
