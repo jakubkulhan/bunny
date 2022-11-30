@@ -1,31 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<phpunit
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/6.5/phpunit.xsd"
-        bootstrap="vendor/autoload.php"
-        colors="true">
-
-    <testsuites>
-        <testsuite name="Tests">
-            <directory suffix="Test.php">test/Bunny</directory>
-        </testsuite>
-    </testsuites>
-
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
-            <directory suffix=".php">src</directory>
-        </whitelist>
-    </filter>
-
-    <php>
-        <!-- This is the default configuration when running the test suite
-             through the docker-compose setup -->
-        <env name="TEST_RABBITMQ_CONNECTION_URI" value="amqp://guest:guest@localhost:5672/"/>
-
-        <!-- RabbitMQ running on localhost with default user (guest:guest) and
-             vhost "/" would be (slashes in the actual vhost name need to be
-             percent-encoded, see https://www.rabbitmq.com/uri-spec.html): -->
-        <!--<env name="TEST_RABBITMQ_CONNECTION_URI" value="amqp://localhost:5672/%2f"/>-->
-    </php>
-
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true">
+  <coverage processUncoveredFiles="true">
+    <include>
+      <directory suffix=".php">src</directory>
+    </include>
+  </coverage>
+  <testsuites>
+    <testsuite name="Tests">
+      <directory suffix="Test.php">test/Bunny</directory>
+    </testsuite>
+  </testsuites>
 </phpunit>

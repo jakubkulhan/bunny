@@ -6,6 +6,7 @@ use Bunny\Async\Client as AsyncClient;
 use Bunny\Exception\ClientException;
 use Bunny\Test\Exception\TimeoutException;
 use Bunny\Test\Library\AsynchronousClientHelper;
+use Bunny\Test\Library\Environment;
 use Bunny\Test\Library\SynchronousClientHelper;
 use PHPUnit\Framework\TestCase;
 
@@ -13,7 +14,6 @@ use React\EventLoop\Factory;
 
 use function dirname;
 use function file_exists;
-use function getenv;
 use function is_file;
 use function putenv;
 
@@ -78,7 +78,9 @@ class SSLTest extends TestCase
         // let's try without client certificate - it should fail
         unset($options['ssl']['local_cert'], $options['ssl']['local_pk']);
 
-        $this->expectException(ClientException::class);
+        if (Environment::getSslTest() === 'client') {
+            $this->expectException(ClientException::class);
+        }
 
         $client = $this->helper->createClient($options);
         $client->connect();
@@ -112,26 +114,20 @@ class SSLTest extends TestCase
     protected function getOptions()
     {
         // should we do SSL-tests
-        if (empty(getenv('SSL_TEST'))) {
-            $this->markTestSkipped('Skipped due empty ENV-variable "SSL_TEST"');
+        if (!in_array(Environment::getSslTest(), ['yes', 'client'], true)) {
+            $this->markTestSkipped('Skipped because env var SSL_TEST not set to "yes" or "client"');
         }
 
         // checking CA-file
-        $caFile = getenv('SSL_CA');
-        if (empty($caFile)) {
-            $this->fail('Missing CA file ENV-variable: "SSL_CA"');
-        }
+        $caFile = Environment::getSslCa();
+
         $testsDir = dirname(__DIR__);
         $caFile   = $testsDir . '/' . $caFile;
         if (!file_exists($caFile) || !is_file($caFile)) {
             $this->fail('Missing CA file: "' . $caFile . '"');
         }
 
-        $peerName = getenv('SSL_PEER_NAME');
-        if (empty($peerName)) {
-            // setting default value from tests/ssl/Makefile
-            $peerName = 'server.rmq';
-        }
+        $peerName = Environment::getSslPeerName();
 
         // minimal SSL-options
         $options = [
@@ -145,8 +141,9 @@ class SSLTest extends TestCase
         ];
 
 
-        $certFile = getenv('SSL_CLIENT_CERT');
-        $keyFile  = getenv('SSL_CLIENT_KEY');
+        $certFile = Environment::getSslClientCert();
+        $keyFile  = Environment::getSslClientKey();
+
         if (!empty($certFile) && !empty($keyFile)) {
             $certFile = $testsDir . '/' . $certFile;
             $keyFile  = $testsDir . '/' . $keyFile;
@@ -159,6 +156,7 @@ class SSLTest extends TestCase
             $options['ssl']['local_cert'] = $certFile;
             $options['ssl']['local_pk']   = $keyFile;
         }
+
         return $options;
     }
 }
