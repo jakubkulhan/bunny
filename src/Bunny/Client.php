@@ -202,8 +202,11 @@ class Client extends AbstractClient
 
                     if (($n = @stream_select($r, $w, $e, $tvSec, $tvUsec)) === false) {
                         $lastError = error_get_last();
+
+                        // Note: The word "Unable" within the stream_select error message was spelled "unable" in PHP
+                        //       versions < 8.
                         if ($lastError !== null &&
-                            preg_match("/^stream_select\\(\\): unable to select \\[(\\d+)\\]:/", $lastError["message"], $m) &&
+                            preg_match("/^stream_select\\(\\): [Uu]nable to select \\[(\\d+)\\]:/", $lastError["message"], $m) &&
                             intval($m[1]) === PCNTL_EINTR
                         ) {
                             // got interrupted by signal, dispatch signals & continue
