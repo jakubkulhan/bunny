@@ -159,7 +159,7 @@ class ClientTest extends TestCase
             usleep(10000);
         }
 
-        self::assertTrue($process->isSuccessful(), $process->getOutput());
+        self::assertTrue($process->isSuccessful(), $process->getOutput() . "\n" . $process->getErrorOutput());
     }
 
     public function testGet()
