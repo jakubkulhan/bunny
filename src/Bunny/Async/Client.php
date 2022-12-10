@@ -8,6 +8,7 @@ use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodConnectionTuneFrame;
 use React\EventLoop\Factory;
+use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
 use React\EventLoop\Timer\Timer;
 use React\Promise;
@@ -42,10 +43,6 @@ use React\Promise;
  */
 class Client extends AbstractClient
 {
-
-    /** @var LoopInterface */
-    protected $eventLoop;
-
     /** @var Promise\PromiseInterface|null */
     protected $flushWriteBufferPromise;
 
@@ -61,19 +58,12 @@ class Client extends AbstractClient
     /**
      * Constructor.
      *
-     * @param LoopInterface $eventLoop
      * @param array $options see {@link AbstractClient} for available options
      */
-    public function __construct(LoopInterface $eventLoop = null, array $options = [])
+    public function __construct(array $options = [])
     {
         $options["async"] = true;
         parent::__construct($options);
-
-        if ($eventLoop === null) {
-            $eventLoop = Factory::create();
-        }
-
-        $this->eventLoop = $eventLoop;
     }
 
     /**
@@ -107,12 +97,12 @@ class Client extends AbstractClient
     public function run($maxSeconds = null)
     {
         if ($maxSeconds !== null) {
-            $this->stopTimer = $this->eventLoop->addTimer($maxSeconds, function () {
+            $this->stopTimer = Loop::addTimer($maxSeconds, function () {
                 $this->stop();
             });
         }
 
-        $this->eventLoop->run();
+        Loop::run();
     }
 
     /**
@@ -121,11 +111,11 @@ class Client extends AbstractClient
     public function stop()
     {
         if ($this->stopTimer) {
-            $this->eventLoop->cancelTimer($this->stopTimer);
+            Loop::cancelTimer($this->stopTimer);
             $this->stopTimer = null;
         }
 
-        $this->eventLoop->stop();
+        Loop::stop();
     }
 
     /**
@@ -152,18 +142,18 @@ class Client extends AbstractClient
         } else {
             $deferred = new Promise\Deferred();
 
-            $this->eventLoop->addWriteStream($this->getStream(), function ($stream) use ($deferred) {
+            Loop::addWriteStream($this->getStream(), function ($stream) use ($deferred) {
                 try {
                     $this->write();
 
                     if ($this->writeBuffer->isEmpty()) {
-                        $this->eventLoop->removeWriteStream($stream);
+                        Loop::removeWriteStream($stream);
                         $this->flushWriteBufferPromise = null;
                         $deferred->resolve(true);
                     }
 
                 } catch (\Exception $e) {
-                    $this->eventLoop->removeWriteStream($stream);
+                    Loop::removeWriteStream($stream);
                     $this->flushWriteBufferPromise = null;
                     $deferred->reject($e);
                 }
@@ -190,7 +180,7 @@ class Client extends AbstractClient
         $this->writer->appendProtocolHeader($this->writeBuffer);
 
         try {
-            $this->eventLoop->addReadStream($this->getStream(), [$this, "onDataAvailable"]);
+            Loop::addReadStream($this->getStream(), [$this, "onDataAvailable"]);
         } catch (\Exception $e) {
             return Promise\reject($e);
         }
@@ -215,7 +205,7 @@ class Client extends AbstractClient
             return $this->connectionOpen($this->options["vhost"]);
 
         })->then(function () {
-            $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
+            $this->heartbeatTimer = Loop::addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
 
             $this->state = ClientStateEnum::CONNECTED;
             return $this;
@@ -259,7 +249,7 @@ class Client extends AbstractClient
         }
 
         if ($this->heartbeatTimer) {
-            $this->eventLoop->cancelTimer($this->heartbeatTimer);
+            Loop::cancelTimer($this->heartbeatTimer);
             $this->heartbeatTimer = null;
         }
 
@@ -272,7 +262,7 @@ class Client extends AbstractClient
             }
             return $this->connectionClose($replyCode, $replyText, 0, 0);
         })->then(function () {
-            $this->eventLoop->removeReadStream($this->getStream());
+            Loop::removeReadStream($this->getStream());
             $this->closeStream();
             $this->init();
             return $this;
@@ -333,14 +323,14 @@ class Client extends AbstractClient
         if ($now >= $nextHeartbeat) {
             $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
             $this->flushWriteBuffer()->done(function () {
-                $this->heartbeatTimer = $this->eventLoop->addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
+                $this->heartbeatTimer = Loop::addTimer($this->options["heartbeat"], [$this, "onHeartbeat"]);
             });
 
             if (is_callable($this->options['heartbeat_callback'] ?? null)) {
                 $this->options['heartbeat_callback']->call($this);
             }
         } else {
-            $this->heartbeatTimer = $this->eventLoop->addTimer($nextHeartbeat - $now, [$this, "onHeartbeat"]);
+            $this->heartbeatTimer = Loop::addTimer($nextHeartbeat - $now, [$this, "onHeartbeat"]);
         }
     }
 
