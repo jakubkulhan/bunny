@@ -189,7 +189,10 @@ class Client extends AbstractClient
             } else {
                 if (($frame = $this->reader->consumeFrame($this->readBuffer)) === null) {
                     $now = microtime(true);
-                    $nextStreamSelectTimeout = $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
+                    $nextStreamSelectTimeout = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
+                    if (!isset($nextHeartbeat)) {
+                        $nextHeartbeat = $now + $this->options["heartbeat"];
+                    }
                     if ($stopTime !== null && $stopTime < $nextStreamSelectTimeout) {
                         $nextStreamSelectTimeout = $stopTime;
                     }
@@ -224,6 +227,7 @@ class Client extends AbstractClient
                     $now = microtime(true);
 
                     if ($now >= $nextHeartbeat) {
+                        $nextHeartbeat = $now + $this->options["heartbeat"];
                         $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
                         $this->flushWriteBuffer();
 
