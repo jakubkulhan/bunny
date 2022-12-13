@@ -26,13 +26,16 @@
     ],
     "require": {
         "php": "^7.1 || ^8.0",
-        "ext-pcntl": "*",
         "react/event-loop": "^1.0 || ^0.5 || ^0.4",
         "react/promise": "~2.2"
     },
     "require-dev": {
+        "ext-pcntl": "*",
         "phpunit/phpunit": "^9.5 || ^7.5.20",
         "symfony/process": "^6.1 || ^4.4"
+    },
+    "suggest": {
+        "ext-pcntl": "For using synchronous AMQP/RabbitMQ client"
     },
     "autoload": {
         "psr-4": {
