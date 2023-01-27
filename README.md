@@ -109,6 +109,29 @@ Note: invalid SSL configuration will cause connection failure.
 
 See also [common configuration variants](examples/ssl/).
 
+### Providing client properties
+
+Client Connections can [present their capabilities](https://www.rabbitmq.com/connections.html#capabilities) to
+a server by presenting an optional `client_properties` table when establishing a connection.
+
+For example, a connection name may be provided by setting the
+[`connection_name` property](https://www.rabbitmq.com/connections.html#client-provided-names):
+
+```php
+$connection = [
+    'host'              => 'HOSTNAME',
+    'vhost'             => 'VHOST',    // The default vhost is /
+    'user'              => 'USERNAME', // The default user is guest
+    'password'          => 'PASSWORD', // The default password is guest
+    'client_properties' => [
+        'connection_name' => 'My connection',
+    ],
+];
+
+$bunny = new Client($connection);
+$bunny->connect();
+```
+
 ### Publish a message
 
 Now that we have a connection with the server we need to create a channel and declare a queue to communicate over before we can publish a message, or subscribe to a queue for that matter.
