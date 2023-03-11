@@ -80,6 +80,9 @@ jobs:
       - name: Run UnitTests
         if: matrix.ssl_test == 'no'
         run: ./vendor/bin/phpunit
+        env:
+          SSL_TEST: "no"
+          TEST_RABBITMQ_CONNECTION_URI: "amqp://guest:guest@localhost:5672/"
       - name: Run UnitTests
         if: matrix.ssl_test == 'yes'
         run: ./vendor/bin/phpunit
@@ -87,15 +90,17 @@ jobs:
           SSL_TEST: "yes"
           SSL_CA: "ssl/ca.pem"
           SSL_PEER_NAME: "server.rmq"
+          TEST_RABBITMQ_CONNECTION_URI: "amqp://guest:guest@localhost:5672/"
       - name: Run UnitTests
         if: matrix.ssl_test == 'client'
         run: ./vendor/bin/phpunit
         env:
-          SSL_TEST: "yes"
+          SSL_TEST: "client"
           SSL_CA: "ssl/ca.pem"
           SSL_PEER_NAME: "server.rmq"
           SSL_CLIENT_CERT: "ssl/client.pem"
           SSL_CLIENT_KEY: "ssl/client.key"
+          TEST_RABBITMQ_CONNECTION_URI: "amqp://guest:guest@localhost:5672/"
       - name: Docker Logs
         if: ${{ failure() }}
         run: docker logs rabbitmq

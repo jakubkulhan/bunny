@@ -29,7 +29,7 @@ final class AsynchronousClientHelper extends AbstractClientHelper
     {
         $options = [];
 
-        $options = array_merge($options, $this->parseAmqpUri(getenv('TEST_RABBITMQ_CONNECTION_URI')));
+        $options = array_merge($options, parseAmqpUri(Environment::getTestRabbitMqConnectionUri()));
 
         return $options;
     }

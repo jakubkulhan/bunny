@@ -189,7 +189,10 @@ class Client extends AbstractClient
             } else {
                 if (($frame = $this->reader->consumeFrame($this->readBuffer)) === null) {
                     $now = microtime(true);
-                    $nextStreamSelectTimeout = $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
+                    $nextStreamSelectTimeout = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
+                    if (!isset($nextHeartbeat)) {
+                        $nextHeartbeat = $now + $this->options["heartbeat"];
+                    }
                     if ($stopTime !== null && $stopTime < $nextStreamSelectTimeout) {
                         $nextStreamSelectTimeout = $stopTime;
                     }
@@ -202,8 +205,11 @@ class Client extends AbstractClient
 
                     if (($n = @stream_select($r, $w, $e, $tvSec, $tvUsec)) === false) {
                         $lastError = error_get_last();
+
+                        // Note: The word "Unable" within the stream_select error message was spelled "unable" in PHP
+                        //       versions < 8.
                         if ($lastError !== null &&
-                            preg_match("/^stream_select\\(\\): unable to select \\[(\\d+)\\]:/", $lastError["message"], $m) &&
+                            preg_match("/^stream_select\\(\\): [Uu]nable to select \\[(\\d+)\\]:/", $lastError["message"], $m) &&
                             intval($m[1]) === PCNTL_EINTR
                         ) {
                             // got interrupted by signal, dispatch signals & continue
@@ -221,6 +227,7 @@ class Client extends AbstractClient
                     $now = microtime(true);
 
                     if ($now >= $nextHeartbeat) {
+                        $nextHeartbeat = $now + $this->options["heartbeat"];
                         $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
                         $this->flushWriteBuffer();
 

@@ -1,4 +1,4 @@
-FROM php:7.4-cli
+FROM php:8.2-cli
 
 RUN apt-get update \
     && apt-get dist-upgrade -y \
@@ -8,8 +8,12 @@ RUN apt-get update \
         vim \
         zip
 
+RUN docker-php-ext-configure pcntl --enable-pcntl \
+    && docker-php-ext-install pcntl
+
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug
+RUN echo "xdebug.mode=coverage" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 RUN curl --silent --show-error https://getcomposer.org/installer | php
 RUN mv composer.phar /usr/local/bin/composer
