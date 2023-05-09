@@ -118,6 +118,15 @@ $channel = $bunny->channel();
 $channel->queueDeclare('queue_name'); // Queue name
 ```
 
+#### Publishing a message on a virtual host with quorum queues as a default
+
+From RabbitMQ 4 queues will be standard defined as Quorum queues, those are by default durable, in order to connect to them you should use the queue declare method as follows. In the current version of RabbitMQ 3.11.15 this is already supported, if the virtual host is configured to have a default type of Quorum.
+
+```php
+$channel = $bunny->channel();
+$channel->queueDeclare('queue_name', false, true); // Queue name
+```
+
 With a communication channel set up, we can now publish a message to the queue:
 
 ```php
