@@ -18,6 +18,7 @@ namespace Bunny\Protocol;
  *      uint8    uint16      uint32        size octets       uint8
  *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
+ * @phpstan-consistent-constructor
  */
 abstract class AbstractFrame
 {

@@ -32,7 +32,8 @@
     "require-dev": {
         "ext-pcntl": "*",
         "phpunit/phpunit": "^9.5 || ^7.5.20",
-        "symfony/process": "^6.1 || ^4.4"
+        "symfony/process": "^6.1 || ^4.4",
+        "phpstan/phpstan": "^1.10"
     },
     "suggest": {
         "ext-pcntl": "For using synchronous AMQP/RabbitMQ client"
