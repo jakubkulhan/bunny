@@ -14,6 +14,24 @@ jobs:
       - uses: actions/checkout@v2
       - id: supported-versions-matrix
         uses: WyriHaximus/github-action-composer-php-versions-in-range@v1
+  static-anylsis:
+    name: "Run static analysis"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: mbstring, ctype, iconv, bcmath, filter, json
+          tools: composer
+      - name: Install Dependencies
+        uses: ramsey/composer-install@v2
+      - name: Run PHPStan
+        run: ./vendor/bin/phpstan analyze src --level 0
   test:
     name: "Run Tests on PHP ${{ matrix.php }} against RabbitMQ ${{ matrix.rabbitmq }} (Composer: ${{ matrix.composer }}; TLS: ${{ matrix.ssl_test }})"
     runs-on: ubuntu-latest

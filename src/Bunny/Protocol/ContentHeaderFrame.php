@@ -17,6 +17,7 @@ use Bunny\Constants;
  *
  *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
+ * @phpstan-consistent-constructor
  */
 class ContentHeaderFrame extends AbstractFrame
 {
