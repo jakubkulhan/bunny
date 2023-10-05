@@ -61,7 +61,7 @@ class SSLTest extends TestCase
             return $client->disconnect();
         })->then(function () use ($loop) {
             $loop->stop();
-        })->done();
+        });
 
         $loop->run();
 

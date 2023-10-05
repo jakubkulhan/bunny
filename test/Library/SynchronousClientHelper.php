@@ -53,7 +53,7 @@ final class SynchronousClientHelper extends AbstractClientHelper
         /** @var Promise $disconnectPromise */
         $disconnectPromise = $client->disconnect();
 
-        $disconnectPromise->done(
+        $disconnectPromise->then(
             function () use ($client) {
                 $client->stop();
             }
