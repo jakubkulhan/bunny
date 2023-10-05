@@ -3,8 +3,12 @@
 use Bunny\Channel;
 use Bunny\Client;
 use Bunny\Message;
+use React\EventLoop\Loop;
+use React\Promise\Deferred;
+use function React\Async\async;
+use function React\Async\await;
 
-require '../../vendor/autoload.php';
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 class FibonacciRpcClient
 {
@@ -13,21 +17,27 @@ class FibonacciRpcClient
 
     public function __construct()
     {
-        $this->client = (new Client())->connect();
+        $this->client = new Client();
         $this->channel = $this->client->channel();
+    }
+
+    public function close()
+    {
+        $this->client->disconnect();
     }
 
     public function call($n)
     {
         $corr_id = uniqid();
-        $response = null;
+        $response = new Deferred();
         $responseQueue = $this->channel->queueDeclare('', false, false, true);
-        $this->channel->consume(
-            function (Message $message, Channel $channel, Client $client) use (&$response, $corr_id) {
+        $subscription = $this->channel->consume(
+            function (Message $message, Channel $channel, Client $client) use (&$response, $corr_id, &$subscription) {
                 if ($message->getHeader('correlation_id') != $corr_id) {
                     return;
                 }
-                $response = $message->content;
+                $response->resolve($message->content);
+                $channel->cancel($subscription->consumerTag);
             },
             $responseQueue->queue
         );
@@ -40,13 +50,12 @@ class FibonacciRpcClient
             '',
             'rpc_queue'
         );
-        while ($response === null) {
-            $this->client->run(0.01);
-        }
-        return (int) $response;
+
+        return (int) await($response->promise());
     }
 }
 
 $fibonacci_rpc = new FibonacciRpcClient();
 $response = $fibonacci_rpc->call(30);
 echo " [.] Got ", $response, "\n";
+$fibonacci_rpc->close();

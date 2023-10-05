@@ -2,11 +2,10 @@
 
 use Bunny\Client;
 
-require '../../vendor/autoload.php';
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
-$client = (new Client())->connect();
+$client = new Client();
 $channel = $client->channel();
-
 $channel->queueDeclare('hello', false, false, false, false);
 
 $channel->publish('Hello World!', [], '', 'hello');

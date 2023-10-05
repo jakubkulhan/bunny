@@ -3,6 +3,8 @@
 use Bunny\Channel;
 use Bunny\Client;
 use Bunny\Message;
+use React\EventLoop\Loop;
+use function React\Async\async;
 
 function fib($n) {
     if ($n == 0)
@@ -12,21 +14,21 @@ function fib($n) {
     return fib($n-1) + fib($n-2);
 }
 
-require '../../vendor/autoload.php';
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
-$client = (new Client())->connect();
+$client = new Client();
 $channel = $client->channel();
 
 $channel->queueDeclare('rpc_queue');
 
 echo " [x] Awaiting RPC requests\n";
 
-$channel->run(
+$channel->consume(
     function (Message $message, Channel $channel, Client $client) {
         $n = intval($message->content);
         echo " [.] fib(", $n, ")\n";
         $channel->publish(
-            (string) fib($n),
+            (string)fib($n),
             [
                 'correlation_id' => $message->getHeader('correlation_id'),
             ],

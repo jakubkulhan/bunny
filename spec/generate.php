@@ -1,7 +1,14 @@
 <?php
 namespace Bunny;
 
+use Bunny\Exception\ClientException;
+use Bunny\Protocol\AbstractFrame;
+use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\ContentHeaderFrame;
+use Bunny\Protocol\HeartbeatFrame;
+use React\EventLoop\Loop;
+use React\Promise\Deferred;
+use function React\Async\await;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
@@ -48,7 +55,7 @@ function amqpTypeToPhpType($type)
     } elseif (in_array($type, ["shortstr", "longstr"])) {
         return "string";
     } elseif (in_array($type, ["bit"])) {
-        return "boolean";
+        return "bool";
     } elseif (in_array($type, ["table"])) {
         return "array";
     } elseif (in_array($type, ["timestamp"])) {
@@ -136,6 +143,9 @@ function amqpTypeToLength($type, $e)
 }
 
 $protocolReaderContent = "<?php\n";
+$protocolReaderContent .= "\n";
+$protocolReaderContent .= "declare(strict_types=1);\n";
+$protocolReaderContent .= "\n";
 $protocolReaderContent .= "namespace Bunny\\Protocol;\n";
 $protocolReaderContent .= "\n";
 $protocolReaderContent .= "use Bunny\\Constants;\n";
@@ -158,24 +168,19 @@ $protocolReaderContent .= "     * \n";
 $protocolReaderContent .= "     * @param Buffer \$originalBuffer\n";
 $protocolReaderContent .= "     * @return array\n";
 $protocolReaderContent .= "     */\n";
-$protocolReaderContent .= "    abstract public function consumeTable(Buffer \$originalBuffer);\n\n";
+$protocolReaderContent .= "    abstract public function consumeTable(Buffer \$originalBuffer): array;\n\n";
 $protocolReaderContent .= "    /**\n";
 $protocolReaderContent .= "     * Consumes packed bits from buffer.\n";
 $protocolReaderContent .= "     *\n";
-$protocolReaderContent .= "     * @param Buffer \$buffer\n";
-$protocolReaderContent .= "     * @param int \$n\n";
-$protocolReaderContent .= "     * @return array\n";
+$protocolReaderContent .= "     * @return array<mixed>\n";
 $protocolReaderContent .= "     */\n";
-$protocolReaderContent .= "    abstract public function consumeBits(Buffer \$buffer, \$n);\n\n";
+$protocolReaderContent .= "    abstract public function consumeBits(Buffer \$buffer, int \$n): array;\n\n";
 
 $consumeMethodFrameContent = "";
 $consumeMethodFrameContent .= "    /**\n";
 $consumeMethodFrameContent .= "     * Consumes AMQP method frame.\n";
-$consumeMethodFrameContent .= "     *\n";
-$consumeMethodFrameContent .= "     * @param Buffer \$buffer\n";
-$consumeMethodFrameContent .= "     * @return MethodFrame\n";
 $consumeMethodFrameContent .= "     */\n";
-$consumeMethodFrameContent .= "    public function consumeMethodFrame(Buffer \$buffer)\n";
+$consumeMethodFrameContent .= "    public function consumeMethodFrame(Buffer \$buffer): MethodFrame\n";
 $consumeMethodFrameContent .= "    {\n";
 $consumeMethodFrameContent .= "        \$classId = \$buffer->consumeUint16();\n";
 $consumeMethodFrameContent .= "        \$methodId = \$buffer->consumeUint16();\n";
@@ -183,6 +188,9 @@ $consumeMethodFrameContent .= "\n";
 $consumeMethodFrameContent .= "        ";
 
 $protocolWriterContent = "<?php\n";
+$protocolWriterContent .= "\n";
+$protocolWriterContent .= "declare(strict_types=1);\n";
+$protocolWriterContent .= "\n";
 $protocolWriterContent .= "namespace Bunny\\Protocol;\n";
 $protocolWriterContent .= "\n";
 $protocolWriterContent .= "use Bunny\\Exception\\ProtocolException;\n";
@@ -220,7 +228,7 @@ $protocolWriterContent .= "     * Appends AMQP protocol header to buffer.\n";
 $protocolWriterContent .= "     *\n";
 $protocolWriterContent .= "     * @param Buffer \$buffer\n";
 $protocolWriterContent .= "     */\n";
-$protocolWriterContent .= "    public function appendProtocolHeader(Buffer \$buffer)\n";
+$protocolWriterContent .= "    public function appendProtocolHeader(Buffer \$buffer): void\n";
 $protocolWriterContent .= "    {\n";
 $protocolWriterContent .= "        \$buffer->append('AMQP');\n";
 $protocolWriterContent .= "        \$buffer->appendUint8(0);\n";
@@ -236,187 +244,202 @@ $appendMethodFrameContent .= "     *\n";
 $appendMethodFrameContent .= "     * @param MethodFrame \$frame\n";
 $appendMethodFrameContent .= "     * @param Buffer \$buffer\n";
 $appendMethodFrameContent .= "     */\n";
-$appendMethodFrameContent .= "    public function appendMethodFrame(MethodFrame \$frame, Buffer \$buffer)\n";
+$appendMethodFrameContent .= "    public function appendMethodFrame(MethodFrame \$frame, Buffer \$buffer): void\n";
 $appendMethodFrameContent .= "    {\n";
 $appendMethodFrameContent .= "        \$buffer->appendUint16(\$frame->classId);\n";
 $appendMethodFrameContent .= "        \$buffer->appendUint16(\$frame->methodId);\n";
 $appendMethodFrameContent .= "\n";
 $appendMethodFrameContent .= "        ";
 
-$clientMethodsContent = "<?php\n";
-$clientMethodsContent .= "namespace Bunny;\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "use Bunny\\Exception\\ClientException;\n";
-$clientMethodsContent .= "use Bunny\\Protocol;\n";
-$clientMethodsContent .= "use Bunny\\Protocol\\Buffer;\n";
-$clientMethodsContent .= "use React\\Promise\\Deferred;\n";
-$clientMethodsContent .= "use React\\Promise\\PromiseInterface;\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "/**\n";
-$clientMethodsContent .= " * AMQP-{$spec->{'major-version'}}-{$spec->{'minor-version'}}-{$spec->{'revision'}} client methods\n";
-$clientMethodsContent .= " *\n";
-$clientMethodsContent .= " * THIS CLASS IS GENERATED FROM {$specFileName}. **DO NOT EDIT!**\n";
-$clientMethodsContent .= " *\n";
-$clientMethodsContent .= " * @author Jakub Kulhan <jakub.kulhan@gmail.com>\n";
-$clientMethodsContent .= " */\n";
-$clientMethodsContent .= "trait ClientMethods\n";
-$clientMethodsContent .= "{\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /** @var array */\n";
-$clientMethodsContent .= "    private \$cache = [];\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * Returns AMQP protocol reader.\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @return Protocol\\ProtocolReader\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    abstract protected function getReader();\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * Returns read buffer.\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @return Buffer\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    abstract protected function getReadBuffer();\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * Returns AMQP protocol writer.\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @return Protocol\\ProtocolWriter\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    abstract protected function getWriter();\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * Returns write buffer.\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @return Buffer\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    abstract protected function getWriteBuffer();\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * Reads data from stream to read buffer.\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    abstract protected function feedReadBuffer();\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * Writes all data from write buffer to stream.\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @return boolean|PromiseInterface\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    abstract protected function flushWriteBuffer();\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * Enqueues given frame for later processing.\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @param Protocol\\AbstractFrame \$frame\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    abstract protected function enqueue(Protocol\\AbstractFrame \$frame);\n";
-$clientMethodsContent .= "\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * Returns frame max size.\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @return int\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    abstract protected function getFrameMax();\n";
-$clientMethodsContent .= "\n";
+$connectionContent = "<?php\n";
+$connectionContent .= "\n";
+$connectionContent .= "declare(strict_types=1);\n";
+$connectionContent .= "\n";
+$connectionContent .= "namespace Bunny;\n";
+$connectionContent .= "\n";
+$connectionContent .= "use Bunny\\Exception\\ClientException;\n";
+$connectionContent .= "use Bunny\\Protocol\\AbstractFrame;\n";
+$connectionContent .= "use Bunny\\Protocol\\Buffer;\n";
+$connectionContent .= "use Bunny\\Protocol\\ContentBodyFrame;\n";
+$connectionContent .= "use Bunny\\Protocol\\ContentHeaderFrame;\n";
+$connectionContent .= "use Bunny\\Protocol\\HeartbeatFrame;\n";
+$connectionContent .= "use Bunny\\Protocol\\MethodConnectionCloseFrame;\n";
+$connectionContent .= "use Bunny\\Protocol\\MethodFrame;\n";
+$connectionContent .= "use Bunny\\Protocol\\ProtocolReader;\n";
+$connectionContent .= "use Bunny\\Protocol\\ProtocolWriter;\n";
+$connectionContent .= "use React\\EventLoop\\Loop;\n";
+$connectionContent .= "use React\\EventLoop\\TimerInterface;\n";
+$connectionContent .= "use React\\Promise\\Deferred;\n";
+$connectionContent .= "use React\\Promise\\Promise;\n";
+$connectionContent .= "use React\\Socket\\ConnectionInterface;\n";
+$connectionContent .= "use function React\\Async\\await;\n";
+$connectionContent .= "\n";
+$connectionContent .= "/**\n";
+$connectionContent .= " * AMQP-{$spec->{'major-version'}}-{$spec->{'minor-version'}}-{$spec->{'revision'}} client methods\n";
+$connectionContent .= " *\n";
+$connectionContent .= " * THIS CLASS IS GENERATED FROM {$specFileName}. **DO NOT EDIT!**\n";
+$connectionContent .= " *\n";
+$connectionContent .= " * @author Jakub Kulhan <jakub.kulhan@gmail.com>\n";
+$connectionContent .= " */\n";
+$connectionContent .= "final class Connection\n";
+$connectionContent .= "{\n";
+$connectionContent .= "    protected ?TimerInterface \$heartbeatTimer = null;\n";
+$connectionContent .= "\n";
+$connectionContent .= "    /** @var float microtime of last write */\n";
+$connectionContent .= "    protected float \$lastWrite = 0.0;\n";
+$connectionContent .= "\n";
+$connectionContent .= "    private array \$cache = [];\n";
+$connectionContent .= "\n";
+$connectionContent .= "    /** @var array<array{filter: (callable(AbstractFrame): bool), promise: Deferred}> */\n";
+$connectionContent .= "    private array \$awaitList = [];\n";
+$connectionContent .= "\n";
+$connectionContent .= "    public function __construct(\n";
+$connectionContent .= "        private readonly Client \$client,\n";
+$connectionContent .= "        private readonly ConnectionInterface \$connection,\n";
+$connectionContent .= "        private readonly Buffer \$readBuffer,\n";
+$connectionContent .= "        private readonly Buffer \$writeBuffer,\n";
+$connectionContent .= "        private readonly ProtocolReader \$reader,\n";
+$connectionContent .= "        private readonly ProtocolWriter \$writer,\n";
+$connectionContent .= "        private readonly Channels \$channels,\n";
+$connectionContent .= "        private readonly array \$options = [],\n";
+$connectionContent .= "    ) {\n";
+$connectionContent .= "        \$this->connection->on('data', function (string \$data): void {\n";
+$connectionContent .= "            \$this->readBuffer->append(\$data);\n";
+$connectionContent .= "\n";
+$connectionContent .= "            while ((\$frame = \$this->reader->consumeFrame(\$this->readBuffer)) !== null) {\n";
+$connectionContent .= "                \$frameInAwaitList = false;\n";
+$connectionContent .= "                foreach (\$this->awaitList as \$index => \$frameHandler) {\n";
+$connectionContent .= "                    if (\$frameHandler['filter'](\$frame)) {\n";
+$connectionContent .= "                        unset(\$this->awaitList[\$index]);\n";
+$connectionContent .= "                        \$frameHandler['promise']->resolve(\$frame);\n";
+$connectionContent .= "                        \$frameInAwaitList = true;\n";
+$connectionContent .= "                    }\n";
+$connectionContent .= "                }\n";
+$connectionContent .= "\n";
+$connectionContent .= "                if (\$frameInAwaitList) {\n";
+$connectionContent .= "                    continue;\n";
+$connectionContent .= "                }\n";
+$connectionContent .= "\n";
+$connectionContent .= "                if (\$frame->channel === 0) {\n";
+$connectionContent .= "                    \$this->onFrameReceived(\$frame);\n";
+$connectionContent .= "                    continue;\n";
+$connectionContent .= "                }\n";
+$connectionContent .= "\n";
+$connectionContent .= "                if (!\$this->channels->has(\$frame->channel)) {\n";
+$connectionContent .= "                    throw new ClientException(\n";
+$connectionContent .= "                        \"Received frame #{\$frame->type} on closed channel #{\$frame->channel}.\"\n";
+$connectionContent .= "                    );\n";
+$connectionContent .= "                }\n";
+$connectionContent .= "\n";
+$connectionContent .= "                \$this->channels->get(\$frame->channel)->onFrameReceived(\$frame);\n";
+$connectionContent .= "            }\n";
+$connectionContent .= "        });\n";
+$connectionContent .= "    }\n";
+$connectionContent .= "\n";
+$connectionContent .= "    public function disconnect(int \$code, string \$reason)\n";
+$connectionContent .= "    {\n";
+$connectionContent .= "        \$this->connectionClose(\$code, 0, 0, \$reason);\n";
+$connectionContent .= "        \$this->connection->close();\n";
+$connectionContent .= "\n";
+$connectionContent .= "        if (\$this->heartbeatTimer === null) {\n";
+$connectionContent .= "            return;\n";
+$connectionContent .= "        }\n";
+$connectionContent .= "\n";
+$connectionContent .= "        Loop::cancelTimer(\$this->heartbeatTimer);\n";
+$connectionContent .= "    }\n";
+$connectionContent .= "\n";
+$connectionContent .= "    /**\n";
+$connectionContent .= "     * Callback after connection-level frame has been received.\n";
+$connectionContent .= "     *\n";
+$connectionContent .= "     * @param AbstractFrame \$frame\n";
+$connectionContent .= "     */\n";
+$connectionContent .= "    private function onFrameReceived(AbstractFrame \$frame)\n";
+$connectionContent .= "    {\n";
+$connectionContent .= "        if (\$frame instanceof MethodFrame) {\n";
+$connectionContent .= "            if (\$frame instanceof MethodConnectionCloseFrame) {\n";
+$connectionContent .= "                \$this->disconnect(Constants::STATUS_CONNECTION_FORCED, \"Connection closed by server: ({\$frame->replyCode}) \" . \$frame->replyText);\n";
+$connectionContent .= "                throw new ClientException('Connection closed by server: ' . \$frame->replyText, \$frame->replyCode);\n";
+$connectionContent .= "            }\n";
+$connectionContent .= "        } elseif (\$frame instanceof ContentHeaderFrame) {\n";
+$connectionContent .= "            \$this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got header frame on connection channel (#0).');\n";
+$connectionContent .= "        } elseif (\$frame instanceof ContentBodyFrame) {\n";
+$connectionContent .= "            \$this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got body frame on connection channel (#0).');\n";
+$connectionContent .= "        } elseif (\$frame instanceof HeartbeatFrame) {\n";
+$connectionContent .= "            return;\n";
+$connectionContent .= "        }\n";
+$connectionContent .= "\n";
+$connectionContent .= "        throw new ClientException('Unhandled frame ' . get_class(\$frame) . '.');\n";
+$connectionContent .= "    }\n";
+$connectionContent .= "\n";
+$connectionContent .= "    public function appendProtocolHeader(): void\n";
+$connectionContent .= "    {\n";
+$connectionContent .= "        \$this->writer->appendProtocolHeader(\$this->writeBuffer);\n";
+$connectionContent .= "    }\n";
+$connectionContent .= "\n";
+$connectionContent .= "    public function flushWriteBuffer(): void\n";
+$connectionContent .= "    {\n";
+$connectionContent .= "        \$data = \$this->writeBuffer->read(\$this->writeBuffer->getLength());\n";
+$connectionContent .= "        \$this->writeBuffer->discard(strlen(\$data));\n";
+$connectionContent .= "\n";
+$connectionContent .= "        \$this->lastWrite = microtime(true);\n";
+$connectionContent .= "        if (!\$this->connection->write(\$data)) {\n";
+$connectionContent .= "            await(new Promise(function (callable \$resolve): void {\n";
+$connectionContent .= "                \$this->connection->once('drain', static fn () => \$resolve(null));\n";
+$connectionContent .= "            }));\n";
+$connectionContent .= "        }\n";
+$connectionContent .= "    }\n";
+$connectionContent .= "\n";
+$connectionContent .= "    public function awaitContentHeader(int \$channel): ContentHeaderFrame\n";
+$connectionContent .= "    {\n";
+$connectionContent .= "        \$deferred = new Deferred();\n";
+$connectionContent .= "        \$this->awaitList[] = [\n";
+$connectionContent .= "            'filter' => function (AbstractFrame \$frame) use (\$channel): bool {\n";
+$connectionContent .= "                if (\$frame instanceof Protocol\\ContentHeaderFrame && \$frame->channel === \$channel) {\n";
+$connectionContent .= "                    return true;\n";
+$connectionContent .= "    } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
+$connectionContent .= "                    \$this->channelCloseOk(\$channel);\n";
+$connectionContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
+$connectionContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
+$connectionContent .= "                    \$this->connectionCloseOk();\n";
+$connectionContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
+$connectionContent .= "                }\n";
+$connectionContent .= "\n";
+$connectionContent .= "                return false;\n";
+$connectionContent .= "            },\n";
+$connectionContent .= "            'promise' => \$deferred,\n";
+$connectionContent .= "        ];\n";
+$connectionContent .= "\n";
+$connectionContent .= "        return await(\$deferred->promise());\n";
+$connectionContent .= "    }\n";
+$connectionContent .= "\n";
+$connectionContent .= "    public function awaitContentBody(int \$channel): ContentBodyFrame\n";
+$connectionContent .= "    {\n";
+$connectionContent .= "        \$deferred = new Deferred();\n";
+$connectionContent .= "        \$this->awaitList[] = [\n";
+$connectionContent .= "            'filter' => function (AbstractFrame \$frame) use (\$channel): bool {\n";
+$connectionContent .= "                if (\$frame instanceof Protocol\\ContentBodyFrame && \$frame->channel === \$channel) {\n";
+$connectionContent .= "                    return true;\n";
+$connectionContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
+$connectionContent .= "                    \$this->channelCloseOk(\$channel);\n";
+$connectionContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
+$connectionContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
+$connectionContent .= "                    \$this->connectionCloseOk();\n";
+$connectionContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
+$connectionContent .= "                }\n";
+$connectionContent .= "\n";
+$connectionContent .= "                return false;\n";
+$connectionContent .= "            },\n";
+$connectionContent .= "            'promise' => \$deferred,\n";
+$connectionContent .= "        ];\n";
+$connectionContent .= "\n";
+$connectionContent .= "        return await(\$deferred->promise());\n";
+$connectionContent .= "    }\n";
 
-
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * @param int \$channel\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @return Protocol\\ContentHeaderFrame|PromiseInterface\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    public function awaitContentHeader(\$channel)\n";
-$clientMethodsContent .= "    {\n";
-$clientMethodsContent .= "        if (\$this instanceof Async\\Client) {\n";
-$clientMethodsContent .= "            \$deferred = new Deferred();\n";
-$clientMethodsContent .= "            \$this->addAwaitCallback(function (\$frame) use (\$deferred, \$channel) {\n";
-$clientMethodsContent .= "                if (\$frame instanceof Protocol\\ContentHeaderFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    \$deferred->resolve(\$frame);\n";
-$clientMethodsContent .= "                    return true;\n";
-$clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->done(function () use (\$frame, \$deferred) {\n";
-$clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
-$clientMethodsContent .= "                    });\n";
-$clientMethodsContent .= "                    return true;\n";
-$clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-$clientMethodsContent .= "                    \$this->connectionCloseOk()->done(function () use (\$frame, \$deferred) {\n";
-$clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
-$clientMethodsContent .= "                    });\n";
-$clientMethodsContent .= "                    return true;\n";
-$clientMethodsContent .= "                }\n";
-$clientMethodsContent .= "                return false;\n";
-$clientMethodsContent .= "            });\n";
-$clientMethodsContent .= "            return \$deferred->promise();\n";
-$clientMethodsContent .= "        } else {\n";
-$clientMethodsContent .= "            for (;;) {\n";
-$clientMethodsContent .= "                while ((\$frame = \$this->getReader()->consumeFrame(\$this->getReadBuffer())) === null) {\n";
-$clientMethodsContent .= "                    \$this->feedReadBuffer();\n";
-$clientMethodsContent .= "                }\n";
-$clientMethodsContent .= "                if (\$frame instanceof Protocol\\ContentHeaderFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    return \$frame;\n";
-$clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    \$this->channelCloseOk(\$channel);\n";
-$clientMethodsContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
-$clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-$clientMethodsContent .= "                    \$this->connectionCloseOk();\n";
-$clientMethodsContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
-$clientMethodsContent .= "                } else {\n";
-$clientMethodsContent .= "                    \$this->enqueue(\$frame);\n";
-$clientMethodsContent .= "                }\n";
-$clientMethodsContent .= "            }\n";
-$clientMethodsContent .= "        }\n";
-$clientMethodsContent .= "        throw new \\LogicException('This statement should be never reached.');\n";
-$clientMethodsContent .= "    }\n\n";
-$clientMethodsContent .= "    /**\n";
-$clientMethodsContent .= "     * @param int \$channel\n";
-$clientMethodsContent .= "     *\n";
-$clientMethodsContent .= "     * @return Protocol\\ContentBodyFrame|PromiseInterface\n";
-$clientMethodsContent .= "     */\n";
-$clientMethodsContent .= "    public function awaitContentBody(\$channel)\n";
-$clientMethodsContent .= "    {\n";
-$clientMethodsContent .= "        if (\$this instanceof Async\\Client) {\n";
-$clientMethodsContent .= "            \$deferred = new Deferred();\n";
-$clientMethodsContent .= "            \$this->addAwaitCallback(function (\$frame) use (\$deferred, \$channel) {\n";
-$clientMethodsContent .= "                if (\$frame instanceof Protocol\\ContentBodyFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    \$deferred->resolve(\$frame);\n";
-$clientMethodsContent .= "                    return true;\n";
-$clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->done(function () use (\$frame, \$deferred) {\n";
-$clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
-$clientMethodsContent .= "                    });\n";
-$clientMethodsContent .= "                    return true;\n";
-$clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-$clientMethodsContent .= "                    \$this->connectionCloseOk()->done(function () use (\$frame, \$deferred) {\n";
-$clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
-$clientMethodsContent .= "                    });\n";
-$clientMethodsContent .= "                    return true;\n";
-$clientMethodsContent .= "                }\n";
-$clientMethodsContent .= "                return false;\n";
-$clientMethodsContent .= "            });\n";
-$clientMethodsContent .= "            return \$deferred->promise();\n";
-$clientMethodsContent .= "        } else {\n";
-$clientMethodsContent .= "            for (;;) {\n";
-$clientMethodsContent .= "                while ((\$frame = \$this->getReader()->consumeFrame(\$this->getReadBuffer())) === null) {\n";
-$clientMethodsContent .= "                    \$this->feedReadBuffer();\n";
-$clientMethodsContent .= "                }\n";
-$clientMethodsContent .= "                if (\$frame instanceof Protocol\\ContentBodyFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    return \$frame;\n";
-$clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-$clientMethodsContent .= "                    \$this->channelCloseOk(\$channel);\n";
-$clientMethodsContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
-$clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-$clientMethodsContent .= "                    \$this->connectionCloseOk();\n";
-$clientMethodsContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
-$clientMethodsContent .= "                } else {\n";
-$clientMethodsContent .= "                    \$this->enqueue(\$frame);\n";
-$clientMethodsContent .= "                }\n";
-$clientMethodsContent .= "            }\n";
-$clientMethodsContent .= "        }\n";
-$clientMethodsContent .= "        throw new \\LogicException('This statement should be never reached.');\n";
-$clientMethodsContent .= "    }\n\n";
 
 $channelMethodsContent = "<?php\n";
+$channelMethodsContent .= "\n";
+$channelMethodsContent .= "declare(strict_types=1);\n";
+$channelMethodsContent .= "\n";
 $channelMethodsContent .= "namespace Bunny;\n";
 $channelMethodsContent .= "\n";
 $channelMethodsContent .= "use Bunny\\Protocol;\n";
@@ -435,17 +458,13 @@ $channelMethodsContent .= "\n";
 
 $channelMethodsContent .= "    /**\n";
 $channelMethodsContent .= "     * Returns underlying client instance.\n";
-$channelMethodsContent .= "     * \n";
-$channelMethodsContent .= "     * @return AbstractClient\n";
 $channelMethodsContent .= "     */\n";
-$channelMethodsContent .= "    abstract public function getClient();\n\n";
+$channelMethodsContent .= "    abstract public function getClient(): Connection;\n\n";
 
 $channelMethodsContent .= "    /**\n";
 $channelMethodsContent .= "     * Returns channel id.\n";
-$channelMethodsContent .= "     * \n";
-$channelMethodsContent .= "     * @return int\n";
 $channelMethodsContent .= "     */\n";
-$channelMethodsContent .= "    abstract public function getChannelId();\n\n";
+$channelMethodsContent .= "    abstract public function getChannelId(): int;\n\n";
 
 foreach ($spec->classes as $class) {
 
@@ -457,6 +476,9 @@ foreach ($spec->classes as $class) {
     foreach ($class->methods as $method) {
         $className = "Method" . ucfirst($class->name) . dashedToCamel($method->name) . "Frame";
         $content = "<?php\n";
+        $content .= "\n";
+        $content .= "declare(strict_types=1);\n";
+        $content .= "\n";
         $content .= "namespace Bunny\\Protocol;\n";
         $content .= "\n";
         $content .= "use Bunny\\Constants;\n";
@@ -485,22 +507,19 @@ foreach ($spec->classes as $class) {
         $clientSetters = [];
         $channelClientArguments = ["\$this->getChannelId()"];
         $channelArguments = [];
-        $channelDocComment = "";
         $hasNowait = false;
 
         if ($class->id !== 10) {
-            $clientArguments[] = "\$channel";
+            $clientArguments[] = "int \$channel";
             $clientSetters[] = "\$frame->channel = \$channel;";
         }
 
         if (isset($method->content) && $method->content) {
-            $clientArguments[] = "\$body";
+            $clientArguments[] = "string \$body";
             $clientArguments[] = "array \$headers = []";
 
-            $channelArguments[] = "\$body";
+            $channelArguments[] = "string \$body";
             $channelArguments[] = "array \$headers = []";
-            $channelDocComment .= "     * @param string \$body\n";
-            $channelDocComment .= "     * @param array \$headers\n";
             $channelClientArguments[] = "\$body";
             $channelClientArguments[] = "\$headers";
         }
@@ -562,6 +581,44 @@ foreach ($spec->classes as $class) {
         array_unshift($payloadSizeExpressions, $staticPayloadSize);
 
         $previousType = null;
+        foreach ([
+            ...array_filter($method->arguments, static fn (\stdClass $argument): bool => !(isset($argument->{'default-value'}) || (isset($argument->{'default-value'}) && $argument->{'default-value'} instanceof \stdClass))),
+            ...array_filter($method->arguments, static fn (\stdClass $argument): bool => isset($argument->{'default-value'}) || (isset($argument->{'default-value'}) && $argument->{'default-value'} instanceof \stdClass)),
+        ] as $argument) {
+            if (isset($argument->type)) {
+                $type = $argument->type;
+            } elseif (isset($argument->domain)) {
+                $type = domainToType($argument->domain);
+            } else {
+                throw new \InvalidArgumentException("{$class->name}.{$method->name}({$argument->name})");
+            }
+
+            $name = lcfirst(dashedToCamel($argument->name));
+            if ($class->id === 10 && $method->id === 50 || $class->id === 20 && $method->id === 40) {
+                if ($name === "classId") {
+                    $name = "closeClassId";
+                } elseif ($name === "methodId") {
+                    $name = "closeMethodId";
+                }
+            } elseif ($class->id === 40 && $method->id === 10 && $name === "type") {
+                $name = "exchangeType";
+            }
+            $properties .= "    /** @var " . amqpTypeToPhpType($type) . (amqpTypeToPhpType($type) === 'array' ? '<mixed>' : '') . " */\n";
+            $defaultValue = null;
+            if (isset($argument->{'default-value'}) && $argument->{'default-value'} instanceof \stdClass) {
+                $defaultValue = "[]";
+            } elseif (isset($argument->{'default-value'})) {
+                $defaultValue = var_export($argument->{'default-value'}, true);
+            }
+            $properties .= "    public \${$name}" . ($defaultValue !== null ? " = {$defaultValue}" : "") . ";\n\n";
+
+            if (strpos($name, "reserved") !== 0) {
+                $clientArguments[] = amqpTypeToPhpType($type) . ' $' . $name . ($defaultValue !== null ? " = {$defaultValue}" : "");
+                $channelArguments[] = amqpTypeToPhpType($type) . ' $' . $name . ($defaultValue !== null ? " = {$defaultValue}" : "");
+                $channelClientArguments[] = "\${$name}";
+            }
+        }
+
         foreach ($method->arguments as $argument) {
             if (isset($argument->type)) {
                 $type = $argument->type;
@@ -581,14 +638,6 @@ foreach ($spec->classes as $class) {
             } elseif ($class->id === 40 && $method->id === 10 && $name === "type") {
                 $name = "exchangeType";
             }
-            $properties .= "    /** @var " . amqpTypeToPhpType($type) . " */\n";
-            $defaultValue = null;
-            if (isset($argument->{'default-value'}) && $argument->{'default-value'} instanceof \stdClass) {
-                $defaultValue = "[]";
-            } elseif (isset($argument->{'default-value'})) {
-                $defaultValue = var_export($argument->{'default-value'}, true);
-            }
-            $properties .= "    public \${$name}" . ($defaultValue !== null ? " = {$defaultValue}" : "") . ";\n\n";
 
             if ($type === "bit") {
                 $bitVars[] = "\$frame->{$name}";
@@ -608,14 +657,14 @@ foreach ($spec->classes as $class) {
                 if ($previousType === "bit") {
                     $appendContent .= "            \$this->appendBits([" . implode(", ", $appendBitExpressions) . "], \$buffer);\n";
                     $appendBitExpressions = [];
-                    $clientAppendContent .= "        \$this->getWriter()->appendBits([" . implode(", ", $clientAppendBitExpressions) . "], \$buffer);\n";
+                    $clientAppendContent .= "        \$this->writer->appendBits([" . implode(", ", $clientAppendBitExpressions) . "], \$buffer);\n";
                     $clientAppendBitExpressions = [];
                 }
                 $appendContent .= "            " . amqpTypeToAppend($type, "\$frame->{$name}") . ";\n";
                 if (strpos($name, "reserved") === 0) {
                     $clientAppendContent .= "        " . amqpTypeToAppend($type, "0") . ";\n";
                 } elseif ($type === "table") {
-                    $clientAppendContent .= "        \$this->getWriter()->appendTable(\${$name}, \$buffer);\n";
+                    $clientAppendContent .= "        \$this->writer->appendTable(\${$name}, \$buffer);\n";
                 } else {
                     $clientAppendContent .= "        " . amqpTypeToAppend($type, "\${$name}") . ";\n";
                 }
@@ -624,19 +673,14 @@ foreach ($spec->classes as $class) {
             $previousType = $type;
 
             if (strpos($name, "reserved") !== 0) {
-                $clientArguments[] = "\${$name}" . ($defaultValue !== null ? " = {$defaultValue}" : "");
                 $clientSetters[] = "\$frame->{$name} = \${$name};";
-
-                $channelArguments[] = "\${$name}" . ($defaultValue !== null ? " = {$defaultValue}" : "");
-                $channelDocComment .= "     * @param " . amqpTypeToPhpType($type) . " \${$name}\n";
-                $channelClientArguments[] = "\${$name}";
             }
         }
 
         if ($previousType === "bit") {
             $appendContent .= "            \$this->appendBits([" . implode(", ", $appendBitExpressions) . "], \$buffer);\n";
             $appendBitExpressions = [];
-            $clientAppendContent .= "        \$this->getWriter()->appendBits([" . implode(", ", $clientAppendBitExpressions) . "], \$buffer);\n";
+            $clientAppendContent .= "        \$this->writer->appendBits([" . implode(", ", $clientAppendBitExpressions) . "], \$buffer);\n";
             $clientAppendBitExpressions = [];
         }
 
@@ -660,7 +704,7 @@ foreach ($spec->classes as $class) {
         $content .= "    }\n\n";
         $content .= $gettersSetters;
         $content .= "}\n";
-        file_put_contents(__DIR__ . "/../src/Bunny/Protocol/{$className}.php", $content);
+        file_put_contents(__DIR__ . "/../src/Protocol/{$className}.php", $content);
 
         $consumeMethodFrameContent .= "if (\$methodId === {$methodIdConstant}) {\n";
         $consumeMethodFrameContent .= $consumeContent;
@@ -673,46 +717,46 @@ foreach ($spec->classes as $class) {
         $methodName = dashedToCamel(($class->name !== "basic" ? $class->name . "-" : "") . $method->name);
 
         if (!isset($method->direction) || $method->direction === "CS") {
-            $clientMethodsContent .= "    public function " . lcfirst($methodName) . "(" . implode(", ", $clientArguments) . ")\n";
-            $clientMethodsContent .= "    {\n";
+            $connectionContent .= "    public function " . lcfirst($methodName) . "(" . implode(", ", $clientArguments) . "): bool" . (isset($method->synchronous) && $method->synchronous ? "|Protocol\\" . dashedToCamel("method-" . $class->name . "-" . $method->name . "-ok-frame") : "") . ($class->id === 60 && $method->id === 70 ? "|Protocol\\MethodBasicGetEmptyFrame" : "") . "\n";
+            $connectionContent .= "    {\n";
             if ($static) {
-                $clientMethodsContent .= "        \$buffer = \$this->getWriteBuffer();\n";
+                $connectionContent .= "        \$buffer = \$this->writeBuffer;\n";
                 if ($class->id === 60 && $method->id === 40) {
-                    $clientMethodsContent .= "        \$ck = serialize([\$channel, \$headers, \$exchange, \$routingKey, \$mandatory, \$immediate]);\n";
-                    $clientMethodsContent .= "        \$c = isset(\$this->cache[\$ck]) ? \$this->cache[\$ck] : null;\n";
-                    $clientMethodsContent .= "        \$flags = 0; \$off0 = 0; \$len0 = 0; \$off1 = 0; \$len1 = 0; \$contentTypeLength = null; \$contentType = null; \$contentEncodingLength = null; \$contentEncoding = null; \$headersBuffer = null; \$deliveryMode = null; \$priority = null; \$correlationIdLength = null; \$correlationId = null; \$replyToLength = null; \$replyTo = null; \$expirationLength = null; \$expiration = null; \$messageIdLength = null; \$messageId = null; \$timestamp = null; \$typeLength = null; \$type = null; \$userIdLength = null; \$userId = null; \$appIdLength = null; \$appId = null; \$clusterIdLength = null; \$clusterId = null;\n";
-                    $clientMethodsContent .= "        if (\$c) { \$buffer->append(\$c[0]); }\n";
-                    $clientMethodsContent .= "        else {\n";
-                    $clientMethodsContent .= "        \$off0 = \$buffer->getLength();\n";
+                    $connectionContent .= "        \$ck = serialize([\$channel, \$headers, \$exchange, \$routingKey, \$mandatory, \$immediate]);\n";
+                    $connectionContent .= "        \$c = isset(\$this->cache[\$ck]) ? \$this->cache[\$ck] : null;\n";
+                    $connectionContent .= "        \$flags = 0; \$off0 = 0; \$len0 = 0; \$off1 = 0; \$len1 = 0; \$contentTypeLength = null; \$contentType = null; \$contentEncodingLength = null; \$contentEncoding = null; \$headersBuffer = null; \$deliveryMode = null; \$priority = null; \$correlationIdLength = null; \$correlationId = null; \$replyToLength = null; \$replyTo = null; \$expirationLength = null; \$expiration = null; \$messageIdLength = null; \$messageId = null; \$timestamp = null; \$typeLength = null; \$type = null; \$userIdLength = null; \$userId = null; \$appIdLength = null; \$appId = null; \$clusterIdLength = null; \$clusterId = null;\n";
+                    $connectionContent .= "        if (\$c) { \$buffer->append(\$c[0]); }\n";
+                    $connectionContent .= "        else {\n";
+                    $connectionContent .= "        \$off0 = \$buffer->getLength();\n";
                 }
-                $clientMethodsContent .= "        \$buffer->appendUint8(" . Constants::FRAME_METHOD . ");\n";
-                $clientMethodsContent .= "        \$buffer->appendUint16(" . ($class->id === 10 ? Constants::CONNECTION_CHANNEL : "\$channel") . ");\n";
-                $clientMethodsContent .= "        \$buffer->appendUint32(" . implode(" + ", $payloadSizeExpressions) . ");\n";
+                $connectionContent .= "        \$buffer->appendUint8(" . Constants::FRAME_METHOD . ");\n";
+                $connectionContent .= "        \$buffer->appendUint16(" . ($class->id === 10 ? Constants::CONNECTION_CHANNEL : "\$channel") . ");\n";
+                $connectionContent .= "        \$buffer->appendUint32(" . implode(" + ", $payloadSizeExpressions) . ");\n";
             } else {
-                $clientMethodsContent .= "        \$buffer = new Buffer();\n";
+                $connectionContent .= "        \$buffer = new Buffer();\n";
             }
 
-            $clientMethodsContent .= "        \$buffer->appendUint16({$class->id});\n";
-            $clientMethodsContent .= "        \$buffer->appendUint16({$method->id});\n";
-            $clientMethodsContent .= $clientAppendContent;
+            $connectionContent .= "        \$buffer->appendUint16({$class->id});\n";
+            $connectionContent .= "        \$buffer->appendUint16({$method->id});\n";
+            $connectionContent .= $clientAppendContent;
 
             if ($static) {
-                $clientMethodsContent .= "        \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
+                $connectionContent .= "        \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
             } else {
-                $clientMethodsContent .= "        \$frame = new Protocol\\MethodFrame({$class->id}, {$method->id});\n";
-                $clientMethodsContent .= "        \$frame->channel = " . ($class->id === 10 ? Constants::CONNECTION_CHANNEL : "\$channel") . ";\n";
-                $clientMethodsContent .= "        \$frame->payloadSize = \$buffer->getLength();\n";
-                $clientMethodsContent .= "        \$frame->payload = \$buffer;\n";
-                $clientMethodsContent .= "        \$this->getWriter()->appendFrame(\$frame, \$this->getWriteBuffer());\n";
+                $connectionContent .= "        \$frame = new Protocol\\MethodFrame({$class->id}, {$method->id});\n";
+                $connectionContent .= "        \$frame->channel = " . ($class->id === 10 ? Constants::CONNECTION_CHANNEL : "\$channel") . ";\n";
+                $connectionContent .= "        \$frame->payloadSize = \$buffer->getLength();\n";
+                $connectionContent .= "        \$frame->payload = \$buffer;\n";
+                $connectionContent .= "        \$this->writer->appendFrame(\$frame, \$this->writeBuffer);\n";
             }
 
             if (isset($method->content) && $method->content) {
                 if (!$static) {
-                    $clientMethodsContent .= "        \$buffer = \$this->getWriteBuffer();\n";
+                    $connectionContent .= "        \$buffer = \$this->writeBuffer;\n";
                 }
 
                 // FIXME: respect max body size agreed upon connection.tune
-                $clientMethodsContent .= "        \$s = 14;\n";
+                $connectionContent .= "        \$s = 14;\n";
 
 
                 foreach ([
@@ -732,41 +776,41 @@ foreach ($spec->classes as $class) {
                          ] as $flag => $property
                 ) {
                     list($propertyName, $staticSize, $dynamicSize) = $property;
-                    $clientMethodsContent .= "        if (isset(\$headers['{$propertyName}'])) {\n";
-                    $clientMethodsContent .= "            \$flags |= {$flag};\n";
-                    $clientMethodsContent .= "            \$" . lcfirst(dashedToCamel($propertyName)) . " = \$headers['{$propertyName}'];\n";
+                    $connectionContent .= "        if (isset(\$headers['{$propertyName}'])) {\n";
+                    $connectionContent .= "            \$flags |= {$flag};\n";
+                    $connectionContent .= "            \$" . lcfirst(dashedToCamel($propertyName)) . " = \$headers['{$propertyName}'];\n";
                     if ($staticSize) {
-                        $clientMethodsContent .= "            \$s += {$staticSize};\n";
+                        $connectionContent .= "            \$s += {$staticSize};\n";
                     }
                     if ($dynamicSize) {
-                        $clientMethodsContent .= "            \$s += {$dynamicSize};\n";
+                        $connectionContent .= "            \$s += {$dynamicSize};\n";
                     }
-                    $clientMethodsContent .= "            unset(\$headers['{$propertyName}']);\n";
-                    $clientMethodsContent .= "        }\n";
+                    $connectionContent .= "            unset(\$headers['{$propertyName}']);\n";
+                    $connectionContent .= "        }\n";
                 }
 
-                $clientMethodsContent .= "        if (!empty(\$headers)) {\n";
-                $clientMethodsContent .= "            \$flags |= " . ContentHeaderFrame::FLAG_HEADERS . ";\n";
-                $clientMethodsContent .= "            \$this->getWriter()->appendTable(\$headers, \$headersBuffer = new Buffer());\n";
-                $clientMethodsContent .= "            \$s += \$headersBuffer->getLength();\n";
-                $clientMethodsContent .= "        }\n";
+                $connectionContent .= "        if (!empty(\$headers)) {\n";
+                $connectionContent .= "            \$flags |= " . ContentHeaderFrame::FLAG_HEADERS . ";\n";
+                $connectionContent .= "            \$this->writer->appendTable(\$headers, \$headersBuffer = new Buffer());\n";
+                $connectionContent .= "            \$s += \$headersBuffer->getLength();\n";
+                $connectionContent .= "        }\n";
 
-                $clientMethodsContent .= "        \$buffer->appendUint8(" . Constants::FRAME_HEADER . ");\n";
-                $clientMethodsContent .= "        \$buffer->appendUint16(\$channel);\n";
-                $clientMethodsContent .= "        \$buffer->appendUint32(\$s);\n";
-                $clientMethodsContent .= "        \$buffer->appendUint16({$class->id});\n";
-                $clientMethodsContent .= "        \$buffer->appendUint16(0);\n";
+                $connectionContent .= "        \$buffer->appendUint8(" . Constants::FRAME_HEADER . ");\n";
+                $connectionContent .= "        \$buffer->appendUint16(\$channel);\n";
+                $connectionContent .= "        \$buffer->appendUint32(\$s);\n";
+                $connectionContent .= "        \$buffer->appendUint16({$class->id});\n";
+                $connectionContent .= "        \$buffer->appendUint16(0);\n";
                 if ($class->id === 60 && $method->id === 40) {
-                    $clientMethodsContent .= "        \$len0 = \$buffer->getLength() - \$off0;\n";
-                    $clientMethodsContent .= "        }\n";
+                    $connectionContent .= "        \$len0 = \$buffer->getLength() - \$off0;\n";
+                    $connectionContent .= "        }\n";
                 }
-                $clientMethodsContent .= "        \$buffer->appendUint64(strlen(\$body));\n";
+                $connectionContent .= "        \$buffer->appendUint64(strlen(\$body));\n";
                 if ($class->id === 60 && $method->id === 40) {
-                    $clientMethodsContent .= "        if (\$c) { \$buffer->append(\$c[1]); }\n";
-                    $clientMethodsContent .= "        else {\n";
-                    $clientMethodsContent .= "        \$off1 = \$buffer->getLength();\n";
+                    $connectionContent .= "        if (\$c) { \$buffer->append(\$c[1]); }\n";
+                    $connectionContent .= "        else {\n";
+                    $connectionContent .= "        \$off1 = \$buffer->getLength();\n";
                 }
-                $clientMethodsContent .= "        \$buffer->appendUint16(\$flags);\n";
+                $connectionContent .= "        \$buffer->appendUint16(\$flags);\n";
 
                 foreach ([
                              ContentHeaderFrame::FLAG_CONTENT_TYPE => "\$buffer->appendUint8(\$contentTypeLength); \$buffer->append(\$contentType);",
@@ -778,123 +822,85 @@ foreach ($spec->classes as $class) {
                              ContentHeaderFrame::FLAG_REPLY_TO => "\$buffer->appendUint8(\$replyToLength); \$buffer->append(\$replyTo);",
                              ContentHeaderFrame::FLAG_EXPIRATION => "\$buffer->appendUint8(\$expirationLength); \$buffer->append(\$expiration);",
                              ContentHeaderFrame::FLAG_MESSAGE_ID => "\$buffer->appendUint8(\$messageIdLength); \$buffer->append(\$messageId);",
-                             ContentHeaderFrame::FLAG_TIMESTAMP => "\$this->getWriter()->appendTimestamp(\$timestamp, \$buffer);",
+                             ContentHeaderFrame::FLAG_TIMESTAMP => "\$this->writer->appendTimestamp(\$timestamp, \$buffer);",
                              ContentHeaderFrame::FLAG_TYPE => "\$buffer->appendUint8(\$typeLength); \$buffer->append(\$type);",
                              ContentHeaderFrame::FLAG_USER_ID => "\$buffer->appendUint8(\$userIdLength); \$buffer->append(\$userId);",
                              ContentHeaderFrame::FLAG_APP_ID => "\$buffer->appendUint8(\$appIdLength); \$buffer->append(\$appId);",
                              ContentHeaderFrame::FLAG_CLUSTER_ID => "\$buffer->appendUint8(\$clusterIdLength); \$buffer->append(\$clusterId);",
                          ] as $flag => $property
                 ) {
-                    $clientMethodsContent .= "        if (\$flags & {$flag}) {\n";
-                    $clientMethodsContent .= "            {$property}\n";
-                    $clientMethodsContent .= "        }\n";
+                    $connectionContent .= "        if (\$flags & {$flag}) {\n";
+                    $connectionContent .= "            {$property}\n";
+                    $connectionContent .= "        }\n";
                 }
 
-                $clientMethodsContent .= "        \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
+                $connectionContent .= "        \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
 
                 if ($class->id === 60 && $method->id === 40) {
-                    $clientMethodsContent .= "        \$len1 = \$buffer->getLength() - \$off1;\n";
-                    $clientMethodsContent .= "        }\n";
-                    $clientMethodsContent .= "        if (!\$c) {\n";
-                    $clientMethodsContent .= "            \$this->cache[\$ck] = [\$buffer->read(\$len0, \$off0), \$buffer->read(\$len1, \$off1)];\n";
-                    $clientMethodsContent .= "            if (count(\$this->cache) > 100) { reset(\$this->cache); unset(\$this->cache[key(\$this->cache)]); }\n";
-                    $clientMethodsContent .= "        }\n";
+                    $connectionContent .= "        \$len1 = \$buffer->getLength() - \$off1;\n";
+                    $connectionContent .= "        }\n";
+                    $connectionContent .= "        if (!\$c) {\n";
+                    $connectionContent .= "            \$this->cache[\$ck] = [\$buffer->read(\$len0, \$off0), \$buffer->read(\$len1, \$off1)];\n";
+                    $connectionContent .= "            if (count(\$this->cache) > 100) { reset(\$this->cache); unset(\$this->cache[key(\$this->cache)]); }\n";
+                    $connectionContent .= "        }\n";
                 }
 
-                $clientMethodsContent .= "        for (\$payloadMax = \$this->getFrameMax() - 8 /* frame preface and frame end */, \$i = 0, \$l = strlen(\$body); \$i < \$l; \$i += \$payloadMax) {\n";
-                $clientMethodsContent .= "            \$payloadSize = \$l - \$i; if (\$payloadSize > \$payloadMax) { \$payloadSize = \$payloadMax; }\n";
-                $clientMethodsContent .= "            \$buffer->appendUint8(" . Constants::FRAME_BODY . ");\n";
-                $clientMethodsContent .= "            \$buffer->appendUint16(\$channel);\n";
-                $clientMethodsContent .= "            \$buffer->appendUint32(\$payloadSize);\n";
-                $clientMethodsContent .= "            \$buffer->append(substr(\$body, \$i, \$payloadSize));\n";
-                $clientMethodsContent .= "            \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
-                $clientMethodsContent .= "        }\n";
+                $connectionContent .= "        for (\$payloadMax = \$this->client->frameMax - 8 /* frame preface and frame end */, \$i = 0, \$l = strlen(\$body); \$i < \$l; \$i += \$payloadMax) {\n";
+                $connectionContent .= "            \$payloadSize = \$l - \$i; if (\$payloadSize > \$payloadMax) { \$payloadSize = \$payloadMax; }\n";
+                $connectionContent .= "            \$buffer->appendUint8(" . Constants::FRAME_BODY . ");\n";
+                $connectionContent .= "            \$buffer->appendUint16(\$channel);\n";
+                $connectionContent .= "            \$buffer->appendUint32(\$payloadSize);\n";
+                $connectionContent .= "            \$buffer->append(substr(\$body, \$i, \$payloadSize));\n";
+                $connectionContent .= "            \$buffer->appendUint8(" . Constants::FRAME_END . ");\n";
+                $connectionContent .= "        }\n";
             }
 
             if (isset($method->synchronous) && $method->synchronous && $hasNowait) {
-                $clientMethodsContent .= "        if (\$nowait) {\n";
-                $clientMethodsContent .= "            return \$this->flushWriteBuffer();\n";
-                $clientMethodsContent .= "        } else {\n";
-                $clientMethodsContent .= "            \$this->flushWriteBuffer();\n";
-                $clientMethodsContent .= "            return \$this->await" . $methodName . "Ok(" . ($class->id !== 10 ? "\$channel" : "") . ");\n";
-                $clientMethodsContent .= "        }\n";
+                $connectionContent .= "        \$this->flushWriteBuffer();\n";
+                $connectionContent .= "        if (!\$nowait) {\n";
+                $connectionContent .= "            return \$this->await" . $methodName . "Ok(" . ($class->id !== 10 ? "\$channel" : "") . ");\n";
+                $connectionContent .= "        }\n";
+                $connectionContent .= "        return false;\n";
             } elseif (isset($method->synchronous) && $method->synchronous) {
-                $clientMethodsContent .= "        \$this->flushWriteBuffer();\n";
-                $clientMethodsContent .= "        return \$this->await" . $methodName . "Ok(" . ($class->id !== 10 ? "\$channel" : "") . ");\n";
+                $connectionContent .= "        \$this->flushWriteBuffer();\n";
+                $connectionContent .= "        return \$this->await" . $methodName . "Ok(" . ($class->id !== 10 ? "\$channel" : "") . ");\n";
             } else {
-                $clientMethodsContent .= "        return \$this->flushWriteBuffer();\n";
+                $connectionContent .= "        \$this->flushWriteBuffer();\n";
+                $connectionContent .= "        return false;\n";
             }
 
-            $clientMethodsContent .= "    }\n\n";
+            $connectionContent .= "    }\n\n";
         }
 
         if (!isset($method->direction) || $method->direction === "SC") {
-            $clientMethodsContent .= "    /**\n";
-            if ($class->id !== 10) {
-                $clientMethodsContent .= "     * @param int \$channel\n";
-                $clientMethodsContent .= "     *\n";
-            }
-            $clientMethodsContent .= "     * @return Protocol\\{$className}" . ($class->id === 60 && $method->id === 71 ? "|Protocol\\" . str_replace("GetOk", "GetEmpty", $className) : "") . "|PromiseInterface\n";
-            $clientMethodsContent .= "     */\n";
-            $clientMethodsContent .= "    public function await" . $methodName . "(" . ($class->id !== 10 ? "\$channel" : "") . ")\n";
-            $clientMethodsContent .= "    {\n";
+            $connectionContent .= "    public function await" . $methodName . "(" . ($class->id !== 10 ? "int \$channel" : "") . "): Protocol\\{$className}" . ($class->id === 60 && $method->id === 71 ? '|Protocol\\' . str_replace("GetOk", "GetEmpty", $className) : "") . "\n";
+            $connectionContent .= "    {\n";
 
             // async await
-            $clientMethodsContent .= "        if (\$this instanceof Async\\Client) {\n";
-            $clientMethodsContent .= "            \$deferred = new Deferred();\n";
-            $clientMethodsContent .= "            \$this->addAwaitCallback(function (\$frame) use (\$deferred" . ($class->id !== 10 ? ", \$channel" : "") . ") {\n";
-            $clientMethodsContent .= "                if (\$frame instanceof Protocol\\{$className}" . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
-            $clientMethodsContent .= "                    \$deferred->resolve(\$frame);\n";
-            $clientMethodsContent .= "                    return true;\n";
+            $connectionContent .= "        \$deferred = new Deferred();\n";
+            $connectionContent .= "        \$this->awaitList[] = [\n";
+            $connectionContent .= "            'filter' => function (Protocol\\AbstractFrame \$frame)" . ($class->id !== 10 ? " use (\$channel)" : "") . ": bool {\n";
+            $connectionContent .= "                if (\$frame instanceof Protocol\\{$className}" . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
+            $connectionContent .= "                    return true;\n";
             if ($class->id === 60 && $method->id === 71) {
-                $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\" . str_replace("GetOk", "GetEmpty", $className) . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
-                $clientMethodsContent .= "                    \$deferred->resolve(\$frame);\n";
-                $clientMethodsContent .= "                    return true;\n";
+                $connectionContent .=     "            } elseif (\$frame instanceof Protocol\\" . str_replace("GetOk", "GetEmpty", $className) . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
+                $connectionContent .= "                    return true;\n";
             }
             if ($class->id !== 10) {
-                $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-                $clientMethodsContent .= "                    \$this->channelCloseOk(\$channel)->done(function () use (\$frame, \$deferred) {\n";
-                $clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
-                $clientMethodsContent .= "                    });\n";
-                $clientMethodsContent .= "                    return true;\n";
+                $connectionContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
+                $connectionContent .= "                    \$this->channelCloseOk(\$channel);\n";
+                $connectionContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
             }
-            $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-            $clientMethodsContent .= "                    \$this->connectionCloseOk()->done(function () use (\$frame, \$deferred) {\n";
-            $clientMethodsContent .= "                        \$deferred->reject(new ClientException(\$frame->replyText, \$frame->replyCode));\n";
-            $clientMethodsContent .= "                    });\n";
-            $clientMethodsContent .= "                    return true;\n";
-            $clientMethodsContent .= "                }\n";
-            $clientMethodsContent .= "                return false;\n";
-            $clientMethodsContent .= "            });\n";
-            $clientMethodsContent .= "            return \$deferred->promise();\n";
-            $clientMethodsContent .= "        } else {\n";
-
-            // sync await
-            $clientMethodsContent .= "            for (;;) {\n";
-            $clientMethodsContent .= "                while ((\$frame = \$this->getReader()->consumeFrame(\$this->getReadBuffer())) === null) {\n";
-            $clientMethodsContent .= "                    \$this->feedReadBuffer();\n";
-            $clientMethodsContent .= "                }\n";
-            $clientMethodsContent .= "                if (\$frame instanceof Protocol\\{$className}" . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
-            $clientMethodsContent .= "                    return \$frame;\n";
-            if ($class->id === 60 && $method->id === 71) {
-                $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\" . str_replace("GetOk", "GetEmpty", $className) . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
-                $clientMethodsContent .= "                    return \$frame;\n";
-            }
-            if ($class->id !== 10) {
-                $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodChannelCloseFrame && \$frame->channel === \$channel) {\n";
-                $clientMethodsContent .= "                    \$this->channelCloseOk(\$channel);\n";
-                $clientMethodsContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
-            }
-            $clientMethodsContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
-            $clientMethodsContent .= "                    \$this->connectionCloseOk();\n";
-            $clientMethodsContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
-            $clientMethodsContent .= "                } else {\n";
-            $clientMethodsContent .= "                    \$this->enqueue(\$frame);\n";
-            $clientMethodsContent .= "                }\n";
-            $clientMethodsContent .= "            }\n";
-            $clientMethodsContent .= "        }\n";
-            $clientMethodsContent .= "        throw new \\LogicException('This statement should be never reached.');\n";
-            $clientMethodsContent .= "    }\n\n";
+            $connectionContent .= "                } elseif (\$frame instanceof Protocol\\MethodConnectionCloseFrame) {\n";
+            $connectionContent .= "                    \$this->connectionCloseOk();\n";
+            $connectionContent .= "                    throw new ClientException(\$frame->replyText, \$frame->replyCode);\n";
+            $connectionContent .= "                }\n";
+            $connectionContent .= "                return false;\n";
+            $connectionContent .= "          },\n";
+            $connectionContent .= "          'promise' => \$deferred,\n";
+            $connectionContent .= "        ];\n";
+            $connectionContent .= "        return await(\$deferred->promise());\n";
+            $connectionContent .= "    }\n\n";
         }
 
         if ($class->id !== 10 &&
@@ -904,12 +910,8 @@ foreach ($spec->classes as $class) {
         ) {
             $channelMethodsContent .= "    /**\n";
             $channelMethodsContent .= "     * Calls {$class->name}.{$method->name} AMQP method.\n";
-            $channelMethodsContent .= "     *\n";
-            $channelMethodsContent .= $channelDocComment;
-            $channelMethodsContent .= "     *\n";
-            $channelMethodsContent .= "     * @return boolean|Promise\\PromiseInterface" . (isset($method->synchronous) && $method->synchronous ? "|Protocol\\" . dashedToCamel("method-" . $class->name . "-" . $method->name . "-ok-frame") : "") . ($class->id === 60 && $method->id === 70 ? "|Protocol\\MethodBasicGetEmptyFrame" : "") . "\n";
             $channelMethodsContent .= "     */\n";
-            $channelMethodsContent .= "    public function " . lcfirst($methodName) . "(" . implode(", ", $channelArguments) . ")\n";
+            $channelMethodsContent .= "    public function " . lcfirst($methodName) . "(" . implode(", ", $channelArguments) . "): bool" . (isset($method->synchronous) && $method->synchronous ? "|Protocol\\" . dashedToCamel("method-" . $class->name . "-" . $method->name . "-ok-frame") : "") . ($class->id === 60 && $method->id === 70 ? "|Protocol\\MethodBasicGetEmptyFrame" : "") . "\n";
             $channelMethodsContent .= "    {\n";
             $channelMethodsContent .= "        return \$this->getClient()->" . lcfirst($methodName) . "(" . implode(", ", $channelClientArguments) . ");\n";
             $channelMethodsContent .= "    }\n\n";
@@ -933,7 +935,7 @@ $consumeMethodFrameContent .= "    }\n\n";
 
 $protocolReaderContent .= $consumeMethodFrameContent;
 $protocolReaderContent .= "}\n";
-file_put_contents(__DIR__ . "/../src/Bunny/Protocol/ProtocolReaderGenerated.php", $protocolReaderContent);
+file_put_contents(__DIR__ . "/../src/Protocol/ProtocolReaderGenerated.php", $protocolReaderContent);
 
 $appendMethodFrameContent .= " {\n";
 $appendMethodFrameContent .= "            throw new ProtocolException('Unhandled method frame ' . get_class(\$frame) . '.');\n";
@@ -942,10 +944,36 @@ $appendMethodFrameContent .= "    }\n\n";
 
 $protocolWriterContent .= $appendMethodFrameContent;
 $protocolWriterContent .= "}\n";
-file_put_contents(__DIR__ . "/../src/Bunny/Protocol/ProtocolWriterGenerated.php", $protocolWriterContent);
+file_put_contents(__DIR__ . "/../src/Protocol/ProtocolWriterGenerated.php", $protocolWriterContent);
 
-$clientMethodsContent .= "}\n";
-file_put_contents(__DIR__ . "/../src/Bunny/ClientMethods.php", $clientMethodsContent);
+$connectionContent .= "    public function startHeathbeatTimer(): void\n";
+$connectionContent .= "    {\n";
+$connectionContent .= "        \$this->heartbeatTimer = Loop::addTimer(\$this->options['heartbeat'], [\$this, 'onHeartbeat']);\n";
+$connectionContent .= "        \$this->connection->on('drain', [\$this, 'onHeartbeat']);\n";
+$connectionContent .= "    }\n";
+$connectionContent .= "\n";
+$connectionContent .= "    /**\n";
+$connectionContent .= "     * Callback when heartbeat timer timed out.\n";
+$connectionContent .= "     */\n";
+$connectionContent .= "    public function onHeartbeat()\n";
+$connectionContent .= "    {\n";
+$connectionContent .= "        \$now = microtime(true);\n";
+$connectionContent .= "        \$nextHeartbeat = (\$this->lastWrite ?: \$now) + \$this->options['heartbeat'];\n";
+$connectionContent .= "\n";
+$connectionContent .= "        if (\$now >= \$nextHeartbeat) {\n";
+$connectionContent .= "            \$this->writer->appendFrame(new HeartbeatFrame(), \$this->writeBuffer);\n";
+$connectionContent .= "            \$this->flushWriteBuffer();\n";
+$connectionContent .= "\n";
+$connectionContent .= "            \$this->heartbeatTimer = Loop::addTimer(\$this->options['heartbeat'], [\$this, 'onHeartbeat']);\n";
+$connectionContent .= "            if (is_callable(\$this->options['heartbeat_callback'] ?? null)) {\n";
+$connectionContent .= "                \$this->options['heartbeat_callback'](\$this);\n";
+$connectionContent .= "            }\n";
+$connectionContent .= "        } else {\n";
+$connectionContent .= "            \$this->heartbeatTimer = Loop::addTimer(\$nextHeartbeat - \$now, [\$this, 'onHeartbeat']);\n";
+$connectionContent .= "        }\n";
+$connectionContent .= "    }\n";
+$connectionContent .= "}\n";
+file_put_contents(__DIR__ . "/../src/Connection.php", $connectionContent);
 
 $channelMethodsContent .= "}\n";
-file_put_contents(__DIR__ . "/../src/Bunny/ChannelMethods.php", $channelMethodsContent);
+file_put_contents(__DIR__ . "/../src/ChannelMethods.php", $channelMethodsContent);
