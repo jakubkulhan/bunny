@@ -1,6 +1,8 @@
 <?php
 namespace Bunny\Exception;
 
+use Bunny\Protocol\Buffer;
+
 /**
  * Buffer underflow.
  *

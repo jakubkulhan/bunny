@@ -1,6 +1,8 @@
 <?php
 namespace Bunny;
 
+use Bunny\Client;
+
 require_once __DIR__ . "/../vendor/autoload.php";
 
 $c = new Client();

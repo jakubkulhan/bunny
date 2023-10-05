@@ -1,7 +1,8 @@
 <?php
-namespace Bunny\Protocol;
+namespace Bunny\Test\Protocol;
 
 use Bunny\Exception\BufferUnderflowException;
+use Bunny\Protocol\Buffer;
 use PHPUnit\Framework\TestCase;
 
 class BufferTest extends TestCase
