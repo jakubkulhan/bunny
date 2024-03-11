@@ -22,7 +22,7 @@ function app(array $args)
     $client = new Client($connection);
 
     pcntl_signal(SIGINT, function () use ($client) {
-        $client->disconnect()->done(function () use ($client) {
+        $client->disconnect()->then(function () use ($client) {
             $client->stop();
         });
     });

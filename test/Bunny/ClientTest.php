@@ -113,7 +113,7 @@ class ClientTest extends TestCase
         $channel->consume(function (Message $message, Channel $channel) use ($client, &$processed) {
             $channel->ack($message);
             ++$processed;
-            $client->disconnect()->done(function () use ($client) {
+            $client->disconnect()->then(function () use ($client) {
                 $client->stop();
             });
         });
@@ -199,7 +199,7 @@ class ClientTest extends TestCase
 
         })->then(function () use ($client) {
             $client->stop();
-        })->done();
+        });
 
         $client->run(5);
 
@@ -327,7 +327,7 @@ class ClientTest extends TestCase
                 $this->assertEmpty($message->content);
                 $channel->ack($message);
                 if (++$processed === 2) {
-                    $client->disconnect()->done(function () use ($client) {
+                    $client->disconnect()->then(function () use ($client) {
                         $client->stop();
                     });
                 }

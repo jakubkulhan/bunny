@@ -29,7 +29,7 @@ class ChannelTest extends TestCase
         $c->connect();
         $promise = $c->channel()->close();
         $this->assertInstanceOf("React\\Promise\\PromiseInterface", $promise);
-        $promise->done(function () use ($c) {
+        $promise->then(function () use ($c) {
             $c->stop();
         });
         $c->run();

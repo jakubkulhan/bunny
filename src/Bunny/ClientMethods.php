@@ -88,12 +88,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -136,12 +136,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -182,7 +182,7 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -237,7 +237,7 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -288,7 +288,7 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -357,7 +357,7 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -412,7 +412,7 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -462,7 +462,7 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -500,7 +500,7 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -538,7 +538,7 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -592,12 +592,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -654,12 +654,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -715,12 +715,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -779,12 +779,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -839,12 +839,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -902,12 +902,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -973,12 +973,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1041,12 +1041,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1113,12 +1113,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1185,12 +1185,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1255,12 +1255,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1327,12 +1327,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1395,12 +1395,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1463,12 +1463,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1530,12 +1530,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1594,12 +1594,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1665,12 +1665,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1732,12 +1732,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -1965,12 +1965,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2013,12 +2013,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2080,12 +2080,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2144,12 +2144,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2233,12 +2233,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2295,12 +2295,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2356,12 +2356,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2417,12 +2417,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2478,12 +2478,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
@@ -2544,12 +2544,12 @@ trait ClientMethods
                     $deferred->resolve($frame);
                     return true;
                 } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
-                    $this->channelCloseOk($channel)->done(function () use ($frame, $deferred) {
+                    $this->channelCloseOk($channel)->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
                 } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk()->done(function () use ($frame, $deferred) {
+                    $this->connectionCloseOk()->then(function () use ($frame, $deferred) {
                         $deferred->reject(new ClientException($frame->replyText, $frame->replyCode));
                     });
                     return true;
