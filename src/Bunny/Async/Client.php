@@ -297,7 +297,16 @@ class Client extends AbstractClient
      */
     public function onDataAvailable()
     {
-        $this->read();
+        try {
+            $this->read();
+        } catch (\Throwable $e) {
+            foreach ($this->awaitCallbacks as $k => $callback) {
+                if ($callback($e) === true) {
+                    unset($this->awaitCallbacks[$k]);
+                    break;
+                }
+            }
+        }
 
         while (($frame = $this->reader->consumeFrame($this->readBuffer)) !== null) {
             foreach ($this->awaitCallbacks as $k => $callback) {

@@ -191,7 +191,7 @@ class Client extends AbstractClient
                     $now = microtime(true);
                     $nextStreamSelectTimeout = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
                     if (!isset($nextHeartbeat)) {
-                        $nextHeartbeat = $now + $this->options["heartbeat"];
+                        $nextHeartbeat = $nextStreamSelectTimeout;;
                     }
                     if ($stopTime !== null && $stopTime < $nextStreamSelectTimeout) {
                         $nextStreamSelectTimeout = $stopTime;
