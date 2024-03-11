@@ -242,7 +242,7 @@ abstract class AbstractClient
                 $uri .= (strpos($this->options["path"], "/") === 0) ? $this->options["path"] : "/" . $this->options["path"];
             }
 
-            stream_context_set_option(
+            stream_context_set_options(
                 $context, [
                 "socket" => [
                     "tcp_nodelay" => true
