@@ -251,4 +251,6 @@ final class Constants
 
     const FIELD_NULL = 0x56; // 'V'
 
+    const FIELD_BYTES = 0x78; // 'x'
+
 }

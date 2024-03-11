@@ -262,6 +262,7 @@ class ProtocolReader
             case Constants::FIELD_SHORT_STRING:
                 return $buffer->consume($buffer->consumeUint8());
             case Constants::FIELD_LONG_STRING:
+            case Constants::FIELD_BYTES:
                 return $buffer->consume($buffer->consumeUint32());
             case Constants::FIELD_ARRAY:
                 return $this->consumeArray($buffer);
