@@ -27,7 +27,8 @@
     "require": {
         "php": "^7.1 || ^8.0",
         "react/event-loop": "^1.0 || ^0.5 || ^0.4",
-        "react/promise": "~2.2"
+        "react/promise": "^3 || ~2.2",
+        "evenement/evenement": "^3.0"
     },
     "require-dev": {
         "ext-pcntl": "*",

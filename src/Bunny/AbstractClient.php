@@ -13,6 +13,7 @@ use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
+use Evenement\EventEmitter;
 use InvalidArgumentException;
 use React\Promise;
 
@@ -29,7 +30,7 @@ use function stream_context_set_option;
  *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
-abstract class AbstractClient
+abstract class AbstractClient extends EventEmitter
 {
 
     use ClientMethods;
