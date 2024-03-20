@@ -1,8 +1,8 @@
 <?php
 namespace Bunny\Protocol;
 
-use Bunny\Constants;
 use Bunny\Exception\ProtocolException;
+use Bunny\Constants;
 
 /**
  * AMQP protocol reader. This class provides means of transforming data from {@link Buffer} to {@link AbstractFrame}.

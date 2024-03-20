@@ -1,8 +1,8 @@
 <?php
 namespace Bunny\Protocol;
 
-use Bunny\Constants;
 use Bunny\Exception\ProtocolException;
+use Bunny\Constants;
 
 /**
  * AMQP protocol writer. This class provides means of transforming {@link AbstractFrame}s to their wire format.

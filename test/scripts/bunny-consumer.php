@@ -10,7 +10,7 @@ namespace Bunny\Test\App;
 use Bunny\Channel;
 use Bunny\Client;
 use Bunny\Message;
-
+use React\EventLoop\Loop;
 use function Bunny\Test\Library\parseAmqpUri;
 
 require __DIR__ . '/../../vendor/autoload.php';
@@ -22,9 +22,7 @@ function app(array $args)
     $client = new Client($connection);
 
     pcntl_signal(SIGINT, function () use ($client) {
-        $client->disconnect()->done(function () use ($client) {
-            $client->stop();
-        });
+        $client->disconnect();
     });
 
     $client->connect();
@@ -35,7 +33,9 @@ function app(array $args)
     $channel->consume(function (Message $message, Channel $channel) use ($client) {
         $channel->ack($message);
     });
-    $client->run($args['maxSeconds'] > 0 ? $args['maxSeconds'] : null);
+    Loop::addTimer($args['maxSeconds'], static function () use ($client): void {
+        $client->disconnect();
+    });
 }
 
 $argv_copy = $argv;

@@ -1,7 +1,6 @@
 <?php
 namespace Bunny;
 
-use Bunny\Protocol;
 use React\Promise;
 
 /**
@@ -17,7 +16,7 @@ trait ChannelMethods
     /**
      * Returns underlying client instance.
      * 
-     * @return AbstractClient
+     * @return Client
      */
     abstract public function getClient();
 
@@ -40,7 +39,7 @@ trait ChannelMethods
      * @param boolean $nowait
      * @param array $arguments
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodExchangeDeclareOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodExchangeDeclareOkFrame
      */
     public function exchangeDeclare($exchange, $exchangeType = 'direct', $passive = false, $durable = false, $autoDelete = false, $internal = false, $nowait = false, $arguments = [])
     {
@@ -54,7 +53,7 @@ trait ChannelMethods
      * @param boolean $ifUnused
      * @param boolean $nowait
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodExchangeDeleteOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodExchangeDeleteOkFrame
      */
     public function exchangeDelete($exchange, $ifUnused = false, $nowait = false)
     {
@@ -70,7 +69,7 @@ trait ChannelMethods
      * @param boolean $nowait
      * @param array $arguments
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodExchangeBindOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodExchangeBindOkFrame
      */
     public function exchangeBind($destination, $source, $routingKey = '', $nowait = false, $arguments = [])
     {
@@ -86,7 +85,7 @@ trait ChannelMethods
      * @param boolean $nowait
      * @param array $arguments
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodExchangeUnbindOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodExchangeUnbindOkFrame
      */
     public function exchangeUnbind($destination, $source, $routingKey = '', $nowait = false, $arguments = [])
     {
@@ -104,7 +103,7 @@ trait ChannelMethods
      * @param boolean $nowait
      * @param array $arguments
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodQueueDeclareOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodQueueDeclareOkFrame
      */
     public function queueDeclare($queue = '', $passive = false, $durable = false, $exclusive = false, $autoDelete = false, $nowait = false, $arguments = [])
     {
@@ -120,7 +119,7 @@ trait ChannelMethods
      * @param boolean $nowait
      * @param array $arguments
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodQueueBindOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodQueueBindOkFrame
      */
     public function queueBind($queue, $exchange, $routingKey = '', $nowait = false, $arguments = [])
     {
@@ -133,7 +132,7 @@ trait ChannelMethods
      * @param string $queue
      * @param boolean $nowait
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodQueuePurgeOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodQueuePurgeOkFrame
      */
     public function queuePurge($queue = '', $nowait = false)
     {
@@ -148,7 +147,7 @@ trait ChannelMethods
      * @param boolean $ifEmpty
      * @param boolean $nowait
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodQueueDeleteOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodQueueDeleteOkFrame
      */
     public function queueDelete($queue = '', $ifUnused = false, $ifEmpty = false, $nowait = false)
     {
@@ -163,7 +162,7 @@ trait ChannelMethods
      * @param string $routingKey
      * @param array $arguments
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodQueueUnbindOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodQueueUnbindOkFrame
      */
     public function queueUnbind($queue, $exchange, $routingKey = '', $arguments = [])
     {
@@ -177,7 +176,7 @@ trait ChannelMethods
      * @param int $prefetchCount
      * @param boolean $global
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodBasicQosOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodBasicQosOkFrame
      */
     public function qos($prefetchSize = 0, $prefetchCount = 0, $global = false)
     {
@@ -195,7 +194,7 @@ trait ChannelMethods
      * @param boolean $nowait
      * @param array $arguments
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodBasicConsumeOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodBasicConsumeOkFrame
      */
     public function consume($queue = '', $consumerTag = '', $noLocal = false, $noAck = false, $exclusive = false, $nowait = false, $arguments = [])
     {
@@ -208,7 +207,7 @@ trait ChannelMethods
      * @param string $consumerTag
      * @param boolean $nowait
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodBasicCancelOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodBasicCancelOkFrame
      */
     public function cancel($consumerTag, $nowait = false)
     {
@@ -238,7 +237,7 @@ trait ChannelMethods
      * @param string $queue
      * @param boolean $noAck
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodBasicGetOkFrame|Protocol\MethodBasicGetEmptyFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodBasicGetOkFrame|\Bunny\Protocol\MethodBasicGetEmptyFrame
      */
     public function get($queue = '', $noAck = false)
     {
@@ -288,7 +287,7 @@ trait ChannelMethods
      *
      * @param boolean $requeue
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodBasicRecoverOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodBasicRecoverOkFrame
      */
     public function recover($requeue = false)
     {
@@ -313,7 +312,7 @@ trait ChannelMethods
      * Calls tx.select AMQP method.
      *
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodTxSelectOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodTxSelectOkFrame
      */
     public function txSelect()
     {
@@ -324,7 +323,7 @@ trait ChannelMethods
      * Calls tx.commit AMQP method.
      *
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodTxCommitOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodTxCommitOkFrame
      */
     public function txCommit()
     {
@@ -335,7 +334,7 @@ trait ChannelMethods
      * Calls tx.rollback AMQP method.
      *
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodTxRollbackOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodTxRollbackOkFrame
      */
     public function txRollback()
     {
@@ -347,7 +346,7 @@ trait ChannelMethods
      *
      * @param boolean $nowait
      *
-     * @return boolean|Promise\PromiseInterface|Protocol\MethodConfirmSelectOkFrame
+     * @return boolean|Promise\PromiseInterface|\Bunny\Protocol\MethodConfirmSelectOkFrame
      */
     public function confirmSelect($nowait = false)
     {

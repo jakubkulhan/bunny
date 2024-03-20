@@ -4,13 +4,19 @@
 
 declare(strict_types=1);
 
-namespace Bunny;
+namespace Bunny\Test;
 
+use Bunny\Channel;
+use Bunny\Client;
+use Bunny\Message;
 use Bunny\Test\Library\SynchronousClientHelper;
 use PHPUnit\Framework\TestCase;
+use WyriHaximus\React\PHPUnit\RunTestsInFibersTrait;
 
 class ChannelTest extends TestCase
 {
+    use RunTestsInFibersTrait;
+
     /**
      * @var SynchronousClientHelper
      */
@@ -29,13 +35,9 @@ class ChannelTest extends TestCase
         $c->connect();
         $promise = $c->channel()->close();
         $this->assertInstanceOf("React\\Promise\\PromiseInterface", $promise);
-        $promise->done(function () use ($c) {
-            $c->stop();
-        });
-        $c->run();
 
         $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
+        $c->disconnect();
         $this->assertFalse($c->isConnected());
     }
 
@@ -44,11 +46,10 @@ class ChannelTest extends TestCase
         $c = $this->helper->createClient();
 
         $ch = $c->connect()->channel();
-        $ch->exchangeDeclare("test_exchange", "direct", false, false, true);
-        $c->disconnect();
-
         $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
+        $ch->exchangeDeclare("test_exchange", "direct", false, false, true);
+        $this->assertTrue($c->isConnected());
+        $c->disconnect();
         $this->assertFalse($c->isConnected());
     }
 
@@ -57,11 +58,10 @@ class ChannelTest extends TestCase
         $c = $this->helper->createClient();
 
         $ch = $c->connect()->channel();
-        $ch->queueDeclare("test_queue", false, false, false, true);
-        $c->disconnect();
-
         $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
+        $ch->queueDeclare("test_queue", false, false, false, true);
+        $this->assertTrue($c->isConnected());
+        $c->disconnect();
         $this->assertFalse($c->isConnected());
     }
 
@@ -70,13 +70,14 @@ class ChannelTest extends TestCase
         $c = $this->helper->createClient();
 
         $ch = $c->connect()->channel();
-        $ch->exchangeDeclare("test_exchange", "direct", false, false, true);
-        $ch->queueDeclare("test_queue", false, false, false, true);
-        $ch->queueBind("test_queue", "test_exchange");
-        $ch->getClient()->disconnect();
-
         $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
+        $ch->exchangeDeclare("test_exchange", "direct", false, false, true);
+        $this->assertTrue($c->isConnected());
+        $ch->queueDeclare("test_queue", false, false, false, true);
+        $this->assertTrue($c->isConnected());
+        $ch->queueBind("test_queue", "test_exchange");
+        $this->assertTrue($c->isConnected());
+        $c->disconnect();
         $this->assertFalse($c->isConnected());
     }
 
@@ -85,11 +86,10 @@ class ChannelTest extends TestCase
         $c = $this->helper->createClient();
 
         $ch = $c->connect()->channel();
-        $ch->publish("test publish", []);
-        $ch->getClient()->disconnect();
-
         $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
+        $ch->publish("test publish", []);
+        $this->assertTrue($c->isConnected());
+        $c->disconnect();
         $this->assertFalse($c->isConnected());
     }
 
@@ -98,35 +98,16 @@ class ChannelTest extends TestCase
         $c = $this->helper->createClient();
 
         $ch = $c->connect()->channel();
+        $this->assertTrue($c->isConnected());
         $ch->queueDeclare("test_queue", false, false, false, true);
+        $this->assertTrue($c->isConnected());
         $ch->consume(function (Message $msg, Channel $ch, Client $c) {
             $this->assertEquals("hi", $msg->content);
-            $c->stop();
         });
+        $this->assertTrue($c->isConnected());
         $ch->publish("hi", [], "", "test_queue");
-        $c->run();
-        $c->disconnect();
-
         $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
-        $this->assertFalse($c->isConnected());
-    }
-
-    public function testRun()
-    {
-        $c = $this->helper->createClient();
-
-        $ch = $c->connect()->channel();
-        $ch->queueDeclare("test_queue", false, false, false, true);
-        $ch->publish("hi again", [], "", "test_queue");
-        $ch->run(function (Message $msg, Channel $ch, Client $c) {
-            $this->assertEquals("hi again", $msg->content);
-            $c->stop();
-        });
         $c->disconnect();
-
-        $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
         $this->assertFalse($c->isConnected());
     }
 
@@ -136,17 +117,15 @@ class ChannelTest extends TestCase
 
         $ch = $c->connect()->channel();
         $ch->queueDeclare("test_queue", false, false, false, true);
-        $ch->publish("<b>hi html</b>", ["content-type" => "text/html"], "", "test_queue");
-        $ch->run(function (Message $msg, Channel $ch, Client $c) {
+        $ch->consume(function (Message $msg, Channel $ch, Client $c) {
             $this->assertTrue($msg->hasHeader("content-type"));
             $this->assertEquals("text/html", $msg->getHeader("content-type"));
             $this->assertEquals("<b>hi html</b>", $msg->content);
-            $c->stop();
         });
-        $c->disconnect();
+        $ch->publish("<b>hi html</b>", ["content-type" => "text/html"], "", "test_queue");
 
         $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
+        $c->disconnect();
         $this->assertFalse($c->isConnected());
     }
 
@@ -158,15 +137,13 @@ class ChannelTest extends TestCase
 
         $ch = $c->connect()->channel();
         $ch->queueDeclare("test_queue", false, false, false, true);
-        $ch->publish($body, [], "", "test_queue");
-        $ch->run(function (Message $msg, Channel $ch, Client $c) use ($body) {
+        $ch->consume(function (Message $msg, Channel $ch, Client $c) use ($body) {
             $this->assertEquals($body, $msg->content);
-            $c->stop();
         });
-        $c->disconnect();
+        $ch->publish($body, [], "", "test_queue");
 
         $this->assertTrue($c->isConnected());
-        $this->helper->disconnectClientWithEventLoop($c);
+        $c->disconnect();
         $this->assertFalse($c->isConnected());
     }
 }

@@ -1,17 +1,11 @@
 <?php
 
-namespace Bunny;
+namespace Bunny\Test;
 
-use Bunny\Async\Client as AsyncClient;
 use Bunny\Exception\ClientException;
-use Bunny\Test\Exception\TimeoutException;
-use Bunny\Test\Library\AsynchronousClientHelper;
 use Bunny\Test\Library\Environment;
 use Bunny\Test\Library\SynchronousClientHelper;
 use PHPUnit\Framework\TestCase;
-
-use React\EventLoop\Factory;
-
 use function dirname;
 use function file_exists;
 use function is_file;
@@ -24,17 +18,11 @@ class SSLTest extends TestCase
      */
     private $helper;
 
-    /**
-     * @var AsynchronousClientHelper
-     */
-    private $asyncHelper;
-
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->helper = new SynchronousClientHelper();
-        $this->asyncHelper = new AsynchronousClientHelper();
     }
 
     public function testConnect()
@@ -44,26 +32,6 @@ class SSLTest extends TestCase
         $client = $this->helper->createClient($options);
         $client->connect();
         $client->disconnect();
-
-        $this->assertTrue(true);
-    }
-
-    public function testConnectAsync() {
-        $options = $this->getOptions();
-        $loop = Factory::create();
-
-        $loop->addTimer(5, function () {
-            throw new TimeoutException();
-        });
-
-        $client = $this->asyncHelper->createClient($loop, $options);
-        $client->connect()->then(function (AsyncClient $client) {
-            return $client->disconnect();
-        })->then(function () use ($loop) {
-            $loop->stop();
-        })->done();
-
-        $loop->run();
 
         $this->assertTrue(true);
     }
@@ -121,7 +89,7 @@ class SSLTest extends TestCase
         // checking CA-file
         $caFile = Environment::getSslCa();
 
-        $testsDir = dirname(__DIR__);
+        $testsDir = __DIR__;
         $caFile   = $testsDir . '/' . $caFile;
         if (!file_exists($caFile) || !is_file($caFile)) {
             $this->fail('Missing CA file: "' . $caFile . '"');

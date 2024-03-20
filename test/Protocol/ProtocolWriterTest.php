@@ -1,7 +1,9 @@
 <?php
-namespace Bunny\Protocol;
+namespace Bunny\Test\Protocol;
 
 use Bunny\Constants;
+use Bunny\Protocol\Buffer;
+use Bunny\Protocol\ProtocolWriter;
 use DateTime;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;

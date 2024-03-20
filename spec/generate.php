@@ -1,6 +1,7 @@
 <?php
 namespace Bunny;
 
+use Bunny\Constants;
 use Bunny\Protocol\ContentHeaderFrame;
 
 require_once __DIR__ . "/../vendor/autoload.php";
