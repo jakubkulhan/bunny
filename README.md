@@ -193,26 +193,7 @@ $channel->qos(
 
 ### Asynchronous usage
 
-Bunny supports both synchronous and asynchronous usage utilizing [ReactPHP](https://github.com/reactphp). The following example shows setting up a client and consuming a queue indefinitely.
-
-```php
-(new Async\Client($eventLoop, $options))->connect()->then(function (Async\Client $client) {
-   return $client->channel();
-})->then(function (Channel $channel) {
-   return $channel->qos(0, 5)->then(function () use ($channel) {
-       return $channel;
-   });
-})->then(function (Channel $channel) use ($event) {
-   $channel->consume(
-       function (Message $message, Channel $channel, Async\Client $client) use ($event) {
-           // Handle message
-
-           $channel->ack($message);
-       },
-       'queue_name'
-   );
-});
-```
+**Node: Up to version `v0.5.x` Bunny had two different clients, one sync, and one async. As of `v0.6` both clients have been folder into one: An async client with a sync API.**
 
 ## AMQP interop
 

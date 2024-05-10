@@ -1,6 +1,8 @@
 <?php
 namespace Bunny;
 
+use Bunny\Client;
+
 require_once __DIR__ . "/../vendor/autoload.php";
 
 $c = new Client();
@@ -9,7 +11,7 @@ $ch = $c->channel();
 
 $ch->queueDeclare("bench_queue");
 $ch->exchangeDeclare("bench_exchange");
-$ch->queueBind("bench_queue", "bench_exchange");
+$ch->queueBind("bench_exchange", "bench_queue");
 
 $body = <<<EOT
 abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
