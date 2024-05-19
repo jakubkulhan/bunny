@@ -118,11 +118,17 @@ class Client implements ClientInterface
             unset($options['heartbeat_callback']);
         }
 
-
         if (isset($options['ssl']) && is_array($options['ssl'])) {
             $options['tls'] = $options['ssl'];
         }
 
+        if (!isset($options['client_properties'])) {
+            $options['client_properties'] = [];
+        }
+
+        if (!is_array($options['client_properties'])) {
+            throw new \InvalidArgumentException('Client properties must be an array');
+        }
 
         $this->options = $options;
         $this->connector = new Connector($this->options);
@@ -233,7 +239,7 @@ class Client implements ClientInterface
         ], $responseBuffer);
         $responseBuffer->discard(4);
 
-        $this->connection->connectionStartOk($responseBuffer->read($responseBuffer->getLength()), [], 'AMQPLAIN', 'en_US');
+        $this->connection->connectionStartOk($responseBuffer->read($responseBuffer->getLength()), $this->options['client_properties'], 'AMQPLAIN', 'en_US');
     }
 
     /**
