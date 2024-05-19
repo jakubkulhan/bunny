@@ -138,6 +138,14 @@ abstract class AbstractClient
             $this->options['heartbeat_callback'] = $options['heartbeat_callback'];
         }
 
+        if (!isset($options['client_properties'])) {
+            $options['client_properties'] = [];
+        }
+
+        if (!is_array($options['client_properties'])) {
+            throw new InvalidArgumentException('Client properties must be an array');
+        }
+
         $this->options = $options;
 
         $this->init();
@@ -353,7 +361,7 @@ abstract class AbstractClient
         ], $responseBuffer);
         $responseBuffer->discard(4);
 
-        return $this->connectionStartOk([], "AMQPLAIN", $responseBuffer->read($responseBuffer->getLength()), "en_US");
+        return $this->connectionStartOk($this->options['client_properties'], "AMQPLAIN", $responseBuffer->read($responseBuffer->getLength()), "en_US");
     }
 
     /**
