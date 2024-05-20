@@ -339,13 +339,7 @@ final class Connection
         $deferred = new Deferred();
         $this->awaitList[] = [
             'filter' => function (Protocol\AbstractFrame $frame): bool {
-                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    $this->connectionCloseOk();
-                    throw new ClientException($frame->replyText, $frame->replyCode);
-                }
-                return false;
+                return $frame instanceof Protocol\MethodConnectionCloseFrame;
           },
           'promise' => $deferred,
         ];
