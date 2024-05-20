@@ -54,6 +54,15 @@ class ClientTest extends TestCase
         $this->assertFalse($client->isConnected());
     }
 
+    public function testConnectWithInvalidClientProperties()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->helper->createClient([
+            'client_properties' => 'not an array'
+        ]);
+    }
+
     public function testConnectFailure()
     {
         $this->expectException(ClientException::class);
