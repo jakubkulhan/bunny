@@ -336,7 +336,7 @@ $connectionContent .= "            }\n";
 $connectionContent .= "        });\n";
 $connectionContent .= "    }\n";
 $connectionContent .= "\n";
-$connectionContent .= "    public function disconnect(int \$code, string \$reason)\n";
+$connectionContent .= "    public function disconnect(int \$code, string \$reason): void\n";
 $connectionContent .= "    {\n";
 $connectionContent .= "        \$this->connectionClose(\$code, 0, 0, \$reason);\n";
 $connectionContent .= "        \$this->connection->close();\n";
@@ -353,7 +353,7 @@ $connectionContent .= "     * Callback after connection-level frame has been rec
 $connectionContent .= "     *\n";
 $connectionContent .= "     * @param AbstractFrame \$frame\n";
 $connectionContent .= "     */\n";
-$connectionContent .= "    private function onFrameReceived(AbstractFrame \$frame)\n";
+$connectionContent .= "    private function onFrameReceived(AbstractFrame \$frame): void\n";
 $connectionContent .= "    {\n";
 $connectionContent .= "        if (\$frame instanceof MethodConnectionCloseFrame) {\n";
 $connectionContent .= "            \$this->disconnect(Constants::STATUS_CONNECTION_FORCED, \"Connection closed by server: ({\$frame->replyCode}) \" . \$frame->replyText);\n";
@@ -735,7 +735,7 @@ foreach ($spec->classes as $class) {
                 $connectionContent .= "        \$buffer = \$this->writeBuffer;\n";
                 if ($class->id === 60 && $method->id === 40) {
                     $connectionContent .= "        \$ck = serialize([\$channel, \$headers, \$exchange, \$routingKey, \$mandatory, \$immediate]);\n";
-                    $connectionContent .= "        \$c = isset(\$this->cache[\$ck]) ? \$this->cache[\$ck] : null;\n";
+                    $connectionContent .= "        \$c = \$this->cache[\$ck] ?? null;\n";
                     $connectionContent .= "        \$flags = 0; \$off0 = 0; \$len0 = 0; \$off1 = 0; \$len1 = 0; \$contentTypeLength = null; \$contentType = null; \$contentEncodingLength = null; \$contentEncoding = null; \$headersBuffer = null; \$deliveryMode = null; \$priority = null; \$correlationIdLength = null; \$correlationId = null; \$replyToLength = null; \$replyTo = null; \$expirationLength = null; \$expiration = null; \$messageIdLength = null; \$messageId = null; \$timestamp = null; \$typeLength = null; \$type = null; \$userIdLength = null; \$userId = null; \$appIdLength = null; \$appId = null; \$clusterIdLength = null; \$clusterId = null;\n";
                     $connectionContent .= "        if (\$c) { \$buffer->append(\$c[0]); }\n";
                     $connectionContent .= "        else {\n";
@@ -977,7 +977,7 @@ $connectionContent .= "\n";
 $connectionContent .= "    /**\n";
 $connectionContent .= "     * Callback when heartbeat timer timed out.\n";
 $connectionContent .= "     */\n";
-$connectionContent .= "    public function onHeartbeat()\n";
+$connectionContent .= "    public function onHeartbeat(): void\n";
 $connectionContent .= "    {\n";
 $connectionContent .= "        \$now = microtime(true);\n";
 $connectionContent .= "        \$nextHeartbeat = (\$this->lastWrite ?: \$now) + \$this->options['heartbeat'];\n";

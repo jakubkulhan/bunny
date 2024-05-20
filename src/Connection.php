@@ -83,7 +83,7 @@ final class Connection
         });
     }
 
-    public function disconnect(int $code, string $reason)
+    public function disconnect(int $code, string $reason): void
     {
         $this->connectionClose($code, 0, 0, $reason);
         $this->connection->close();
@@ -100,7 +100,7 @@ final class Connection
      *
      * @param AbstractFrame $frame
      */
-    private function onFrameReceived(AbstractFrame $frame)
+    private function onFrameReceived(AbstractFrame $frame): void
     {
         if ($frame instanceof MethodConnectionCloseFrame) {
             $this->disconnect(Constants::STATUS_CONNECTION_FORCED, "Connection closed by server: ({$frame->replyCode}) " . $frame->replyText);
@@ -1258,7 +1258,7 @@ final class Connection
     {
         $buffer = $this->writeBuffer;
         $ck = serialize([$channel, $headers, $exchange, $routingKey, $mandatory, $immediate]);
-        $c = isset($this->cache[$ck]) ? $this->cache[$ck] : null;
+        $c = $this->cache[$ck] ?? null;
         $flags = 0; $off0 = 0; $len0 = 0; $off1 = 0; $len1 = 0; $contentTypeLength = null; $contentType = null; $contentEncodingLength = null; $contentEncoding = null; $headersBuffer = null; $deliveryMode = null; $priority = null; $correlationIdLength = null; $correlationId = null; $replyToLength = null; $replyTo = null; $expirationLength = null; $expiration = null; $messageIdLength = null; $messageId = null; $timestamp = null; $typeLength = null; $type = null; $userIdLength = null; $userId = null; $appIdLength = null; $appId = null; $clusterIdLength = null; $clusterId = null;
         if ($c) { $buffer->append($c[0]); }
         else {
@@ -1858,7 +1858,7 @@ final class Connection
     /**
      * Callback when heartbeat timer timed out.
      */
-    public function onHeartbeat()
+    public function onHeartbeat(): void
     {
         $now = microtime(true);
         $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options['heartbeat'];
