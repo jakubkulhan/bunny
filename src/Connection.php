@@ -1275,94 +1275,95 @@ final class Connection
         $this->writer->appendBits([$mandatory, $immediate], $buffer);
         $buffer->appendUint8(206);
         $s = 14;
-        if (isset($headers['content-type'])) {
+
+        if ($contentType = $headers['content-type'] ?? null) {
             $flags |= 32768;
-            $contentType = $headers['content-type'];
             $s += 1;
             $s += $contentTypeLength = strlen($contentType);
             unset($headers['content-type']);
         }
-        if (isset($headers['content-encoding'])) {
+
+        if ($contentEncoding = $headers['content-encoding'] ?? null) {
             $flags |= 16384;
-            $contentEncoding = $headers['content-encoding'];
             $s += 1;
             $s += $contentEncodingLength = strlen($contentEncoding);
             unset($headers['content-encoding']);
         }
-        if (isset($headers['delivery-mode'])) {
+
+        if ($deliveryMode = $headers['delivery-mode'] ?? null) {
             $flags |= 4096;
-            $deliveryMode = $headers['delivery-mode'];
             $s += 1;
             unset($headers['delivery-mode']);
         }
-        if (isset($headers['priority'])) {
+
+        if ($priority = $headers['priority'] ?? null) {
             $flags |= 2048;
-            $priority = $headers['priority'];
             $s += 1;
             unset($headers['priority']);
         }
-        if (isset($headers['correlation-id'])) {
+
+        if ($correlationId = $headers['correlation-id'] ?? null) {
             $flags |= 1024;
-            $correlationId = $headers['correlation-id'];
             $s += 1;
             $s += $correlationIdLength = strlen($correlationId);
             unset($headers['correlation-id']);
         }
-        if (isset($headers['reply-to'])) {
+
+        if ($replyTo = $headers['reply-to'] ?? null) {
             $flags |= 512;
-            $replyTo = $headers['reply-to'];
             $s += 1;
             $s += $replyToLength = strlen($replyTo);
             unset($headers['reply-to']);
         }
-        if (isset($headers['expiration'])) {
+
+        if ($expiration = $headers['expiration'] ?? null) {
             $flags |= 256;
-            $expiration = $headers['expiration'];
             $s += 1;
             $s += $expirationLength = strlen($expiration);
             unset($headers['expiration']);
         }
-        if (isset($headers['message-id'])) {
+
+        if ($messageId = $headers['message-id'] ?? null) {
             $flags |= 128;
-            $messageId = $headers['message-id'];
             $s += 1;
             $s += $messageIdLength = strlen($messageId);
             unset($headers['message-id']);
         }
-        if (isset($headers['timestamp'])) {
+
+        if ($timestamp = $headers['timestamp'] ?? null) {
             $flags |= 64;
-            $timestamp = $headers['timestamp'];
             $s += 8;
             unset($headers['timestamp']);
         }
-        if (isset($headers['type'])) {
+
+        if ($type = $headers['type'] ?? null) {
             $flags |= 32;
-            $type = $headers['type'];
             $s += 1;
             $s += $typeLength = strlen($type);
             unset($headers['type']);
         }
-        if (isset($headers['user-id'])) {
+
+        if ($userId = $headers['user-id'] ?? null) {
             $flags |= 16;
-            $userId = $headers['user-id'];
             $s += 1;
             $s += $userIdLength = strlen($userId);
             unset($headers['user-id']);
         }
-        if (isset($headers['app-id'])) {
+
+        if ($appId = $headers['app-id'] ?? null) {
             $flags |= 8;
-            $appId = $headers['app-id'];
             $s += 1;
             $s += $appIdLength = strlen($appId);
             unset($headers['app-id']);
         }
-        if (isset($headers['cluster-id'])) {
+
+        if ($clusterId = $headers['cluster-id'] ?? null) {
             $flags |= 4;
-            $clusterId = $headers['cluster-id'];
             $s += 1;
             $s += $clusterIdLength = strlen($clusterId);
             unset($headers['cluster-id']);
         }
+
         if (!empty($headers)) {
             $flags |= 8192;
             $this->writer->appendTable($headers, $headersBuffer = new Buffer());

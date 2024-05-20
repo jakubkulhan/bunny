@@ -770,6 +770,7 @@ foreach ($spec->classes as $class) {
 
                 // FIXME: respect max body size agreed upon connection.tune
                 $connectionContent .= "        \$s = 14;\n";
+                $connectionContent .= "\n";
 
 
                 foreach ([
@@ -789,9 +790,8 @@ foreach ($spec->classes as $class) {
                          ] as $flag => $property
                 ) {
                     list($propertyName, $staticSize, $dynamicSize) = $property;
-                    $connectionContent .= "        if (isset(\$headers['{$propertyName}'])) {\n";
+                    $connectionContent .= "        if (\$" . lcfirst(dashedToCamel($propertyName)) . " = \$headers['{$propertyName}'] ?? null) {\n";
                     $connectionContent .= "            \$flags |= {$flag};\n";
-                    $connectionContent .= "            \$" . lcfirst(dashedToCamel($propertyName)) . " = \$headers['{$propertyName}'];\n";
                     if ($staticSize) {
                         $connectionContent .= "            \$s += {$staticSize};\n";
                     }
@@ -800,6 +800,7 @@ foreach ($spec->classes as $class) {
                     }
                     $connectionContent .= "            unset(\$headers['{$propertyName}']);\n";
                     $connectionContent .= "        }\n";
+                    $connectionContent .= "\n";
                 }
 
                 $connectionContent .= "        if (!empty(\$headers)) {\n";
