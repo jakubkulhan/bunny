@@ -968,7 +968,7 @@ $protocolWriterContent .= $appendMethodFrameContent;
 $protocolWriterContent .= "}\n";
 file_put_contents(__DIR__ . "/../src/Protocol/ProtocolWriterGenerated.php", $protocolWriterContent);
 
-$connectionContent .= "    public function startHeathbeatTimer(): void\n";
+$connectionContent .= "    public function startHeartbeatTimer(): void\n";
 $connectionContent .= "    {\n";
 $connectionContent .= "        \$this->heartbeatTimer = Loop::addTimer(\$this->options['heartbeat'], [\$this, 'onHeartbeat']);\n";
 $connectionContent .= "        \$this->connection->on('drain', [\$this, 'onHeartbeat']);\n";

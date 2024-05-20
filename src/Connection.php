@@ -1849,7 +1849,7 @@ final class Connection
         return await($deferred->promise());
     }
 
-    public function startHeathbeatTimer(): void
+    public function startHeartbeatTimer(): void
     {
         $this->heartbeatTimer = Loop::addTimer($this->options['heartbeat'], [$this, 'onHeartbeat']);
         $this->connection->on('drain', [$this, 'onHeartbeat']);
