@@ -736,7 +736,8 @@ foreach ($spec->classes as $class) {
                 if ($class->id === 60 && $method->id === 40) {
                     $connectionContent .= "        \$ck = serialize([\$channel, \$headers, \$exchange, \$routingKey, \$mandatory, \$immediate]);\n";
                     $connectionContent .= "        \$c = \$this->cache[\$ck] ?? null;\n";
-                    $connectionContent .= "        \$flags = 0; \$off0 = 0; \$len0 = 0; \$off1 = 0; \$len1 = 0; \$contentTypeLength = null; \$contentType = null; \$contentEncodingLength = null; \$contentEncoding = null; \$headersBuffer = null; \$deliveryMode = null; \$priority = null; \$correlationIdLength = null; \$correlationId = null; \$replyToLength = null; \$replyTo = null; \$expirationLength = null; \$expiration = null; \$messageIdLength = null; \$messageId = null; \$timestamp = null; \$typeLength = null; \$type = null; \$userIdLength = null; \$userId = null; \$appIdLength = null; \$appId = null; \$clusterIdLength = null; \$clusterId = null;\n";
+                    $connectionContent .= "        \$flags = \$off0 = \$len0 = \$off1 = \$len1 = 0;\n";
+                    $connectionContent .= "        \$contentTypeLength = \$contentType = \$contentEncodingLength = \$contentEncoding = \$headersBuffer = \$deliveryMode = \$priority = \$correlationIdLength = \$correlationId = \$replyToLength = \$replyTo = \$expirationLength = \$expiration = \$messageIdLength = \$messageId = \$timestamp = \$typeLength = \$type = \$userIdLength = \$userId = \$appIdLength = \$appId = \$clusterIdLength = \$clusterId = null;\n";
                     $connectionContent .= "        if (\$c) { \$buffer->append(\$c[0]); }\n";
                     $connectionContent .= "        else {\n";
                     $connectionContent .= "        \$off0 = \$buffer->getLength();\n";
