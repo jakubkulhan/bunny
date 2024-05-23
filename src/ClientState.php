@@ -9,32 +9,32 @@ namespace Bunny;
  *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
-final class ClientStateEnum
+enum ClientState
 {
 
     /**
      * Client is not connected. Method connect() hasn't been called yet.
      */
-    const NOT_CONNECTED = 0;
+    case NotConnected;
 
     /**
      * Client is currently connecting to AMQP server.
      */
-    const CONNECTING = 1;
+    case Connecting;
 
     /**
      * Client is connected and ready to communicate.
      */
-    const CONNECTED = 2;
+    case Connected;
 
     /**
      * Client is currently disconnecting from AMQP server.
      */
-    const DISCONNECTING = 3;
+    case Disconnecting;
 
     /**
      * An error has occurred.
      */
-    const ERROR = 4;
+    case Error;
 
 }

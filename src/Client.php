@@ -42,9 +42,8 @@ class Client implements ClientInterface
     private readonly array $options;
 
     private readonly Connector $connector;
-
-    /** @var int */
-    private int $state = ClientStateEnum::NOT_CONNECTED;
+    
+    private ClientState $state = ClientState::NotConnected;
 
     private ?Connection $connection = null;
 
@@ -134,7 +133,7 @@ class Client implements ClientInterface
         $this->connector = new Connector($this->options);
 
 
-        $this->state = ClientStateEnum::NOT_CONNECTED;
+        $this->state = ClientState::NotConnected;
         $this->channels = new Channels();
     }
 
@@ -163,7 +162,7 @@ class Client implements ClientInterface
             return $channel;
         }
 
-        $this->state = ClientStateEnum::ERROR;
+        $this->state = ClientState::Error;
 
         throw new ClientException(
             'channel.open unexpected response of type ' . gettype($response) . '.'
@@ -177,11 +176,11 @@ class Client implements ClientInterface
      */
     public function connect(): self
     {
-        if ($this->state !== ClientStateEnum::NOT_CONNECTED) {
+        if ($this->state !== ClientState::NotConnected) {
             throw new ClientException('Client already connected/connecting.');
         }
 
-        $this->state = ClientStateEnum::CONNECTING;
+        $this->state = ClientState::Connecting;
 
         $streamScheme = 'tcp';
         if (isset($this->options['tls']) && is_array($this->options['tls'])) {
@@ -213,7 +212,7 @@ class Client implements ClientInterface
             $this->connection->connectionOpen($this->options['vhost']);
             $this->connection->startHeathbeatTimer();
 
-            $this->state = ClientStateEnum::CONNECTED;
+            $this->state = ClientState::Connected;
         } catch (\Throwable $thrown) {
             throw new ClientException('Could not connect to ' . $uri . ': ' . $thrown->getMessage(), $thrown->getCode(), $thrown);
         }
@@ -247,15 +246,15 @@ class Client implements ClientInterface
      */
     public function disconnect(int $replyCode = 0, string $replyText = ''): void
     {
-        if ($this->state === ClientStateEnum::DISCONNECTING) {
+        if ($this->state === ClientState::Disconnecting) {
             return;
         }
 
-        if ($this->state !== ClientStateEnum::CONNECTED) {
+        if ($this->state !== ClientState::Connected) {
             throw new ClientException('Client is not connected.');
         }
 
-        $this->state = ClientStateEnum::DISCONNECTING;
+        $this->state = ClientState::Disconnecting;
 
         $promises = [];
         foreach ($this->channels->all() as $channelId => $channel) {
@@ -267,7 +266,7 @@ class Client implements ClientInterface
 
         $this->connection->disconnect($replyCode, $replyText);
 
-        $this->state = ClientStateEnum::NOT_CONNECTED;
+        $this->state = ClientState::NotConnected;
     }
 
     /**
@@ -275,7 +274,7 @@ class Client implements ClientInterface
      */
     public function isConnected(): bool
     {
-        return $this->state !== ClientStateEnum::NOT_CONNECTED && $this->state !== ClientStateEnum::ERROR;
+        return $this->state !== ClientState::NotConnected && $this->state !== ClientState::Error;
     }
 
     /**
