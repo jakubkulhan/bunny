@@ -894,10 +894,13 @@ foreach ($spec->classes as $class) {
             $connectionContent .= "        \$deferred = new Deferred();\n";
             $connectionContent .= "        \$this->awaitList[] = [\n";
             $connectionContent .= "            'filter' => function (Protocol\\AbstractFrame \$frame)" . ($class->id !== 10 ? " use (\$channel)" : "") . ": bool {\n";
-            $connectionContent .= "                if (\$frame instanceof Protocol\\{$className}" . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
-            $connectionContent .= "                    return true;\n";
-            $connectionContent .= "                }\n";
-            $connectionContent .= "\n";
+
+            if ($class->id !== 10 || $method->id !== 50) {
+                $connectionContent .= "                if (\$frame instanceof Protocol\\{$className}" . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
+                $connectionContent .= "                    return true;\n";
+                $connectionContent .= "                }\n";
+                $connectionContent .= "\n";
+            }
 
             if ($class->id === 60 && $method->id === 71) {
                 $connectionContent .= "                if (\$frame instanceof Protocol\\" . str_replace("GetOk", "GetEmpty", $className) . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
