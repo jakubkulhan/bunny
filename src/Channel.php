@@ -83,8 +83,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
 
     private ChannelState $state = ChannelState::Ready;
 
-    /** @var int */
-    private $mode = ChannelModeEnum::REGULAR;
+    private ChannelMode $mode = ChannelMode::Regular;
 
     /** @var Deferred */
     private $closeDeferred;
@@ -118,10 +117,8 @@ class Channel implements ChannelInterface, EventEmitterInterface
 
     /**
      * Returns the channel mode.
-     *
-     * @return int
      */
-    public function getMode(): int
+    public function getMode(): ChannelMode
     {
         return $this->mode;
     }
@@ -164,7 +161,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
      */
     public function addAckListener(callable $callback)
     {
-        if ($this->mode !== ChannelModeEnum::CONFIRM) {
+        if ($this->mode !== ChannelMode::Confirm) {
             throw new ChannelException("Ack/nack listener can be added when channel in confirm mode.");
         }
 
@@ -181,7 +178,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
      */
     public function removeAckListener(callable $callback)
     {
-        if ($this->mode !== ChannelModeEnum::CONFIRM) {
+        if ($this->mode !== ChannelMode::Confirm) {
             throw new ChannelException("Ack/nack listener can be removed when channel in confirm mode.");
         }
 
@@ -326,7 +323,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
     {
         $response = $this->publishImpl($body, $headers, $exchange, $routingKey, $mandatory, $immediate);
 
-        if ($this->mode === ChannelModeEnum::CONFIRM) {
+        if ($this->mode === ChannelMode::Confirm) {
             return ++$this->deliveryTag;
         } else {
             return $response;
@@ -348,12 +345,12 @@ class Channel implements ChannelInterface, EventEmitterInterface
      */
     public function txSelect(): \Bunny\Protocol\MethodTxSelectOkFrame
     {
-        if ($this->mode !== ChannelModeEnum::REGULAR) {
+        if ($this->mode !== ChannelMode::Regular) {
             throw new ChannelException("Channel not in regular mode, cannot change to transactional mode.");
         }
 
         $response = $this->txSelectImpl();
-        $this->mode = ChannelModeEnum::TRANSACTIONAL;
+        $this->mode = ChannelMode::Transactional;
 
         return $response;
     }
@@ -363,7 +360,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
      */
     public function txCommit(): \Bunny\Protocol\MethodTxCommitOkFrame
     {
-        if ($this->mode !== ChannelModeEnum::TRANSACTIONAL) {
+        if ($this->mode !== ChannelMode::Transactional) {
             throw new ChannelException("Channel not in transactional mode, cannot call 'tx.commit'.");
         }
 
@@ -375,7 +372,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
      */
     public function txRollback(): \Bunny\Protocol\MethodTxRollbackOkFrame
     {
-        if ($this->mode !== ChannelModeEnum::TRANSACTIONAL) {
+        if ($this->mode !== ChannelMode::Transactional) {
             throw new ChannelException("Channel not in transactional mode, cannot call 'tx.rollback'.");
         }
 
@@ -387,7 +384,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
      */
     public function confirmSelect(callable $callback = null, bool $nowait = false): \Bunny\Protocol\MethodConfirmSelectOkFrame
     {
-        if ($this->mode !== ChannelModeEnum::REGULAR) {
+        if ($this->mode !== ChannelMode::Regular) {
             throw new ChannelException("Channel not in regular mode, cannot change to transactional mode.");
         }
 
@@ -399,7 +396,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
 
     private function enterConfirmMode(callable $callback = null): void
     {
-        $this->mode = ChannelModeEnum::CONFIRM;
+        $this->mode = ChannelMode::Confirm;
         $this->deliveryTag = 0;
 
         if ($callback) {

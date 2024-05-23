@@ -19,10 +19,9 @@ interface ChannelInterface
 {
     /**
      * Returns the channel mode.
-     *
-     * @return int
      */
-    public function getMode(): int;
+    public function getMode(): ChannelMode;
+
     /**
      * Listener is called whenever 'basic.return' frame is received with arguments (Message $returnedMessage, MethodBasicReturnFrame $frame)
      *
