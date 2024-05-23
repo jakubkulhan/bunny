@@ -1,14 +1,7 @@
 <?php
 namespace Bunny;
 
-use Bunny\Exception\ClientException;
-use Bunny\Protocol\AbstractFrame;
-use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\ContentHeaderFrame;
-use Bunny\Protocol\HeartbeatFrame;
-use React\EventLoop\Loop;
-use React\Promise\Deferred;
-use function React\Async\await;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
