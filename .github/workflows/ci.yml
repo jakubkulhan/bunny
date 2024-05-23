@@ -32,7 +32,7 @@ jobs:
       - name: Install Dependencies
         uses: ramsey/composer-install@v2
       - name: Run PHPStan
-        run: ./vendor/bin/phpstan analyze src --level 0
+        run: ./vendor/bin/phpstan analyze src --level 5
   test:
     name: "Run Tests on PHP ${{ matrix.php }} against RabbitMQ ${{ matrix.rabbitmq }} (Composer: ${{ matrix.composer }}; TLS: ${{ matrix.ssl_test }})"
     runs-on: ubuntu-latest
