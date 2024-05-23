@@ -81,8 +81,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
     /** @var Buffer */
     private $bodyBuffer;
 
-    /** @var int */
-    private $state = ChannelStateEnum::READY;
+    private ChannelState $state = ChannelState::Ready;
 
     /** @var int */
     private $mode = ChannelModeEnum::REGULAR;
@@ -202,16 +201,16 @@ class Channel implements ChannelInterface, EventEmitterInterface
      */
     public function close(int $replyCode = 0, string $replyText = ""): void
     {
-        if ($this->state === ChannelStateEnum::CLOSED) {
+        if ($this->state === ChannelState::Closed) {
             throw new ChannelException("Trying to close already closed channel #{$this->channelId}.");
         }
 
-        if ($this->state === ChannelStateEnum::CLOSING) {
+        if ($this->state === ChannelState::Closing) {
             await($this->closePromise);
             return;
         }
 
-        $this->state = ChannelStateEnum::CLOSING;
+        $this->state = ChannelState::Closing;
 
         $this->connection->channelClose($this->channelId, $replyCode, 0, 0, $replyText);
         $this->closeDeferred = new Deferred();
@@ -279,12 +278,12 @@ class Channel implements ChannelInterface, EventEmitterInterface
             return null;
 
         } elseif ($response instanceof MethodBasicGetOkFrame) {
-            $this->state = ChannelStateEnum::AWAITING_HEADER;
+            $this->state = ChannelState::AwaitingHeader;
 
             $headerFrame = $this->connection->awaitContentHeader($this->getChannelId());
             $this->headerFrame = $headerFrame;
             $this->bodySizeRemaining = $headerFrame->bodySize;
-            $this->state = ChannelStateEnum::AWAITING_BODY;
+            $this->state = ChannelState::AwaitingBody;
 
             while ($this->bodySizeRemaining > 0) {
                 $bodyFrame = $this->connection->awaitContentBody($this->getChannelId());
@@ -293,13 +292,13 @@ class Channel implements ChannelInterface, EventEmitterInterface
                 $this->bodySizeRemaining -= $bodyFrame->payloadSize;
 
                 if ($this->bodySizeRemaining < 0) {
-                    $this->state = ChannelStateEnum::ERROR;
+                    $this->state = ChannelState::Error;
                     $this->connection->disconnect(Constants::STATUS_SYNTAX_ERROR, $errorMessage = "Body overflow, received " . (-$this->bodySizeRemaining) . " more bytes.");
                     throw new ChannelException($errorMessage);
                 }
             }
 
-            $this->state = ChannelStateEnum::READY;
+            $this->state = ChannelState::Ready;
 
             $message = new Message(
                 null,
@@ -415,26 +414,26 @@ class Channel implements ChannelInterface, EventEmitterInterface
      */
     public function onFrameReceived(AbstractFrame $frame): void
     {
-        if ($this->state === ChannelStateEnum::ERROR) {
+        if ($this->state === ChannelState::Error) {
             throw new ChannelException("Channel in error state.");
         }
 
-        if ($this->state === ChannelStateEnum::CLOSED) {
+        if ($this->state === ChannelState::Closed) {
             throw new ChannelException("Received frame #{$frame->type} on closed channel #{$this->channelId}.");
         }
 
         if ($frame instanceof MethodFrame) {
-            if ($this->state === ChannelStateEnum::CLOSING && !($frame instanceof MethodChannelCloseOkFrame)) {
+            if ($this->state === ChannelState::Closing && !($frame instanceof MethodChannelCloseOkFrame)) {
                 // drop frames in closing state
                 return;
 
-            } elseif ($this->state !== ChannelStateEnum::READY && !($frame instanceof MethodChannelCloseOkFrame)) {
+            } elseif ($this->state !== ChannelState::Ready && !($frame instanceof MethodChannelCloseOkFrame)) {
                 $currentState = $this->state;
-                $this->state = ChannelStateEnum::ERROR;
+                $this->state = ChannelState::Error;
 
-                if ($currentState === ChannelStateEnum::AWAITING_HEADER) {
+                if ($currentState === ChannelState::AwaitingHeader) {
                     $msg = "Got method frame, expected header frame.";
-                } elseif ($currentState === ChannelStateEnum::AWAITING_BODY) {
+                } elseif ($currentState === ChannelState::AwaitingBody) {
                     $msg = "Got method frame, expected body frame.";
                 } else {
                     throw new \LogicException("Unhandled channel state.");
@@ -446,7 +445,7 @@ class Channel implements ChannelInterface, EventEmitterInterface
             }
 
             if ($frame instanceof MethodChannelCloseOkFrame) {
-                $this->state = ChannelStateEnum::CLOSED;
+                $this->state = ChannelState::Closed;
 
                 if ($this->closeDeferred !== null) {
                     $this->closeDeferred->resolve($this->channelId);
@@ -459,11 +458,11 @@ class Channel implements ChannelInterface, EventEmitterInterface
 
             } elseif ($frame instanceof MethodBasicReturnFrame) {
                 $this->returnFrame = $frame;
-                $this->state = ChannelStateEnum::AWAITING_HEADER;
+                $this->state = ChannelState::AwaitingHeader;
 
             } elseif ($frame instanceof MethodBasicDeliverFrame) {
                 $this->deliverFrame = $frame;
-                $this->state = ChannelStateEnum::AWAITING_HEADER;
+                $this->state = ChannelState::AwaitingHeader;
 
             } elseif ($frame instanceof MethodBasicAckFrame) {
                 foreach ($this->ackCallbacks as $callback) {
@@ -482,17 +481,17 @@ class Channel implements ChannelInterface, EventEmitterInterface
             }
 
         } elseif ($frame instanceof ContentHeaderFrame) {
-            if ($this->state === ChannelStateEnum::CLOSING) {
+            if ($this->state === ChannelState::Closing) {
                 // drop frames in closing state
                 return;
 
-            } elseif ($this->state !== ChannelStateEnum::AWAITING_HEADER) {
+            } elseif ($this->state !== ChannelState::AwaitingHeader) {
                 $currentState = $this->state;
-                $this->state = ChannelStateEnum::ERROR;
+                $this->state = ChannelState::Error;
 
-                if ($currentState === ChannelStateEnum::READY) {
+                if ($currentState === ChannelState::Ready) {
                     $msg = "Got header frame, expected method frame.";
-                } elseif ($currentState === ChannelStateEnum::AWAITING_BODY) {
+                } elseif ($currentState === ChannelState::AwaitingBody) {
                     $msg = "Got header frame, expected content frame.";
                 } else {
                     throw new \LogicException("Unhandled channel state.");
@@ -507,24 +506,24 @@ class Channel implements ChannelInterface, EventEmitterInterface
             $this->bodySizeRemaining = $frame->bodySize;
 
             if ($this->bodySizeRemaining > 0) {
-                $this->state = ChannelStateEnum::AWAITING_BODY;
+                $this->state = ChannelState::AwaitingBody;
             } else {
-                $this->state = ChannelStateEnum::READY;
+                $this->state = ChannelState::Ready;
                 $this->onBodyComplete();
             }
 
         } elseif ($frame instanceof ContentBodyFrame) {
-            if ($this->state === ChannelStateEnum::CLOSING) {
+            if ($this->state === ChannelState::Closing) {
                 // drop frames in closing state
                 return;
 
-            } elseif ($this->state !== ChannelStateEnum::AWAITING_BODY) {
+            } elseif ($this->state !== ChannelState::AwaitingBody) {
                 $currentState = $this->state;
-                $this->state = ChannelStateEnum::ERROR;
+                $this->state = ChannelState::Error;
 
-                if ($currentState === ChannelStateEnum::READY) {
+                if ($currentState === ChannelState::Ready) {
                     $msg = "Got body frame, expected method frame.";
-                } elseif ($currentState === ChannelStateEnum::AWAITING_HEADER) {
+                } elseif ($currentState === ChannelState::AwaitingHeader) {
                     $msg = "Got body frame, expected header frame.";
                 } else {
                     throw new \LogicException("Unhandled channel state.");
@@ -539,11 +538,11 @@ class Channel implements ChannelInterface, EventEmitterInterface
             $this->bodySizeRemaining -= $frame->payloadSize;
 
             if ($this->bodySizeRemaining < 0) {
-                $this->state = ChannelStateEnum::ERROR;
+                $this->state = ChannelState::Error;
                 $this->connection->disconnect(Constants::STATUS_SYNTAX_ERROR, "Body overflow, received " . (-$this->bodySizeRemaining) . " more bytes.");
 
             } elseif ($this->bodySizeRemaining === 0) {
-                $this->state = ChannelStateEnum::READY;
+                $this->state = ChannelState::Ready;
                 $this->onBodyComplete();
             }
 

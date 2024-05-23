@@ -9,37 +9,35 @@ namespace Bunny;
  *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
-final class ChannelStateEnum
+enum ChannelState
 {
-
     /**
      * Channel is ready to receive messages.
      */
-    const READY = 1;
+    case Ready;
 
     /**
      * Channel got method that is followed by header/content frames and now waits for header frame.
      */
-    const AWAITING_HEADER = 2;
+    case AwaitingHeader;
 
     /**
      * Channel got method and header frame and now waits for body frame.
      */
-    const AWAITING_BODY = 3;
+    case AwaitingBody;
 
     /**
      * An error occurred on channel.
      */
-    const ERROR = 4;
+    case Error;
 
     /**
      * Channel is being closed.
      */
-    const CLOSING = 5;
+    case Closing;
 
     /**
      * Channel has received channel.close-ok frame.
      */
-    const CLOSED = 6;
-
+    case Closed;
 }
