@@ -102,16 +102,20 @@ final class Connection
      */
     private function onFrameReceived(AbstractFrame $frame)
     {
-        if ($frame instanceof MethodFrame) {
-            if ($frame instanceof MethodConnectionCloseFrame) {
-                $this->disconnect(Constants::STATUS_CONNECTION_FORCED, "Connection closed by server: ({$frame->replyCode}) " . $frame->replyText);
-                throw new ClientException('Connection closed by server: ' . $frame->replyText, $frame->replyCode);
-            }
-        } elseif ($frame instanceof ContentHeaderFrame) {
+        if ($frame instanceof MethodConnectionCloseFrame) {
+            $this->disconnect(Constants::STATUS_CONNECTION_FORCED, "Connection closed by server: ({$frame->replyCode}) " . $frame->replyText);
+            throw new ClientException('Connection closed by server: ' . $frame->replyText, $frame->replyCode);
+        }
+
+        if ($frame instanceof ContentHeaderFrame) {
             $this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got header frame on connection channel (#0).');
-        } elseif ($frame instanceof ContentBodyFrame) {
+        }
+
+        if ($frame instanceof ContentBodyFrame) {
             $this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got body frame on connection channel (#0).');
-        } elseif ($frame instanceof HeartbeatFrame) {
+        }
+
+        if ($frame instanceof HeartbeatFrame) {
             return;
         }
 
@@ -143,10 +147,14 @@ final class Connection
             'filter' => function (AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\ContentHeaderFrame && $frame->channel === $channel) {
                     return true;
-    } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
@@ -166,10 +174,14 @@ final class Connection
             'filter' => function (AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\ContentBodyFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
@@ -188,10 +200,13 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame): bool {
                 if ($frame instanceof Protocol\MethodConnectionStartFrame) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -224,10 +239,13 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame): bool {
                 if ($frame instanceof Protocol\MethodConnectionSecureFrame) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -256,10 +274,13 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame): bool {
                 if ($frame instanceof Protocol\MethodConnectionTuneFrame) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -306,10 +327,13 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame): bool {
                 if ($frame instanceof Protocol\MethodConnectionOpenOkFrame) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -341,10 +365,13 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame): bool {
                 if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -372,10 +399,13 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame): bool {
                 if ($frame instanceof Protocol\MethodConnectionCloseOkFrame) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -390,10 +420,13 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame): bool {
                 if ($frame instanceof Protocol\MethodConnectionBlockedFrame) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -408,10 +441,13 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame): bool {
                 if ($frame instanceof Protocol\MethodConnectionUnblockedFrame) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -440,13 +476,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodChannelOpenOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -475,13 +516,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodChannelFlowFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -510,13 +556,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodChannelFlowOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -548,13 +599,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -582,13 +638,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodChannelCloseOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -618,13 +679,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodAccessRequestOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -661,13 +727,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodExchangeDeclareOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -701,13 +772,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodExchangeDeleteOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -745,13 +821,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodExchangeBindOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -789,13 +870,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodExchangeUnbindOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -831,13 +917,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodQueueDeclareOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -875,13 +966,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodQueueBindOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -915,13 +1011,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodQueuePurgeOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -955,13 +1056,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodQueueDeleteOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -995,13 +1101,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodQueueUnbindOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1032,13 +1143,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicQosOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1075,13 +1191,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicConsumeOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1114,13 +1235,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicCancelOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1321,13 +1447,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicReturnFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1342,13 +1473,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicDeliverFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1379,15 +1515,22 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicGetOkFrame && $frame->channel === $channel) {
                     return true;
-            } elseif ($frame instanceof Protocol\MethodBasicGetEmptyFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodBasicGetEmptyFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1417,13 +1560,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicAckFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1481,13 +1629,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicRecoverOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1517,13 +1670,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodBasicNackFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1551,13 +1709,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodTxSelectOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1585,13 +1748,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodTxCommitOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1619,13 +1787,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodTxRollbackOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
@@ -1657,13 +1830,18 @@ final class Connection
             'filter' => function (Protocol\AbstractFrame $frame) use ($channel): bool {
                 if ($frame instanceof Protocol\MethodConfirmSelectOkFrame && $frame->channel === $channel) {
                     return true;
-                } elseif ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
+                }
+
+                if ($frame instanceof Protocol\MethodChannelCloseFrame && $frame->channel === $channel) {
                     $this->channelCloseOk($channel);
                     throw new ClientException($frame->replyText, $frame->replyCode);
-                } elseif ($frame instanceof Protocol\MethodConnectionCloseFrame) {
+                }
+
+                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
                 }
+
                 return false;
           },
           'promise' => $deferred,
