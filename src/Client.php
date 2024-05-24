@@ -211,7 +211,7 @@ class Client implements ClientInterface
             }
             $this->connection->connectionTuneOk($tune->channelMax, $tune->frameMax, (int)$this->options['heartbeat']);
             $this->connection->connectionOpen($this->options['vhost']);
-            $this->connection->startHeathbeatTimer();
+            $this->connection->startHeartbeatTimer();
 
             $this->state = ClientStateEnum::CONNECTED;
         } catch (\Throwable $thrown) {

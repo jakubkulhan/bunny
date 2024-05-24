@@ -1,14 +1,7 @@
 <?php
 namespace Bunny;
 
-use Bunny\Exception\ClientException;
-use Bunny\Protocol\AbstractFrame;
-use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\ContentHeaderFrame;
-use Bunny\Protocol\HeartbeatFrame;
-use React\EventLoop\Loop;
-use React\Promise\Deferred;
-use function React\Async\await;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
@@ -336,7 +329,7 @@ $connectionContent .= "            }\n";
 $connectionContent .= "        });\n";
 $connectionContent .= "    }\n";
 $connectionContent .= "\n";
-$connectionContent .= "    public function disconnect(int \$code, string \$reason)\n";
+$connectionContent .= "    public function disconnect(int \$code, string \$reason): void\n";
 $connectionContent .= "    {\n";
 $connectionContent .= "        \$this->connectionClose(\$code, 0, 0, \$reason);\n";
 $connectionContent .= "        \$this->connection->close();\n";
@@ -353,7 +346,7 @@ $connectionContent .= "     * Callback after connection-level frame has been rec
 $connectionContent .= "     *\n";
 $connectionContent .= "     * @param AbstractFrame \$frame\n";
 $connectionContent .= "     */\n";
-$connectionContent .= "    private function onFrameReceived(AbstractFrame \$frame)\n";
+$connectionContent .= "    private function onFrameReceived(AbstractFrame \$frame): void\n";
 $connectionContent .= "    {\n";
 $connectionContent .= "        if (\$frame instanceof MethodConnectionCloseFrame) {\n";
 $connectionContent .= "            \$this->disconnect(Constants::STATUS_CONNECTION_FORCED, \"Connection closed by server: ({\$frame->replyCode}) \" . \$frame->replyText);\n";
@@ -735,8 +728,9 @@ foreach ($spec->classes as $class) {
                 $connectionContent .= "        \$buffer = \$this->writeBuffer;\n";
                 if ($class->id === 60 && $method->id === 40) {
                     $connectionContent .= "        \$ck = serialize([\$channel, \$headers, \$exchange, \$routingKey, \$mandatory, \$immediate]);\n";
-                    $connectionContent .= "        \$c = isset(\$this->cache[\$ck]) ? \$this->cache[\$ck] : null;\n";
-                    $connectionContent .= "        \$flags = 0; \$off0 = 0; \$len0 = 0; \$off1 = 0; \$len1 = 0; \$contentTypeLength = null; \$contentType = null; \$contentEncodingLength = null; \$contentEncoding = null; \$headersBuffer = null; \$deliveryMode = null; \$priority = null; \$correlationIdLength = null; \$correlationId = null; \$replyToLength = null; \$replyTo = null; \$expirationLength = null; \$expiration = null; \$messageIdLength = null; \$messageId = null; \$timestamp = null; \$typeLength = null; \$type = null; \$userIdLength = null; \$userId = null; \$appIdLength = null; \$appId = null; \$clusterIdLength = null; \$clusterId = null;\n";
+                    $connectionContent .= "        \$c = \$this->cache[\$ck] ?? null;\n";
+                    $connectionContent .= "        \$flags = \$off0 = \$len0 = \$off1 = \$len1 = 0;\n";
+                    $connectionContent .= "        \$contentTypeLength = \$contentType = \$contentEncodingLength = \$contentEncoding = \$headersBuffer = \$deliveryMode = \$priority = \$correlationIdLength = \$correlationId = \$replyToLength = \$replyTo = \$expirationLength = \$expiration = \$messageIdLength = \$messageId = \$timestamp = \$typeLength = \$type = \$userIdLength = \$userId = \$appIdLength = \$appId = \$clusterIdLength = \$clusterId = null;\n";
                     $connectionContent .= "        if (\$c) { \$buffer->append(\$c[0]); }\n";
                     $connectionContent .= "        else {\n";
                     $connectionContent .= "        \$off0 = \$buffer->getLength();\n";
@@ -769,6 +763,7 @@ foreach ($spec->classes as $class) {
 
                 // FIXME: respect max body size agreed upon connection.tune
                 $connectionContent .= "        \$s = 14;\n";
+                $connectionContent .= "\n";
 
 
                 foreach ([
@@ -788,9 +783,8 @@ foreach ($spec->classes as $class) {
                          ] as $flag => $property
                 ) {
                     list($propertyName, $staticSize, $dynamicSize) = $property;
-                    $connectionContent .= "        if (isset(\$headers['{$propertyName}'])) {\n";
+                    $connectionContent .= "        if (\$" . lcfirst(dashedToCamel($propertyName)) . " = \$headers['{$propertyName}'] ?? null) {\n";
                     $connectionContent .= "            \$flags |= {$flag};\n";
-                    $connectionContent .= "            \$" . lcfirst(dashedToCamel($propertyName)) . " = \$headers['{$propertyName}'];\n";
                     if ($staticSize) {
                         $connectionContent .= "            \$s += {$staticSize};\n";
                     }
@@ -799,6 +793,7 @@ foreach ($spec->classes as $class) {
                     }
                     $connectionContent .= "            unset(\$headers['{$propertyName}']);\n";
                     $connectionContent .= "        }\n";
+                    $connectionContent .= "\n";
                 }
 
                 $connectionContent .= "        if (!empty(\$headers)) {\n";
@@ -892,10 +887,13 @@ foreach ($spec->classes as $class) {
             $connectionContent .= "        \$deferred = new Deferred();\n";
             $connectionContent .= "        \$this->awaitList[] = [\n";
             $connectionContent .= "            'filter' => function (Protocol\\AbstractFrame \$frame)" . ($class->id !== 10 ? " use (\$channel)" : "") . ": bool {\n";
-            $connectionContent .= "                if (\$frame instanceof Protocol\\{$className}" . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
-            $connectionContent .= "                    return true;\n";
-            $connectionContent .= "                }\n";
-            $connectionContent .= "\n";
+
+            if ($class->id !== 10 || $method->id !== 50) {
+                $connectionContent .= "                if (\$frame instanceof Protocol\\{$className}" . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
+                $connectionContent .= "                    return true;\n";
+                $connectionContent .= "                }\n";
+                $connectionContent .= "\n";
+            }
 
             if ($class->id === 60 && $method->id === 71) {
                 $connectionContent .= "                if (\$frame instanceof Protocol\\" . str_replace("GetOk", "GetEmpty", $className) . ($class->id !== 10 ? " && \$frame->channel === \$channel" : "") . ") {\n";
@@ -968,7 +966,7 @@ $protocolWriterContent .= $appendMethodFrameContent;
 $protocolWriterContent .= "}\n";
 file_put_contents(__DIR__ . "/../src/Protocol/ProtocolWriterGenerated.php", $protocolWriterContent);
 
-$connectionContent .= "    public function startHeathbeatTimer(): void\n";
+$connectionContent .= "    public function startHeartbeatTimer(): void\n";
 $connectionContent .= "    {\n";
 $connectionContent .= "        \$this->heartbeatTimer = Loop::addTimer(\$this->options['heartbeat'], [\$this, 'onHeartbeat']);\n";
 $connectionContent .= "        \$this->connection->on('drain', [\$this, 'onHeartbeat']);\n";
@@ -977,7 +975,7 @@ $connectionContent .= "\n";
 $connectionContent .= "    /**\n";
 $connectionContent .= "     * Callback when heartbeat timer timed out.\n";
 $connectionContent .= "     */\n";
-$connectionContent .= "    public function onHeartbeat()\n";
+$connectionContent .= "    public function onHeartbeat(): void\n";
 $connectionContent .= "    {\n";
 $connectionContent .= "        \$now = microtime(true);\n";
 $connectionContent .= "        \$nextHeartbeat = (\$this->lastWrite ?: \$now) + \$this->options['heartbeat'];\n";

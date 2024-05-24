@@ -83,7 +83,7 @@ final class Connection
         });
     }
 
-    public function disconnect(int $code, string $reason)
+    public function disconnect(int $code, string $reason): void
     {
         $this->connectionClose($code, 0, 0, $reason);
         $this->connection->close();
@@ -100,7 +100,7 @@ final class Connection
      *
      * @param AbstractFrame $frame
      */
-    private function onFrameReceived(AbstractFrame $frame)
+    private function onFrameReceived(AbstractFrame $frame): void
     {
         if ($frame instanceof MethodConnectionCloseFrame) {
             $this->disconnect(Constants::STATUS_CONNECTION_FORCED, "Connection closed by server: ({$frame->replyCode}) " . $frame->replyText);
@@ -363,10 +363,6 @@ final class Connection
         $deferred = new Deferred();
         $this->awaitList[] = [
             'filter' => function (Protocol\AbstractFrame $frame): bool {
-                if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
-                    return true;
-                }
-
                 if ($frame instanceof Protocol\MethodConnectionCloseFrame) {
                     $this->connectionCloseOk();
                     throw new ClientException($frame->replyText, $frame->replyCode);
@@ -1258,8 +1254,9 @@ final class Connection
     {
         $buffer = $this->writeBuffer;
         $ck = serialize([$channel, $headers, $exchange, $routingKey, $mandatory, $immediate]);
-        $c = isset($this->cache[$ck]) ? $this->cache[$ck] : null;
-        $flags = 0; $off0 = 0; $len0 = 0; $off1 = 0; $len1 = 0; $contentTypeLength = null; $contentType = null; $contentEncodingLength = null; $contentEncoding = null; $headersBuffer = null; $deliveryMode = null; $priority = null; $correlationIdLength = null; $correlationId = null; $replyToLength = null; $replyTo = null; $expirationLength = null; $expiration = null; $messageIdLength = null; $messageId = null; $timestamp = null; $typeLength = null; $type = null; $userIdLength = null; $userId = null; $appIdLength = null; $appId = null; $clusterIdLength = null; $clusterId = null;
+        $c = $this->cache[$ck] ?? null;
+        $flags = $off0 = $len0 = $off1 = $len1 = 0;
+        $contentTypeLength = $contentType = $contentEncodingLength = $contentEncoding = $headersBuffer = $deliveryMode = $priority = $correlationIdLength = $correlationId = $replyToLength = $replyTo = $expirationLength = $expiration = $messageIdLength = $messageId = $timestamp = $typeLength = $type = $userIdLength = $userId = $appIdLength = $appId = $clusterIdLength = $clusterId = null;
         if ($c) { $buffer->append($c[0]); }
         else {
         $off0 = $buffer->getLength();
@@ -1274,94 +1271,95 @@ final class Connection
         $this->writer->appendBits([$mandatory, $immediate], $buffer);
         $buffer->appendUint8(206);
         $s = 14;
-        if (isset($headers['content-type'])) {
+
+        if ($contentType = $headers['content-type'] ?? null) {
             $flags |= 32768;
-            $contentType = $headers['content-type'];
             $s += 1;
             $s += $contentTypeLength = strlen($contentType);
             unset($headers['content-type']);
         }
-        if (isset($headers['content-encoding'])) {
+
+        if ($contentEncoding = $headers['content-encoding'] ?? null) {
             $flags |= 16384;
-            $contentEncoding = $headers['content-encoding'];
             $s += 1;
             $s += $contentEncodingLength = strlen($contentEncoding);
             unset($headers['content-encoding']);
         }
-        if (isset($headers['delivery-mode'])) {
+
+        if ($deliveryMode = $headers['delivery-mode'] ?? null) {
             $flags |= 4096;
-            $deliveryMode = $headers['delivery-mode'];
             $s += 1;
             unset($headers['delivery-mode']);
         }
-        if (isset($headers['priority'])) {
+
+        if ($priority = $headers['priority'] ?? null) {
             $flags |= 2048;
-            $priority = $headers['priority'];
             $s += 1;
             unset($headers['priority']);
         }
-        if (isset($headers['correlation-id'])) {
+
+        if ($correlationId = $headers['correlation-id'] ?? null) {
             $flags |= 1024;
-            $correlationId = $headers['correlation-id'];
             $s += 1;
             $s += $correlationIdLength = strlen($correlationId);
             unset($headers['correlation-id']);
         }
-        if (isset($headers['reply-to'])) {
+
+        if ($replyTo = $headers['reply-to'] ?? null) {
             $flags |= 512;
-            $replyTo = $headers['reply-to'];
             $s += 1;
             $s += $replyToLength = strlen($replyTo);
             unset($headers['reply-to']);
         }
-        if (isset($headers['expiration'])) {
+
+        if ($expiration = $headers['expiration'] ?? null) {
             $flags |= 256;
-            $expiration = $headers['expiration'];
             $s += 1;
             $s += $expirationLength = strlen($expiration);
             unset($headers['expiration']);
         }
-        if (isset($headers['message-id'])) {
+
+        if ($messageId = $headers['message-id'] ?? null) {
             $flags |= 128;
-            $messageId = $headers['message-id'];
             $s += 1;
             $s += $messageIdLength = strlen($messageId);
             unset($headers['message-id']);
         }
-        if (isset($headers['timestamp'])) {
+
+        if ($timestamp = $headers['timestamp'] ?? null) {
             $flags |= 64;
-            $timestamp = $headers['timestamp'];
             $s += 8;
             unset($headers['timestamp']);
         }
-        if (isset($headers['type'])) {
+
+        if ($type = $headers['type'] ?? null) {
             $flags |= 32;
-            $type = $headers['type'];
             $s += 1;
             $s += $typeLength = strlen($type);
             unset($headers['type']);
         }
-        if (isset($headers['user-id'])) {
+
+        if ($userId = $headers['user-id'] ?? null) {
             $flags |= 16;
-            $userId = $headers['user-id'];
             $s += 1;
             $s += $userIdLength = strlen($userId);
             unset($headers['user-id']);
         }
-        if (isset($headers['app-id'])) {
+
+        if ($appId = $headers['app-id'] ?? null) {
             $flags |= 8;
-            $appId = $headers['app-id'];
             $s += 1;
             $s += $appIdLength = strlen($appId);
             unset($headers['app-id']);
         }
-        if (isset($headers['cluster-id'])) {
+
+        if ($clusterId = $headers['cluster-id'] ?? null) {
             $flags |= 4;
-            $clusterId = $headers['cluster-id'];
             $s += 1;
             $s += $clusterIdLength = strlen($clusterId);
             unset($headers['cluster-id']);
         }
+
         if (!empty($headers)) {
             $flags |= 8192;
             $this->writer->appendTable($headers, $headersBuffer = new Buffer());
@@ -1849,7 +1847,7 @@ final class Connection
         return await($deferred->promise());
     }
 
-    public function startHeathbeatTimer(): void
+    public function startHeartbeatTimer(): void
     {
         $this->heartbeatTimer = Loop::addTimer($this->options['heartbeat'], [$this, 'onHeartbeat']);
         $this->connection->on('drain', [$this, 'onHeartbeat']);
@@ -1858,7 +1856,7 @@ final class Connection
     /**
      * Callback when heartbeat timer timed out.
      */
-    public function onHeartbeat()
+    public function onHeartbeat(): void
     {
         $now = microtime(true);
         $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options['heartbeat'];
