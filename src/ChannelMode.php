@@ -9,24 +9,21 @@ namespace Bunny;
  *
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  */
-final class ChannelModeEnum
+enum ChannelMode
 {
 
     /**
      * Regular AMQP guarantees of published messages delivery.
      */
-    const REGULAR = 1;
+    case Regular;
 
     /**
      * Messages are published after 'tx.commit'.
      */
-    const TRANSACTIONAL = 2;
+    case Transactional;
 
     /**
      * Broker sends asynchronously 'basic.ack's for delivered messages.
      */
-    const CONFIRM = 3;
-
-
-
+    case Confirm;
 }
