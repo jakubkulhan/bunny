@@ -149,6 +149,10 @@ class Client implements ClientInterface
             $this->connect();
         }
 
+        while ($this->connection === null) {
+            await(\React\Promise\Timer\sleep(0.001));
+        }
+
         $channelId = $this->findChannelId();
 
         $channel = new Channel($this->connection, $this, $channelId);
