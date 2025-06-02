@@ -151,6 +151,81 @@ foreach ($signals as $signal) {
 }
 ```
 
+## Helpers
+
+For quick one-off RabbitMQ operations where you don't need full manual control over the client lifecycle, Bunny provides convenience helpers. Instead of manually creating a `Client`, connecting, creating a channel, publishing/getting, and disconnecting, you can do it in a single call:
+
+### Sync Helper
+
+The sync helper runs operations synchronously using fibers internally. It's the simplest way to publish a message:
+
+```php
+use Bunny\Configuration;
+use Bunny\Helper;
+
+$configuration = new Configuration(
+    host:     'HOSTNAME',
+    vhost:    'VHOST',
+    user:     'USERNAME',
+    password: 'PASSWORD',
+);
+
+// Publish a message and disconnect automatically
+Helper::sync($configuration)->publish('Hello World', [], '', 'queue_name');
+
+// Get a single message from a queue
+$message = Helper::sync($configuration)->get('queue_name');
+```
+
+### Async Helper
+
+The async helper returns promises that you can `await` within a fiber:
+
+```php
+use Bunny\Configuration;
+use Bunny\Helper;
+use React\EventLoop\Loop;
+
+use function React\Async\async;
+use function React\Async\await;
+
+$configuration = new Configuration(
+    host:     'HOSTNAME',
+    vhost:    'VHOST',
+    user:     'USERNAME',
+    password: 'PASSWORD',
+);
+
+Loop::futureTick(async(static function () use ($configuration): void {
+    // Publish a message
+    Helper::async($configuration)->publish('Hello World', [], '', 'queue_name');
+
+    // Get a single message from a queue
+    $message = Helper::async($configuration)->get('queue_name');
+
+    // Iterate over messages in a queue
+    foreach (Helper::async($configuration)->iterate('queue_name') as $message) {
+        // Process each message
+    }
+}));
+```
+
+### When to use Helpers vs the full Client API
+
+Given each operation on a helper is a full connection cycle keep the following things in mind when using them.
+
+Use **Helpers** when:
+
+- You need a quick fire-and-forget publish
+- You want to retrieve a single message without managing connections
+- You're building simple scripts or CLI tools
+
+Use the **full Client API** when:
+
+- You need fine-grained control over connection lifecycle
+- You're building long-running consumers with proper signal handling
+- You need to manage channels, queues, and exchanges manually
+
 ## Always run moving parts in a fiber
 
 Since v0.6 Bunny has been rebuilt using [`Fibers`](https://reactphp.org/async/). This means that every method on `Client` and `Channel` must be called inside a fiber. In the examples this will be called using a `Loop::futureTick` call. In your applications this might be some other trigger like a HTTP request. As long as somewhere in the direct call stack this call is inside a fiber you'll be good.

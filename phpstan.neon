@@ -27,9 +27,6 @@ parameters:
 			message: '#^Cannot call method (channelOpen|awaitConnectionTune|connectionTuneOk|connectionOpen|startHeartbeatTimer|connectionStartOk|disconnect)\(\) on Bunny\\Connection\|null\.$#'
 			path: src/Client.php
 		-
-			message: '#^Parameter \#\d+ \$.+ of (?:method [^ ]+\(\)|function [^ ]+|class [^ ]+ constructor) expects (?:(.+), \1\|null|Bunny\\Protocol\\Buffer\|string, (?:Bunny\\Protocol\\Buffer|string)\|null|int, int<0, max>\|null|int, int<min, -1>\|int<1, max>\|null|DateTimeInterface, DateTime\|null) given\.$#'
-			path: src/**
-		-
 			message: '#^Parameter \#1 \$stream of function React\\Promise\\Stream\buffer expects React\\Stream\\ReadableStreamInterface<string>, React\\Stream\\ReadableStreamInterface\|React\\Stream\\WritableStreamInterfac\e|null given\.$#'
 			path: test/ClientTest.php
 			count: 2
@@ -44,4 +41,6 @@ parameters:
 		-
 			identifier: staticMethod.alreadyNarrowedType
 			path: test/ConnectionTest.php
-			count: 1
+		-
+			message: '#^Parameter \#\d+ \$.+ of (?:method [^ ]+\(\)|function [^ ]+|class [^ ]+ constructor) expects (?:(.+), \1\|null|Bunny\\Protocol\\Buffer\|string, (?:Bunny\\Protocol\\Buffer|string)\|null|int, int<0, max>\|null|int, int<min, -1>\|int<1, max>\|null|DateTimeInterface, DateTime\|null) given\.$#'
+			path: src/**
