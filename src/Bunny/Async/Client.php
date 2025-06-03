@@ -91,7 +91,7 @@ class Client extends AbstractClient
     /**
      * Initializes instance.
      */
-    protected function init()
+    protected function init(): void
     {
         parent::init();
         $this->flushWriteBufferPromise = null;
@@ -104,7 +104,7 @@ class Client extends AbstractClient
      *
      * @param float $maxSeconds
      */
-    public function run($maxSeconds = null)
+    public function run($maxSeconds = null): void
     {
         if ($maxSeconds !== null) {
             $this->stopTimer = $this->eventLoop->addTimer($maxSeconds, function () {
@@ -118,7 +118,7 @@ class Client extends AbstractClient
     /**
      * Calls {@link eventLoop}'s stop() method.
      */
-    public function stop()
+    public function stop(): void
     {
         if ($this->stopTimer) {
             $this->eventLoop->cancelTimer($this->stopTimer);
@@ -141,10 +141,8 @@ class Client extends AbstractClient
      *
      * - Calls {@link eventLoops}'s addWriteStream() with client's stream.
      * - Consecutive calls will return the same instance of promise.
-     *
-     * @return Promise\PromiseInterface
      */
-    protected function flushWriteBuffer()
+    protected function flushWriteBuffer(): Promise\PromiseInterface
     {
         if ($this->flushWriteBufferPromise) {
             return $this->flushWriteBufferPromise;
@@ -177,10 +175,8 @@ class Client extends AbstractClient
      * Connects to AMQP server.
      *
      * Calling connect() multiple times will result in error.
-     *
-     * @return Promise\PromiseInterface
      */
-    public function connect()
+    public function connect(): Promise\PromiseInterface
     {
         if ($this->state !== ClientStateEnum::NOT_CONNECTED) {
             return Promise\reject(new ClientException("Client already connected/connecting."));
@@ -231,9 +227,8 @@ class Client extends AbstractClient
      *
      * @param int $replyCode
      * @param string $replyText
-     * @return Promise\PromiseInterface
      */
-    public function disconnect($replyCode = 0, $replyText = "")
+    public function disconnect($replyCode = 0, $replyText = ""): Promise\PromiseInterface
     {
         if ($this->state === ClientStateEnum::DISCONNECTING) {
             return $this->disconnectPromise;
@@ -287,7 +282,7 @@ class Client extends AbstractClient
      *
      * @param callable $callback
      */
-    public function addAwaitCallback(callable $callback)
+    public function addAwaitCallback(callable $callback): void
     {
         $this->awaitCallbacks[] = $callback;
     }
@@ -295,7 +290,7 @@ class Client extends AbstractClient
     /**
      * {@link eventLoop}'s read stream callback notifying client that data from server arrived.
      */
-    public function onDataAvailable()
+    public function onDataAvailable(): void
     {
         try {
             $this->read();
@@ -334,7 +329,7 @@ class Client extends AbstractClient
     /**
      * Callback when heartbeat timer timed out.
      */
-    public function onHeartbeat()
+    public function onHeartbeat(): void
     {
         $now = microtime(true);
         $nextHeartbeat = ($this->lastWrite ?: $now) + $this->options["heartbeat"];
@@ -352,5 +347,4 @@ class Client extends AbstractClient
             $this->heartbeatTimer = $this->eventLoop->addTimer($nextHeartbeat - $now, [$this, "onHeartbeat"]);
         }
     }
-
 }
