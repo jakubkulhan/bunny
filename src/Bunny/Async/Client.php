@@ -159,13 +159,17 @@ class Client extends AbstractClient
                     if ($this->writeBuffer->isEmpty()) {
                         $this->eventLoop->removeWriteStream($stream);
                         $this->flushWriteBufferPromise = null;
-                        $deferred->resolve(true);
+                        $this->eventLoop->futureTick(function () use ($deferred) {
+                            $deferred->resolve(true);
+                        });
                     }
 
                 } catch (\Exception $e) {
                     $this->eventLoop->removeWriteStream($stream);
                     $this->flushWriteBufferPromise = null;
-                    $deferred->reject($e);
+                    $this->eventLoop->futureTick(function () use ($deferred, $e) {
+                        $deferred->reject($e);
+                    });
                 }
             });
 
