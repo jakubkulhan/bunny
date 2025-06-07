@@ -308,26 +308,31 @@ class Client extends AbstractClient
             }
         }
 
-        while (($frame = $this->reader->consumeFrame($this->readBuffer)) !== null) {
-            foreach ($this->awaitCallbacks as $k => $callback) {
-                if ($callback($frame) === true) {
-                    unset($this->awaitCallbacks[$k]);
-                    continue 2; // CONTINUE WHILE LOOP
-                }
-            }
-
-            if ($frame->channel === 0) {
-                $this->onFrameReceived($frame);
-
-            } else {
-                if (!isset($this->channels[$frame->channel])) {
-                    throw new ClientException(
-                        "Received frame #{$frame->type} on closed channel #{$frame->channel}."
-                    );
+        try {
+            while (($frame = $this->reader->consumeFrame($this->readBuffer)) !== null) {
+                foreach ($this->awaitCallbacks as $k => $callback) {
+                    if ($callback($frame) === true) {
+                        unset($this->awaitCallbacks[$k]);
+                        continue 2; // CONTINUE WHILE LOOP
+                    }
                 }
 
-                $this->channels[$frame->channel]->onFrameReceived($frame);
+                if ($frame->channel === 0) {
+                    $this->onFrameReceived($frame);
+
+                } else {
+                    if (!isset($this->channels[$frame->channel])) {
+                        throw new ClientException(
+                            "Received frame #{$frame->type} on closed channel #{$frame->channel}."
+                        );
+                    }
+
+                    $this->channels[$frame->channel]->onFrameReceived($frame);
+                }
             }
+        } catch (\Throwable $error) {
+            $this->disconnect();
+            $this->emit('error', [$error]);
         }
     }
 
