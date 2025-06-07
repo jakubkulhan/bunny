@@ -6,6 +6,7 @@ use Bunny\Protocol\AbstractFrame;
 use Bunny\Protocol\Buffer;
 use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\ContentHeaderFrame;
+use Bunny\Protocol\FrameError;
 use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodBasicAckFrame;
 use Bunny\Protocol\MethodBasicConsumeOkFrame;
@@ -623,7 +624,7 @@ class Channel
                 throw new ChannelException("Channel closed by server: " . $frame->replyText, $frame->replyCode);
 
             } else {
-                throw new ChannelException("Unhandled method frame " . get_class($frame) . ".");
+                throw (new FrameError())->get($frame, 'Channel method frame error received.');
             }
 
         } elseif ($frame instanceof ContentHeaderFrame) {
@@ -697,7 +698,7 @@ class Channel
             throw new ChannelException("Unexpected heartbeat frame.");
 
         } else {
-            throw new ChannelException("Unhandled frame " . get_class($frame) . ".");
+            throw (new FrameError())->get($frame, 'Channel content body frame error received.');
         }
     }
 
@@ -770,4 +771,3 @@ class Channel
         }
     }
 }
-
