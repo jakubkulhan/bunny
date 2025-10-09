@@ -350,18 +350,26 @@ abstract class AbstractClient
      */
     protected function authResponse(MethodConnectionStartFrame $start)
     {
-        if (strpos($start->mechanisms, "AMQPLAIN") === false) {
-            throw new ClientException("Server does not support AMQPLAIN mechanism (supported: {$start->mechanisms}).");
+        if (strpos($start->mechanisms, "AMQPLAIN") !== false) {
+            $responseBuffer = new Buffer();
+            $this->writer->appendTable([
+                "LOGIN" => $this->options["user"],
+                "PASSWORD" => $this->options["password"],
+            ], $responseBuffer);
+            $responseBuffer->discard(4);
+
+            return $this->connectionStartOk([], "AMQPLAIN", $responseBuffer->read($responseBuffer->getLength()), "en_US");
+        } else if (strpos($start->mechanisms, "PLAIN") !== false) {
+            $responseBuffer = new Buffer();
+            $responseBuffer->appendUint8(0);
+            $responseBuffer->append($this->options["user"]);
+            $responseBuffer->appendUint8(0);
+            $responseBuffer->append($this->options["password"]);
+
+            return $this->connectionStartOk([], "PLAIN", $responseBuffer->read($responseBuffer->getLength()), "en_US");
         }
 
-        $responseBuffer = new Buffer();
-        $this->writer->appendTable([
-            "LOGIN" => $this->options["user"],
-            "PASSWORD" => $this->options["password"],
-        ], $responseBuffer);
-        $responseBuffer->discard(4);
-
-        return $this->connectionStartOk($this->options['client_properties'], "AMQPLAIN", $responseBuffer->read($responseBuffer->getLength()), "en_US");
+        throw new ClientException("Server does not support either AMQPLAIN or PLAIN mechanism (supported: {$start->mechanisms}).");
     }
 
     /**

@@ -34,7 +34,7 @@ jobs:
       - name: Run PHPStan
         run: ./vendor/bin/phpstan analyze src --level 0
   test:
-    name: "Run Tests on PHP ${{ matrix.php }} against RabbitMQ ${{ matrix.rabbitmq }} (Composer: ${{ matrix.composer }}; TLS: ${{ matrix.ssl_test }})"
+    name: "Run Tests on PHP ${{ matrix.php }} against RabbitMQ ${{ matrix.rabbitmq }} (Composer: ${{ matrix.composer }}; TLS: ${{ matrix.ssl_test }}; Auth: ${{ matrix.auth_test }})"
     runs-on: ubuntu-latest
     needs:
       - supported-versions-matrix
@@ -45,6 +45,19 @@ jobs:
         composer: [lowest, locked, highest]
         rabbitmq: ["3", "3.9"]
         ssl_test: ["no", "yes", "client"]
+        auth_test: ["default"]
+        include:
+          # Add specific auth tests
+          - php: "8.2"
+            composer: "locked"
+            rabbitmq: "3.9"
+            ssl_test: "no"
+            auth_test: "plain"
+          - php: "8.2"
+            composer: "locked"
+            rabbitmq: "3.9"
+            ssl_test: "no"
+            auth_test: "amqplain"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -67,12 +80,28 @@ jobs:
           sudo chown 999:999 ./{ca.pem,server.pem,server.key}
           ls -lasth
       - name: Start RabbitMQ
-        if: matrix.ssl_test == 'no'
+        if: matrix.ssl_test == 'no' && matrix.auth_test == 'default'
         uses: namoshek/rabbitmq-github-action@v1
         with:
           version: '${{ matrix.rabbitmq }}-management'
           ports: '5672:5672 15672:15672'
           container-name: 'rabbitmq'
+      - name: Start RabbitMQ (PLAIN Auth)
+        if: matrix.ssl_test == 'no' && matrix.auth_test == 'plain'
+        uses: namoshek/rabbitmq-github-action@v1
+        with:
+          version: '${{ matrix.rabbitmq }}-management'
+          ports: '5672:5672 15672:15672'
+          container-name: 'rabbitmq'
+          config: ${{ github.workspace }}/test/auth/rabbitmq.plain.conf
+      - name: Start RabbitMQ (AMQPLAIN Auth)
+        if: matrix.ssl_test == 'no' && matrix.auth_test == 'amqplain'
+        uses: namoshek/rabbitmq-github-action@v1
+        with:
+          version: '${{ matrix.rabbitmq }}-management'
+          ports: '5672:5672 15672:15672'
+          container-name: 'rabbitmq'
+          config: ${{ github.workspace }}/test/auth/rabbitmq.amqplain.conf
       - name: Start RabbitMQ
         if: matrix.ssl_test == 'yes'
         uses: namoshek/rabbitmq-github-action@v1
@@ -101,12 +130,14 @@ jobs:
         run: ./vendor/bin/phpunit
         env:
           SSL_TEST: "no"
+          AUTH_TEST: "${{ matrix.auth_test }}"
           TEST_RABBITMQ_CONNECTION_URI: "amqp://guest:guest@localhost:5672/"
       - name: Run UnitTests
         if: matrix.ssl_test == 'yes'
         run: ./vendor/bin/phpunit
         env:
           SSL_TEST: "yes"
+          AUTH_TEST: "${{ matrix.auth_test }}"
           SSL_CA: "ssl/ca.pem"
           SSL_PEER_NAME: "server.rmq"
           TEST_RABBITMQ_CONNECTION_URI: "amqp://guest:guest@localhost:5672/"
@@ -115,6 +146,7 @@ jobs:
         run: ./vendor/bin/phpunit
         env:
           SSL_TEST: "client"
+          AUTH_TEST: "${{ matrix.auth_test }}"
           SSL_CA: "ssl/ca.pem"
           SSL_PEER_NAME: "server.rmq"
           SSL_CLIENT_CERT: "ssl/client.pem"
