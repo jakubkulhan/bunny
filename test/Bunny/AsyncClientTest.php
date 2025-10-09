@@ -57,7 +57,7 @@ class AsyncClientTest extends TestCase
 
     public function testConnectFailure()
     {
-        $this->expectException(ClientException::class);
+        $this->expectException(TimeoutException::class);
 
         $loop = Factory::create();
 
