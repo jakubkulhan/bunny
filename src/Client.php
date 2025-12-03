@@ -9,6 +9,8 @@ use Bunny\Protocol\Buffer;
 use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
+use Evenement\EventEmitterInterface;
+use Evenement\EventEmitterTrait;
 use InvalidArgumentException;
 use React\Promise\Deferred;
 use Throwable;
@@ -42,8 +44,10 @@ use function strpos;
  * @author Jakub Kulhan <jakub.kulhan@gmail.com>
  * @final Will be marked final in a future major release
  */
-class Client implements ClientInterface
+class Client implements ClientInterface, EventEmitterInterface
 {
+    use EventEmitterTrait;
+
     private readonly Configuration $configuration;
 
     private ClientState $state = ClientState::NotConnected;
@@ -275,7 +279,7 @@ class Client implements ClientInterface
     /**
      * Disconnects the client.
      */
-    public function disconnect(int $replyCode = 0, string $replyText = ''): void
+    public function disconnect(int $replyCode = 0, string $replyText = '', bool $byServer = false): void
     {
         if ($this->state === ClientState::Disconnecting) {
             return;
@@ -287,16 +291,18 @@ class Client implements ClientInterface
 
         $this->state = ClientState::Disconnecting;
 
+        $this -> emit('close');
+
         $promises = [];
         foreach ($this->channels->all() as $channelId => $channel) {
-            $promises[] = async(static function () use ($channel, $replyCode, $replyText): void {
-                $channel->close($replyCode, $replyText);
+            $promises[] = async(static function () use ($channel, $replyCode, $replyText, $byServer): void {
+                $channel->close($replyCode, $replyText, $byServer);
             })();
         }
 
         await(all($promises));
 
-        $this->connection->disconnect($replyCode, $replyText);
+        $this->connection->disconnect($replyCode, $replyText, $byServer);
 
         $this->state = ClientState::NotConnected;
     }

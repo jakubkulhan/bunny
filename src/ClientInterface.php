@@ -8,7 +8,7 @@ interface ClientInterface
 {
     public function channel(): ChannelInterface;
 
-    public function disconnect(int $replyCode = 0, string $replyText = ''): void;
+    public function disconnect(int $replyCode = 0, string $replyText = '', bool $byServer = false): void;
 
     public function isConnected(): bool;
 }

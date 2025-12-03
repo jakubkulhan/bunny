@@ -71,7 +71,7 @@ interface ChannelInterface
      *
      * Always returns a promise, because there can be outstanding messages to be processed.
      */
-    public function close(int $replyCode = 0, string $replyText = ''): void;
+    public function close(int $replyCode = 0, string $replyText = '', bool $byServer = false): void;
 
     /**
      * Creates new consumer on channel.

@@ -11,6 +11,7 @@ use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\ContentHeaderFrame;
 use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodConnectionCloseFrame;
+use Bunny\Protocol\MethodChannelCloseFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
@@ -59,40 +60,58 @@ final class Connection
         private readonly Channels $channels,
         private readonly Configuration $configuration,
     ) {
+        $this->connection->on('close', function(): void {
+            $this->client->disconnect(0, 'Connection lost', true);
+        });
         $this->connection->on('data', function (string $data): void {
             $this->readBuffer->append($data);
 
             while (($frame = $this->reader->consumeFrame($this->readBuffer)) !== null) {
                 $frameInAwaitList = false;
                 foreach ($this->awaitList as $index => $frameHandler) {
-                    if ($frameHandler['filter']($frame)) {
+                    $handled = null;
+                    $exception = null;
+                    try {
+                        $handled = $frameHandler['filter']($frame);
+                    } catch(\Throwable $e) {
+                        $exception = $e;
+                    }
+                    if ($exception || $handled) {
                         unset($this->awaitList[$index]);
-                        $frameHandler['promise']->resolve($frame);
+                        if($exception)
+                            $frameHandler['promise']->reject($exception);
+                        else
+                            $frameHandler['promise']->resolve($frame);
                         $frameInAwaitList = true;
                     }
                 }
 
-                if ($frameInAwaitList) {
+                if ($frameInAwaitList && ! $frame instanceof MethodConnectionCloseFrame && ! $frame instanceof MethodChannelCloseFrame) {
                     continue;
                 }
 
-                if ($frame->channel === 0) {
-                    $this->onFrameReceived($frame);
-                    continue;
-                }
+                try {
+                    if ($frame->channel === 0) {
+                        $this->onFrameReceived($frame);
+                        continue;
+                    }
 
-                if (!$this->channels->has($frame->channel)) {
-                    throw new ClientException(sprintf('Received frame #%d on closed channel #%d.', $frame->type, $frame->channel));
-                }
+                    if (!$this->channels->has($frame->channel)) {
+                        throw new ClientException(sprintf('Received frame #%d on closed channel #%d.', $frame->type, $frame->channel));
+                    }
 
-                $this->channels->get($frame->channel)->onFrameReceived($frame);
+                    $this->channels->get($frame->channel)->onFrameReceived($frame);
+                } catch(\Throwable $e) {
+                    $this -> client -> emit('error', [$e]);
+                }
             }
         });
     }
 
-    public function disconnect(int $code, string $reason): void
+    public function disconnect(int $code, string $reason, bool $byServer = false): void
     {
-        $this->connectionClose($code, 0, 0, $reason);
+        if(!$byServer)
+            $this->connectionClose($code, 0, 0, $reason);
         $this->connection->close();
 
         if ($this->heartbeatTimer === null) {
@@ -108,17 +127,17 @@ final class Connection
     private function onFrameReceived(AbstractFrame $frame): void
     {
         if ($frame instanceof MethodConnectionCloseFrame) {
-            $this->disconnect(Constants::STATUS_CONNECTION_FORCED, sprintf('Connection closed by server: (%d) %s', $frame->replyCode, $frame->replyText));
+            $this->client->disconnect(Constants::STATUS_CONNECTION_FORCED, sprintf('Connection closed by server: (%d) %s', $frame->replyCode, $frame->replyText), true);
 
             throw new ClientException(sprintf('Connection closed by server: %s', $frame->replyText), $frame->replyCode);
         }
 
         if ($frame instanceof ContentHeaderFrame) {
-            $this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got header frame on connection channel (#0).');
+            $this->client->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got header frame on connection channel (#0).');
         }
 
         if ($frame instanceof ContentBodyFrame) {
-            $this->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got body frame on connection channel (#0).');
+            $this->client->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got body frame on connection channel (#0).');
         }
 
         if ($frame instanceof HeartbeatFrame) {
