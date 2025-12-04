@@ -67,6 +67,13 @@ final class Connection implements EventEmitterInterface
         private readonly Configuration $configuration,
         private readonly Closure $frameMax,
     ) {
+        $this->connection->on('close', function (): void {
+            if (!$this->client->canDisconnect()) {
+                return;
+            }
+
+            $this->client->disconnect(0, 'Connection lost', ClientInterface::RAW_CONNECTION_INACTIVE);
+        });
         $this->connection->on('data', function (string $data): void {
             $this->readBuffer->append($data);
 

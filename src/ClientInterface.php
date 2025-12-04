@@ -14,4 +14,6 @@ interface ClientInterface
     public function disconnect(int $replyCode = 0, string $replyText = '', bool $connectionStatus = ClientInterface::RAW_CONNECTION_ACTIVE): void;
 
     public function isConnected(): bool;
+
+    public function canDisconnect(): bool;
 }
