@@ -44,15 +44,21 @@ class ClientTest extends TestCase
 
     public function testConnect(): void
     {
+        $closeEmitted = null;
         $client = $this->helper->createClient();
+        $client->on('close', static function () use (&$closeEmitted): void {
+            $closeEmitted = true;
+        });
 
         self::assertFalse($client->isConnected());
 
         $client->connect();
 
         self::assertTrue($client->isConnected());
+        self::assertNull($closeEmitted);
         $client->disconnect();
         self::assertFalse($client->isConnected());
+        self::assertTrue($closeEmitted);
     }
 
     public function testConnectWithInvalidClientProperties(): void
