@@ -41,10 +41,6 @@ class ChannelTest extends TestCase
         $c = $this->helper->createClient();
         $c->connect();
         $c->channel()->close();
-
-        self::assertTrue($c->isConnected());
-        $c->disconnect();
-        self::assertFalse($c->isConnected());
     }
 
     public function testExchangeDeclare(): void

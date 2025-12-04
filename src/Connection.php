@@ -105,9 +105,12 @@ final class Connection implements EventEmitterInterface
         });
     }
 
-    public function disconnect(int $code, string $reason): void
+    public function disconnect(int $code, string $reason, bool $connectionStatus = ClientInterface::RAW_CONNECTION_ACTIVE): void
     {
-        $this->connectionClose($code, 0, 0, $reason);
+        if ($connectionStatus === ClientInterface::RAW_CONNECTION_ACTIVE) {
+            $this->connectionClose($code, 0, 0, $reason);
+        }
+
         $this->connection->close();
 
         if ($this->heartbeatTimer === null) {
@@ -123,7 +126,7 @@ final class Connection implements EventEmitterInterface
     private function onFrameReceived(AbstractFrame $frame): void
     {
         if ($frame instanceof MethodConnectionCloseFrame) {
-            $this->disconnect(Constants::STATUS_CONNECTION_FORCED, sprintf('Connection closed by server: (%d) %s', $frame->replyCode, $frame->replyText));
+            $this->disconnect(Constants::STATUS_CONNECTION_FORCED, sprintf('Connection closed by server: (%d) %s', $frame->replyCode, $frame->replyText), ClientInterface::RAW_CONNECTION_INACTIVE);
 
             throw new ClientException(sprintf('Connection closed by server: %s', $frame->replyText), $frame->replyCode);
         }

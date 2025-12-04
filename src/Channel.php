@@ -209,7 +209,7 @@ class Channel implements ChannelInterface
      *
      * Always returns a promise, because there can be outstanding messages to be processed.
      */
-    public function close(int $replyCode = 0, string $replyText = ''): void
+    public function close(int $replyCode = 0, string $replyText = '', bool $connectionStatus = ClientInterface::RAW_CONNECTION_ACTIVE): void
     {
         if ($this->state === ChannelState::Closed) {
             throw new ChannelException(sprintf('Trying to close already closed channel #%d.', $this->channelId));
@@ -221,13 +221,17 @@ class Channel implements ChannelInterface
             return;
         }
 
+        if ($connectionStatus === ClientInterface::RAW_CONNECTION_INACTIVE) {
+            $this->onClose();
+
+            return;
+        }
+
         $this->state = ChannelState::Closing;
 
         $this->connection->channelClose($this->channelId, $replyCode, 0, 0, $replyText);
         $this->closeDeferred = new Deferred();
-        $this->closePromise = $this->closeDeferred->promise()->then(function (): void {
-            $this->emit('close');
-        });
+        $this->closePromise = $this->closeDeferred->promise();
 
         await($this->closePromise);
     }
@@ -471,19 +475,7 @@ class Channel implements ChannelInterface
                 }
 
                 if ($frame instanceof MethodChannelCloseOkFrame) {
-                    $this->state = ChannelState::Closed;
-
-                    if ($this->closeDeferred !== null) {
-                        $this->closeDeferred->resolve($this->channelId);
-                    }
-
-                    // break reference cycle, must be called after resolving promise
-                    // $this->client = null;
-                    // break consumers' reference cycle
-                    $this->consumeConcurrency = [];
-                    $this->consumeConcurrent = [];
-                    $this->deliverCallbacks = [];
-                    $this->deliveryQueue = [];
+                    $this->onClose();
                 } elseif ($frame instanceof MethodBasicReturnFrame) {
                     $this->returnFrame = $frame;
                     $this->state = ChannelState::AwaitingHeader;
@@ -499,6 +491,8 @@ class Channel implements ChannelInterface
                         $callback($frame);
                     }
                 } elseif ($frame instanceof MethodChannelCloseFrame) {
+                    $this->onClose();
+
                     throw new ChannelException('Channel closed by server: ' . $frame->replyText, $frame->replyCode);
                 } else {
                     throw new ChannelException('Unhandled method frame ' . $frame::class . '.');
@@ -578,6 +572,28 @@ class Channel implements ChannelInterface
         } catch (Throwable $e) {
             $this->emit('error', [$e]);
         }
+    }
+
+    /**
+     * Callback after channel has been closed.
+     */
+    private function onClose(): void
+    {
+        $this->state = ChannelState::Closed;
+
+        if ($this->closeDeferred !== null) {
+            $this->closeDeferred->resolve($this->channelId);
+        }
+
+        // break reference cycle, must be called after resolving promise
+        // $this->client = null;
+        // break consumers' reference cycle
+        $this->consumeConcurrency = [];
+        $this->consumeConcurrent = [];
+        $this->deliverCallbacks = [];
+        $this->deliveryQueue = [];
+
+        $this->emit('close');
     }
 
     /**
