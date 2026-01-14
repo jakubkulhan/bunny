@@ -70,9 +70,15 @@ final class Connection implements EventEmitterInterface
             while (($frame = $this->reader->consumeFrame($this->readBuffer)) !== null) {
                 $frameInAwaitList = false;
                 foreach ($this->awaitList as $index => $frameHandler) {
-                    if ($frameHandler['filter']($frame)) {
+                    try {
+                        if ($frameHandler['filter']($frame)) {
+                            unset($this->awaitList[$index]);
+                            $frameHandler['promise']->resolve($frame);
+                            $frameInAwaitList = true;
+                        }
+                    } catch (Throwable $exception) {
                         unset($this->awaitList[$index]);
-                        $frameHandler['promise']->resolve($frame);
+                        $frameHandler['promise']->reject($exception);
                         $frameInAwaitList = true;
                     }
                 }
