@@ -32,7 +32,7 @@
         "evenement/evenement": "^3.0",
         "react/async": "^4.2",
         "react/event-loop": "^1.5",
-        "react/promise": "^3.1",
+        "react/promise": "^3.2",
         "react/socket": "^1.15"
     },
     "require-dev": {
