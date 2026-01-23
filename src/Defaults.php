@@ -11,7 +11,7 @@ final class Defaults
     public const VHOST = '/';
     public const USER = 'guest';
     public const PASSWORD = 'guest';
-    public const TIMEOUT = 1;
+    public const TIMEOUT = 1.0;
     public const HEARTBEAT = 60.0;
     public const HEARTBEAT_CALLBACK = null;
     public const TLS = [];

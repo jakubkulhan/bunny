@@ -31,7 +31,7 @@ final class Configuration
         public readonly string $user = Defaults::USER,
         #[SensitiveParameter]
         public readonly string $password = Defaults::PASSWORD,
-        public readonly int $timeout = Defaults::TIMEOUT,
+        public readonly float $timeout = Defaults::TIMEOUT,
         public readonly float $heartbeat = Defaults::HEARTBEAT,
         public readonly ?Closure $heartbeatCallback = Defaults::HEARTBEAT_CALLBACK,
         /**
@@ -78,7 +78,7 @@ final class Configuration
             vhost: array_key_exists('path', $chunks) && strlen(ltrim($chunks['path'], '/')) > 0 ? ltrim($chunks['path'], '/') : Defaults::VHOST,
             user: $chunks['user'] ?? Defaults::USER,
             password: $chunks['pass'] ?? Defaults::PASSWORD,
-            timeout: array_key_exists('timeout', $query) ? (int) $query['timeout'] : Defaults::TIMEOUT,
+            timeout: array_key_exists('timeout', $query) ? (float) $query['timeout'] : Defaults::TIMEOUT,
             heartbeat: array_key_exists('heartbeat', $query) ? (float) $query['heartbeat'] : Defaults::HEARTBEAT,
             heartbeatCallback: $heartbeatCallback ?? Defaults::HEARTBEAT_CALLBACK,
             tls: array_key_exists('tls', $query) ? $query['tls'] : Defaults::TLS, /** @phpstan-ignore argument.type */
