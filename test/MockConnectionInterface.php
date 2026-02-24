@@ -13,6 +13,8 @@ use React\Stream\WritableStreamInterface;
 final class MockConnectionInterface implements ConnectionInterface {
     use EventEmitterTrait;
 
+    private string $buffer = '';
+
     /**
      * @return string
      */
@@ -72,7 +74,8 @@ final class MockConnectionInterface implements ConnectionInterface {
      */
     public function write($data)
     {
-        return false;
+        $this->buffer .= $data;
+        return true;
     }
 
     /**
@@ -80,7 +83,12 @@ final class MockConnectionInterface implements ConnectionInterface {
      */
     public function end($data = null)
     {
-        // No-op
+        $this->buffer .= $data;
+    }
+
+    public function getWrittenData(): string
+    {
+        return $this->buffer;
     }
 }
 // phpcs:enable

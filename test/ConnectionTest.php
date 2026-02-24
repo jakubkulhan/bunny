@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Bunny\Test;
 
 use Bunny\Channels;
+use Bunny\ClientInterface;
 use Bunny\Configuration;
 use Bunny\Connection;
 use Bunny\Constants;
@@ -25,6 +26,7 @@ use Throwable;
 use WyriHaximus\React\PHPUnit\RunTestsInFibersTrait;
 use function React\Async\async;
 use function React\Async\await;
+use function base64_decode;
 
 class ConnectionTest extends TestCase
 {
@@ -89,5 +91,93 @@ class ConnectionTest extends TestCase
         Loop::set($oldLoop);
 
         await($deferred->promise());
+    }
+
+    public function testNoMethodConnectionCloseOkFrameIsWrittenWhenConnectionIsCloseWhenDisconnectionWithActiveConnection(): void
+    {
+        $oldLoop = Loop::get();
+        Loop::set(new StreamSelectLoop());
+
+        $mockConnection = new MockConnectionInterface();
+        $connection = new Connection(
+            $this->helper->createClient(),
+            $mockConnection,
+            new Buffer(),
+            new Buffer(),
+            new ProtocolReader(),
+            new ProtocolWriter(),
+            new Channels(),
+            new Configuration(),
+        );
+        $baseBuffer = $mockConnection->getWrittenData();
+        self::assertSame('', $baseBuffer);
+        $deferred = new Deferred();
+        Loop::addTimer(0.1, async(static function () use ($deferred, $connection): void {
+            try {
+                $connection->disconnect(0, '');
+            } catch (Throwable $exception) {
+                $deferred->reject($exception);
+            }
+        }));
+        Loop::addTimer(0.3, async(static function () use ($mockConnection): void {
+            $mockConnection->emit('drain');
+        }));
+        Loop::addTimer(1, async(static function () use ($deferred): void {
+            Loop::stop();
+            $deferred->resolve(null);
+        }));
+
+        Loop::run();
+        Loop::set($oldLoop);
+
+        await($deferred->promise());
+
+        $afterCloseBuffer = $mockConnection->getWrittenData();
+
+        self::assertSame(base64_decode('AQAAAAAACwAKADIAAAAAAAAAzg=='), $afterCloseBuffer);
+    }
+
+    public function testNoMethodConnectionCloseOkFrameIsWrittenWhenConnectionIsCloseWhenDisconnectionWithInactiveConnection(): void
+    {
+        $oldLoop = Loop::get();
+        Loop::set(new StreamSelectLoop());
+
+        $mockConnection = new MockConnectionInterface();
+        $connection = new Connection(
+            $this->helper->createClient(),
+            $mockConnection,
+            new Buffer(),
+            new Buffer(),
+            new ProtocolReader(),
+            new ProtocolWriter(),
+            new Channels(),
+            new Configuration(),
+        );
+        $baseBuffer = $mockConnection->getWrittenData();
+        self::assertSame('', $baseBuffer);
+        $deferred = new Deferred();
+        Loop::addTimer(0.1, async(static function () use ($deferred, $connection): void {
+            try {
+                $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
+            } catch (Throwable $exception) {
+                $deferred->reject($exception);
+            }
+        }));
+        Loop::addTimer(0.3, async(static function () use ($mockConnection): void {
+            $mockConnection->emit('drain');
+        }));
+        Loop::addTimer(1, async(static function () use ($deferred): void {
+            Loop::stop();
+            $deferred->resolve(null);
+        }));
+
+        Loop::run();
+        Loop::set($oldLoop);
+
+        await($deferred->promise());
+
+        $afterCloseBuffer = $mockConnection->getWrittenData();
+
+        self::assertSame($baseBuffer, $afterCloseBuffer);
     }
 }
