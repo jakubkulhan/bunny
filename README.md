@@ -3,6 +3,7 @@
 [![Continuous Integration](https://github.com/jakubkulhan/bunny/actions/workflows/ci.yml/badge.svg)](https://github.com/jakubkulhan/bunny/actions/workflows/ci.yml)
 [![Downloads this Month](https://img.shields.io/packagist/dm/bunny/bunny.svg)](https://packagist.org/packages/bunny/bunny)
 [![Latest stable](https://img.shields.io/packagist/v/bunny/bunny.svg)](https://packagist.org/packages/bunny/bunny)
+[![libs.tech recommends](https://libs.tech/project/32276372/badge.svg)](https://libs.tech/project/32276372/bunny)
 
 
 > Performant pure-PHP AMQP (RabbitMQ) non-blocking ReactPHP library
