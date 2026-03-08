@@ -327,7 +327,6 @@ $connectionContent .= "        if (\$connectionStatus === ClientInterface::RAW_C
 $connectionContent .= "            \$this->connectionClose(\$code, 0, 0, \$reason);\n";
 $connectionContent .= "        }\n";
 $connectionContent .= "\n";
-$connectionContent .= "        \$this->connectionClose(\$code, 0, 0, \$reason);\n";
 $connectionContent .= "        \$this->connection->close();\n";
 $connectionContent .= "\n";
 $connectionContent .= "        if (\$this->heartbeatTimer === null) {\n";
