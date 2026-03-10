@@ -56,11 +56,11 @@ class Client implements ClientInterface, EventEmitterInterface
 
     private Channels $channels;
 
-    public int $frameMax = 0xFFFF;
+    public int $frameMax = Constants::FRAME_MAX;
 
     private int $nextChannelId = 1;
 
-    private int $channelMax = 0xFFFF;
+    private int $channelMax = Constants::CHANNEL_MAX;
 
     /**
      * @var list<\React\Promise\Deferred<null>>
@@ -209,6 +209,9 @@ class Client implements ClientInterface, EventEmitterInterface
                 new ProtocolWriter(),
                 $this->channels,
                 $this->configuration,
+                function (): int {
+                    return $this->channelMax;
+                },
             );
             $this->connection->on('error', function (Throwable $error): void {
                 $this->emit('error', [$error]);

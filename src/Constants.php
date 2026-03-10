@@ -24,6 +24,10 @@ final class Constants
 
     public const FRAME_END = 0xCE;
 
+    public const FRAME_MAX = 0xFFFF;
+
+    public const CHANNEL_MAX = 0xFFFF;
+
     // connection channel
     public const CONNECTION_CHANNEL = 0;
 

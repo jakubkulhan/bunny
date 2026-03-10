@@ -230,6 +230,7 @@ $connectionContent .= "use Bunny\\Protocol\\MethodConnectionCloseFrame;\n";
 $connectionContent .= "use Bunny\\Protocol\\MethodFrame;\n";
 $connectionContent .= "use Bunny\\Protocol\\ProtocolReader;\n";
 $connectionContent .= "use Bunny\\Protocol\\ProtocolWriter;\n";
+$connectionContent .= "use Closure;\n";
 $connectionContent .= "use Evenement\\EventEmitterInterface;\n";
 $connectionContent .= "use Evenement\\EventEmitterTrait;\n";
 $connectionContent .= "use React\\EventLoop\\Loop;\n";
@@ -270,8 +271,9 @@ $connectionContent .= "\n";
 $connectionContent .= "    /** @var array<array{filter: (callable(\Bunny\Protocol\AbstractFrame): bool), promise: \React\Promise\Deferred<\Bunny\Protocol\AbstractFrame>}> */\n";
 $connectionContent .= "    private array \$awaitList = [];\n";
 $connectionContent .= "\n";
+$connectionContent .= "    /** @param (Closure(): int) \$frameMax */\n";
 $connectionContent .= "    public function __construct(\n";
-$connectionContent .= "        private readonly Client \$client,\n";
+$connectionContent .= "        private readonly ClientInterface \$client,\n";
 $connectionContent .= "        private readonly ConnectionInterface \$connection,\n";
 $connectionContent .= "        private readonly Buffer \$readBuffer,\n";
 $connectionContent .= "        private readonly Buffer \$writeBuffer,\n";
@@ -279,6 +281,7 @@ $connectionContent .= "        private readonly ProtocolReader \$reader,\n";
 $connectionContent .= "        private readonly ProtocolWriter \$writer,\n";
 $connectionContent .= "        private readonly Channels \$channels,\n";
 $connectionContent .= "        private readonly Configuration \$configuration,\n";
+$connectionContent .= "        private readonly Closure \$frameMax,\n";
 $connectionContent .= "    ) {\n";
 $connectionContent .= "        \$this->connection->on('data', function (string \$data): void {\n";
 $connectionContent .= "            \$this->readBuffer->append(\$data);\n";
@@ -899,7 +902,7 @@ foreach ($spec->classes as $class) {
                     $connectionContent .= "        }\n\n";
                 }
 
-                $connectionContent .= "        for (\$payloadMax = \$this->client->frameMax - 8 /* frame preface and frame end */, \$i = 0, \$l = strlen(\$body); \$i < \$l; \$i += \$payloadMax) {\n";
+                $connectionContent .= "        for (\$payloadMax = (\$this->frameMax)() - 8 /* frame preface and frame end */, \$i = 0, \$l = strlen(\$body); \$i < \$l; \$i += \$payloadMax) {\n";
                 $connectionContent .= "            \$payloadSize = \$l - \$i;\n";
                 $connectionContent .= "            if (\$payloadSize > \$payloadMax) {\n";
                 $connectionContent .= "                \$payloadSize = \$payloadMax;\n";

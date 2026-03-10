@@ -14,6 +14,7 @@ use Bunny\Protocol\MethodConnectionCloseFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
+use Closure;
 use Evenement\EventEmitterInterface;
 use Evenement\EventEmitterTrait;
 use React\EventLoop\Loop;
@@ -54,8 +55,9 @@ final class Connection implements EventEmitterInterface
     /** @var array<array{filter: (callable(\Bunny\Protocol\AbstractFrame): bool), promise: \React\Promise\Deferred<\Bunny\Protocol\AbstractFrame>}> */
     private array $awaitList = [];
 
+    /** @param (Closure(): int) $frameMax */
     public function __construct(
-        private readonly Client $client,
+        private readonly ClientInterface $client,
         private readonly ConnectionInterface $connection,
         private readonly Buffer $readBuffer,
         private readonly Buffer $writeBuffer,
@@ -63,6 +65,7 @@ final class Connection implements EventEmitterInterface
         private readonly ProtocolWriter $writer,
         private readonly Channels $channels,
         private readonly Configuration $configuration,
+        private readonly Closure $frameMax,
     ) {
         $this->connection->on('data', function (string $data): void {
             $this->readBuffer->append($data);
@@ -1699,7 +1702,7 @@ final class Connection implements EventEmitterInterface
             }
         }
 
-        for ($payloadMax = $this->client->frameMax - 8 /* frame preface and frame end */, $i = 0, $l = strlen($body); $i < $l; $i += $payloadMax) {
+        for ($payloadMax = ($this->frameMax)() - 8 /* frame preface and frame end */, $i = 0, $l = strlen($body); $i < $l; $i += $payloadMax) {
             $payloadSize = $l - $i;
             if ($payloadSize > $payloadMax) {
                 $payloadSize = $payloadMax;
