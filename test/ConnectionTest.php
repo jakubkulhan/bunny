@@ -66,6 +66,9 @@ class ConnectionTest extends TestCase
             new ProtocolWriter(),
             new Channels(),
             new Configuration(),
+            static function (): int {
+                return Constants::FRAME_MAX;
+            },
         );
         $deferred = new Deferred();
         Loop::addTimer(0.1, async(static function () use ($deferred, $connection): void {
@@ -108,6 +111,9 @@ class ConnectionTest extends TestCase
             new ProtocolWriter(),
             new Channels(),
             new Configuration(),
+            static function (): int {
+                return Constants::FRAME_MAX;
+            },
         );
         $baseBuffer = $mockConnection->getWrittenData();
         self::assertSame('', $baseBuffer);
@@ -152,6 +158,9 @@ class ConnectionTest extends TestCase
             new ProtocolWriter(),
             new Channels(),
             new Configuration(),
+            static function (): int {
+                return Constants::FRAME_MAX;
+            },
         );
         $baseBuffer = $mockConnection->getWrittenData();
         self::assertSame('', $baseBuffer);
