@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Bunny\Test;
 
-
 use Bunny\ChannelInterface;
 use Bunny\ClientInterface;
 
@@ -17,7 +16,6 @@ final class MockClientInterface implements ClientInterface
     {
         $this->isConnected = $isConnected;
     }
-
 
     public function channel(): ChannelInterface
     {
