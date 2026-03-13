@@ -49,7 +49,7 @@ ifeq ("$(wildcard test/tls/ca.pem)","")
 	make -C test/tls all
 endif
 	docker compose up -d
-	sleep 6 # Find a good wait-for solution
+	docker exec -it bunny-bunny-1 php examples/wait-for-connection.php
 	(docker exec -it bunny-bunny-1 vendor/bin/phpunit --colors=always -c /opt/bunny/phpunit.xml) || docker compose down
 	docker compose down
 
