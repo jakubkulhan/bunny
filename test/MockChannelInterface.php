@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Bunny\Test;
 
-
 use Bunny\ChannelInterface;
 use Bunny\ChannelMode;
 use Bunny\ClientInterface;
@@ -61,6 +60,9 @@ final class MockChannelInterface implements ChannelInterface
     {
     }
 
+    /**
+     * @param array<string,mixed> $arguments
+     */
     public function consume(callable $callback, string $queue = '', string $consumerTag = '', bool $noLocal = false, bool $noAck = false, bool $exclusive = false, bool $nowait = false, array $arguments = [], int $concurrency = 1): MethodBasicConsumeOkFrame
     {
         return new MethodBasicConsumeOkFrame();
@@ -86,6 +88,9 @@ final class MockChannelInterface implements ChannelInterface
         return null;
     }
 
+    /**
+     * @param array<string,mixed> $headers
+     */
     public function publish(string $body, array $headers = [], string $exchange = '', string $routingKey = '', bool $mandatory = false, bool $immediate = false): int|bool
     {
         return false;
@@ -121,11 +126,17 @@ final class MockChannelInterface implements ChannelInterface
         return new MethodBasicQosOkFrame();
     }
 
+    /**
+     * @param array<string,mixed> $arguments
+     */
     public function queueDeclare(string $queue = '', bool $passive = false, bool $durable = false, bool $exclusive = false, bool $autoDelete = false, bool $nowait = false, array $arguments = []): MethodQueueDeclareOkFrame|bool
     {
         return false;
     }
 
+    /**
+     * @param array<string,mixed> $arguments
+     */
     public function queueBind(string $exchange, string $queue = '', string $routingKey = '', bool $nowait = false, array $arguments = []): MethodQueueBindOkFrame|bool
     {
         return false;
@@ -141,11 +152,17 @@ final class MockChannelInterface implements ChannelInterface
         return false;
     }
 
+    /**
+     * @param array<string,mixed> $arguments
+     */
     public function queueUnbind(string $exchange, string $queue = '', string $routingKey = '', array $arguments = []): MethodQueueUnbindOkFrame
     {
         return new MethodQueueUnbindOkFrame();
     }
 
+    /**
+     * @param array<string,mixed> $arguments
+     */
     public function exchangeDeclare(string $exchange, string $exchangeType = 'direct', bool $passive = false, bool $durable = false, bool $autoDelete = false, bool $internal = false, bool $nowait = false, array $arguments = []): MethodExchangeDeclareOkFrame|bool
     {
         return false;
@@ -156,11 +173,17 @@ final class MockChannelInterface implements ChannelInterface
         return false;
     }
 
+    /**
+     * @param array<string,mixed> $arguments
+     */
     public function exchangeBind(string $destination, string $source, string $routingKey = '', bool $nowait = false, array $arguments = []): MethodExchangeBindOkFrame|bool
     {
         return false;
     }
 
+    /**
+     * @param array<string,mixed> $arguments
+     */
     public function exchangeUnbind(string $destination, string $source, string $routingKey = '', bool $nowait = false, array $arguments = []): MethodExchangeUnbindOkFrame|bool
     {
         return false;
@@ -175,5 +198,4 @@ final class MockChannelInterface implements ChannelInterface
     {
         return new MethodBasicRecoverOkFrame();
     }
-
 }
