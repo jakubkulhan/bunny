@@ -317,7 +317,7 @@ class Channel implements ChannelInterface
 
                 if ($this->bodySizeRemaining < 0) {
                     $this->state = ChannelState::Error;
-                    $this->connection->disconnect(Constants::STATUS_SYNTAX_ERROR, $errorMessage = 'Body overflow, received ' . (-$this->bodySizeRemaining) . ' more bytes.');
+                    $this->client->disconnect(Constants::STATUS_SYNTAX_ERROR, $errorMessage = 'Body overflow, received ' . (-$this->bodySizeRemaining) . ' more bytes.');
 
                     throw new ChannelException($errorMessage);
                 }
@@ -469,7 +469,7 @@ class Channel implements ChannelInterface
                         throw new LogicException('Unhandled channel state.');
                     }
 
-                    $this->connection->disconnect(Constants::STATUS_UNEXPECTED_FRAME, $msg);
+                    $this->client->disconnect(Constants::STATUS_UNEXPECTED_FRAME, $msg);
 
                     throw new ChannelException('Unexpected frame: ' . $msg);
                 }
@@ -515,7 +515,7 @@ class Channel implements ChannelInterface
                         throw new LogicException('Unhandled channel state.');
                     }
 
-                    $this->connection->disconnect(Constants::STATUS_UNEXPECTED_FRAME, $msg);
+                    $this->client->disconnect(Constants::STATUS_UNEXPECTED_FRAME, $msg);
 
                     throw new ChannelException('Unexpected frame: ' . $msg);
                 }
@@ -547,7 +547,7 @@ class Channel implements ChannelInterface
                         throw new LogicException('Unhandled channel state.');
                     }
 
-                    $this->connection->disconnect(Constants::STATUS_UNEXPECTED_FRAME, $msg);
+                    $this->client->disconnect(Constants::STATUS_UNEXPECTED_FRAME, $msg);
 
                     throw new ChannelException('Unexpected frame: ' . $msg);
                 }
@@ -557,13 +557,13 @@ class Channel implements ChannelInterface
 
                 if ($this->bodySizeRemaining < 0) {
                     $this->state = ChannelState::Error;
-                    $this->connection->disconnect(Constants::STATUS_SYNTAX_ERROR, 'Body overflow, received ' . (-$this->bodySizeRemaining) . ' more bytes.');
+                    $this->client->disconnect(Constants::STATUS_SYNTAX_ERROR, 'Body overflow, received ' . (-$this->bodySizeRemaining) . ' more bytes.');
                 } elseif ($this->bodySizeRemaining === 0) {
                     $this->state = ChannelState::Ready;
                     $this->onBodyComplete();
                 }
             } elseif ($frame instanceof HeartbeatFrame) {
-                $this->connection->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got heartbeat on non-zero channel.');
+                $this->client->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got heartbeat on non-zero channel.');
 
                 throw new ChannelException('Unexpected heartbeat frame.');
             } else {
