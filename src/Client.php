@@ -322,6 +322,14 @@ class Client implements ClientInterface, EventEmitterInterface
         return $this->state !== ClientState::NotConnected && $this->state !== ClientState::Error;
     }
 
+    /**
+     * Returns true if client can be disconnected.
+     */
+    public function canDisconnect(): bool
+    {
+        return $this->state === ClientState::Connected;
+    }
+
     private function findChannelId(): int
     {
         // first check in range [next, max] ...

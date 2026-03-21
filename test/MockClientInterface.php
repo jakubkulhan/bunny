@@ -9,12 +9,16 @@ use Bunny\ClientInterface;
 
 final class MockClientInterface implements ClientInterface
 {
+    private int $isConnectedCount = 0;
+    private int $canDisconnectCount = 0;
     private int $disconnectCount = 0;
     private bool $isConnected;
+    private bool $canDisconnect;
 
-    public function __construct(bool $isConnected)
+    public function __construct(bool $isConnected, bool $canDisconnect)
     {
         $this->isConnected = $isConnected;
+        $this->canDisconnect = $canDisconnect;
     }
 
     public function channel(): ChannelInterface
@@ -29,7 +33,26 @@ final class MockClientInterface implements ClientInterface
 
     public function isConnected(): bool
     {
+        $this->isConnectedCount++;
+
         return $this->isConnected;
+    }
+
+    public function canDisconnect(): bool
+    {
+        $this->canDisconnectCount++;
+
+        return $this->canDisconnect;
+    }
+
+    public function getIsConnectedCount(): int
+    {
+        return $this->isConnectedCount;
+    }
+
+    public function getCanDisconnectCount(): int
+    {
+        return $this->canDisconnectCount;
     }
 
     public function getDisconnectCount(): int

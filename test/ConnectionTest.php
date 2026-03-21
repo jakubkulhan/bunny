@@ -189,4 +189,54 @@ class ConnectionTest extends TestCase
 
         self::assertSame($baseBuffer, $afterCloseBuffer);
     }
+
+    public function testConnectingEmittingCloseWillResultInFastClosure(): void
+    {
+        $client = new MockClientInterface(true, true);
+        $mockConnection = new MockConnectionInterface();
+        new Connection(
+            $client,
+            $mockConnection,
+            new Buffer(),
+            new Buffer(),
+            new ProtocolReader(),
+            new ProtocolWriter(),
+            new Channels(),
+            new Configuration(),
+            static function (): int {
+                return Constants::FRAME_MAX;
+            },
+        );
+
+        $mockConnection->emit('close');
+
+        self::assertSame(0, $client->getIsConnectedCount());
+        self::assertSame(1, $client->getCanDisconnectCount());
+        self::assertSame(1, $client->getDisconnectCount());
+    }
+
+    public function testConnectingEmittingCloseWillResultInFastClosureButNotWhenNotConnected(): void
+    {
+        $client = new MockClientInterface(false, false);
+        $mockConnection = new MockConnectionInterface();
+        new Connection(
+            $client,
+            $mockConnection,
+            new Buffer(),
+            new Buffer(),
+            new ProtocolReader(),
+            new ProtocolWriter(),
+            new Channels(),
+            new Configuration(),
+            static function (): int {
+                return Constants::FRAME_MAX;
+            },
+        );
+
+        $mockConnection->emit('close');
+
+        self::assertSame(0, $client->getIsConnectedCount());
+        self::assertSame(1, $client->getCanDisconnectCount());
+        self::assertSame(0, $client->getDisconnectCount());
+    }
 }
