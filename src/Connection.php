@@ -10,6 +10,7 @@ use Bunny\Protocol\Buffer;
 use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\ContentHeaderFrame;
 use Bunny\Protocol\HeartbeatFrame;
+use Bunny\Protocol\MethodChannelCloseFrame;
 use Bunny\Protocol\MethodConnectionCloseFrame;
 use Bunny\Protocol\MethodFrame;
 use Bunny\Protocol\ProtocolReader;
@@ -93,7 +94,7 @@ final class Connection implements EventEmitterInterface
                     }
                 }
 
-                if ($frameInAwaitList) {
+                if ($frameInAwaitList && !$frame instanceof MethodConnectionCloseFrame && !$frame instanceof MethodChannelCloseFrame) {
                     continue;
                 }
 
