@@ -1058,6 +1058,10 @@ file_put_contents(__DIR__ . '/../src/Protocol/ProtocolWriterGenerated.php', $pro
 
 $connectionContent .= "    public function startHeartbeatTimer(): void\n";
 $connectionContent .= "    {\n";
+$connectionContent .= "        if (\$this->heartbeatTimer instanceof TimerInterface) {\n";
+$connectionContent .= "            Loop::cancelTimer(\$this->heartbeatTimer);\n";
+$connectionContent .= "        }\n";
+$connectionContent .= "\n";
 $connectionContent .= "        \$this->heartbeatTimer = Loop::addTimer(\$this->configuration->heartbeat, \$this->onHeartbeat(...));\n";
 $connectionContent .= "        \$this->connection->on('drain', \$this->onHeartbeat(...));\n";
 $connectionContent .= "    }\n";
@@ -1067,6 +1071,10 @@ $connectionContent .= "     * Callback when heartbeat timer timed out.\n";
 $connectionContent .= "     */\n";
 $connectionContent .= "    private function onHeartbeat(): void\n";
 $connectionContent .= "    {\n";
+$connectionContent .= "        if (\$this->heartbeatTimer instanceof TimerInterface) {\n";
+$connectionContent .= "            Loop::cancelTimer(\$this->heartbeatTimer);\n";
+$connectionContent .= "        }\n";
+$connectionContent .= "\n";
 $connectionContent .= "        \$now = microtime(true);\n";
 $connectionContent .= "        \$nextHeartbeat = (\$this->lastWrite ?: \$now) + \$this->configuration->heartbeat;\n";
 $connectionContent .= "\n";
