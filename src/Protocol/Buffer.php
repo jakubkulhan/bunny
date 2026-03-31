@@ -223,6 +223,8 @@ class Buffer
 
     /**
      * Reads unsigned 8-bit integer from buffer.
+     *
+     * @return int<0, 255>
      */
     public function readUint8(int $offset = 0): int
     {
@@ -233,6 +235,8 @@ class Buffer
 
     /**
      * Reads signed 8-bit integer from buffer.
+     *
+     * @return int<-128, 127>
      */
     public function readInt8(int $offset = 0): int
     {
@@ -243,6 +247,8 @@ class Buffer
 
     /**
      * Reads and discards unsigned 8-bit integer from buffer.
+     *
+     * @return int<0, 255>
      */
     public function consumeUint8(): int
     {
@@ -254,6 +260,8 @@ class Buffer
 
     /**
      * Reads and discards signed 8-bit integer from buffer.
+     *
+     * @return int<-128, 127>
      */
     public function consumeInt8(): mixed
     {
@@ -284,6 +292,8 @@ class Buffer
 
     /**
      * Reads unsigned 16-bit integer from buffer.
+     *
+     * @return int<0, 65535>
      */
     public function readUint16(int $offset = 0): int
     {
@@ -295,6 +305,8 @@ class Buffer
 
     /**
      * Reads signed 16-bit integer from buffer.
+     *
+     * @return int<-32768, 32767>
      */
     public function readInt16(int $offset = 0): int
     {
@@ -306,6 +318,8 @@ class Buffer
 
     /**
      * Reads and discards unsigned 16-bit integer from buffer.
+     *
+     * @return int<0, 65535>
      */
     public function consumeUint16(): int
     {
@@ -317,6 +331,8 @@ class Buffer
 
     /**
      * Reads and discards signed 16-bit integer from buffer.
+     *
+     * @return int<-32768, 32767>
      */
     public function consumeInt16(): int
     {
@@ -352,6 +368,8 @@ class Buffer
 
     /**
      * Reads unsigned 32-bit integer from buffer.
+     *
+     * @return int<0, 4294967295>
      */
     public function readUint32(int $offset = 0): int
     {
@@ -363,6 +381,8 @@ class Buffer
 
     /**
      * Reads signed 32-bit integer from buffer.
+     *
+     * @return int<-2147483648, 2147483647>
      */
     public function readInt32(int $offset = 0): int
     {
@@ -374,6 +394,8 @@ class Buffer
 
     /**
      * Reads and discards unsigned 32-bit integer from buffer.
+     *
+     * @return int<0, 4294967295>
      */
     public function consumeUint32(): int
     {
@@ -385,6 +407,8 @@ class Buffer
 
     /**
      * Reads and discards signed 32-bit integer from buffer.
+     *
+     * @return int<-2147483648, 2147483647>
      */
     public function consumeInt32(): int
     {
