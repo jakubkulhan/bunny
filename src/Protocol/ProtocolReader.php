@@ -280,6 +280,12 @@ class ProtocolReader
                 return null;
 
             default:
+                if ($fieldType < 0 || $fieldType > 255) {
+                    throw new ProtocolException(
+                        sprintf('Unhandled field type 0x%02x, out of bounds value.', $fieldType),
+                    );
+                }
+
                 throw new ProtocolException(
                     sprintf('Unhandled field type 0x%02x', $fieldType) .
                     (ctype_print(chr($fieldType)) ? " ('" . chr($fieldType) . "')" : '') .
