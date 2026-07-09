@@ -10,12 +10,9 @@ use Bunny\Configuration;
 use Bunny\Defaults;
 use PHPUnit\Framework\TestCase;
 use React\Socket\Connector;
-use WyriHaximus\React\PHPUnit\RunTestsInFibersTrait;
 
 final class ConfigurationTest extends TestCase
 {
-    use RunTestsInFibersTrait;
-
     /**
      * @return iterable<array{0: string, 1: array<string, mixed>}>
      */
