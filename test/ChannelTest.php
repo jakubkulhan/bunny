@@ -15,6 +15,7 @@ use Bunny\Protocol\AbstractFrame;
 use Bunny\Test\Library\ClientFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use React\EventLoop\Loop;
 use React\Promise\Deferred;
 use Throwable;
 use function React\Async\async;
