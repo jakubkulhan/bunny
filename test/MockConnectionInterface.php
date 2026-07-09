@@ -10,10 +10,17 @@ use React\Stream\ThroughStream;
 use React\Stream\WritableStreamInterface;
 
 // phpcs:disable
-final class MockConnectionInterface implements ConnectionInterface {
+class MockConnectionInterface implements ConnectionInterface {
     use EventEmitterTrait;
 
     private string $buffer = '';
+
+    private bool $fullBuffer;
+
+    public function __construct(bool $fullBuffer = false)
+    {
+        $this->fullBuffer = $fullBuffer;
+    }
 
     /**
      * @return string
@@ -75,7 +82,8 @@ final class MockConnectionInterface implements ConnectionInterface {
     public function write($data)
     {
         $this->buffer .= $data;
-        return true;
+
+        return !$this->fullBuffer;
     }
 
     /**
@@ -89,6 +97,11 @@ final class MockConnectionInterface implements ConnectionInterface {
     public function getWrittenData(): string
     {
         return $this->buffer;
+    }
+
+    public function clearWrittenData(): void
+    {
+        $this->buffer = '';
     }
 }
 // phpcs:enable
