@@ -36,8 +36,15 @@ class ChannelTest extends TestCase
         $this->helper = new ClientHelper();
     }
 
+    public static function tearDownAfterClass(): void
+    {
+        Loop::stop();
+    }
+
     public function testClose(): void
     {
+        $this->expectNotToPerformAssertions();
+
         $c = $this->helper->createClient();
         $c->connect();
         $c->channel()->close();

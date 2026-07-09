@@ -42,6 +42,11 @@ class ClientTest extends TestCase
         $this->helper = new ClientHelper();
     }
 
+    public static function tearDownAfterClass(): void
+    {
+        Loop::stop();
+    }
+
     public function testConnect(): void
     {
         $closeEmitted = null;
