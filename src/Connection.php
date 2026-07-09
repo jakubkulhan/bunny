@@ -2196,6 +2196,10 @@ final class Connection implements EventEmitterInterface
 
     public function startHeartbeatTimer(): void
     {
+        if ($this->heartbeatTimer instanceof TimerInterface) {
+            Loop::cancelTimer($this->heartbeatTimer);
+        }
+
         $this->heartbeatTimer = Loop::addTimer($this->configuration->heartbeat, $this->onHeartbeat(...));
         $this->connection->on('drain', $this->onHeartbeat(...));
     }
@@ -2205,6 +2209,10 @@ final class Connection implements EventEmitterInterface
      */
     private function onHeartbeat(): void
     {
+        if ($this->heartbeatTimer instanceof TimerInterface) {
+            Loop::cancelTimer($this->heartbeatTimer);
+        }
+
         $now = microtime(true);
         $nextHeartbeat = ($this->lastWrite ?: $now) + $this->configuration->heartbeat;
 
