@@ -124,11 +124,9 @@ final class Connection implements EventEmitterInterface
 
         $this->connection->close();
 
-        if ($this->heartbeatTimer === null) {
-            return;
+        if ($this->heartbeatTimer !== null) {
+            Loop::cancelTimer($this->heartbeatTimer);
         }
-
-        Loop::cancelTimer($this->heartbeatTimer);
     }
 
     /**
@@ -151,10 +149,8 @@ final class Connection implements EventEmitterInterface
         }
 
         if ($frame instanceof HeartbeatFrame) {
-            return;
+            throw new ClientException(sprintf('Unhandled frame %s.', $frame::class));
         }
-
-        throw new ClientException(sprintf('Unhandled frame %s.', $frame::class));
     }
 
     public function appendProtocolHeader(): void
