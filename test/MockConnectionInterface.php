@@ -10,7 +10,7 @@ use React\Stream\ThroughStream;
 use React\Stream\WritableStreamInterface;
 
 // phpcs:disable
-class MockConnectionInterface implements ConnectionInterface {
+final class MockConnectionInterface implements ConnectionInterface {
     use EventEmitterTrait;
 
     private string $buffer = '';
