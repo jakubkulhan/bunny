@@ -162,13 +162,13 @@ final class Connection implements EventEmitterInterface
         $this->writer->appendProtocolHeader($this->writeBuffer);
     }
 
-    public function flushWriteBuffer(): void
+    public function flushWriteBuffer(bool $awaitDrain = true): void
     {
         $data = $this->writeBuffer->read($this->writeBuffer->getLength());
         $this->writeBuffer->discard(strlen($data));
 
         $this->lastWrite = microtime(true);
-        if (!$this->connection->write($data)) {
+        if (!$this->connection->write($data) && $awaitDrain) {
             await(new Promise(function (callable $resolve): void {
                 $this->connection->once('drain', static fn () => $resolve(null));
             }));
@@ -2210,7 +2210,7 @@ final class Connection implements EventEmitterInterface
 
         if ($now >= $nextHeartbeat) {
             $this->writer->appendFrame(new HeartbeatFrame(), $this->writeBuffer);
-            $this->flushWriteBuffer();
+            $this->flushWriteBuffer(awaitDrain: false);
 
             $this->heartbeatTimer = Loop::addTimer($this->configuration->heartbeat, $this->onHeartbeat(...));
             if (is_callable($this->configuration->heartbeatCallback)) {

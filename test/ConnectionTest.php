@@ -13,6 +13,7 @@ use Bunny\Connection;
 use Bunny\Constants;
 use Bunny\Exception\ClientException;
 use Bunny\Protocol\Buffer;
+use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodConnectionCloseFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
@@ -192,7 +193,7 @@ class ConnectionTest extends TestCase
 
     public function testConnectingEmittingCloseWillResultInFastClosure(): void
     {
-        $client = new MockClientInterface(true, true);
+        $client = new MockClientInterface();
         $mockConnection = new MockConnectionInterface();
         new Connection(
             $client,
@@ -217,7 +218,7 @@ class ConnectionTest extends TestCase
 
     public function testConnectingEmittingCloseWillResultInFastClosureButNotWhenNotConnected(): void
     {
-        $client = new MockClientInterface(false, false);
+        $client = new MockClientInterface(isConnected: false, canDisconnect: false);
         $mockConnection = new MockConnectionInterface();
         new Connection(
             $client,
@@ -238,5 +239,105 @@ class ConnectionTest extends TestCase
         self::assertSame(0, $client->getIsConnectedCount());
         self::assertSame(1, $client->getCanDisconnectCount());
         self::assertSame(0, $client->getDisconnectCount());
+    }
+
+    public function testOnHeartbeatDoesNotAwaitWhenWriteBufferIsFull(): void
+    {
+        $oldLoop = Loop::get();
+        Loop::set(new StreamSelectLoop());
+
+        $mockConnection = new MockConnectionInterface(fullBuffer: true);
+        $configuration = new Configuration(heartbeat: 0.1);
+        $connection = new Connection(
+            new MockClientInterface(),
+            $mockConnection,
+            new Buffer(),
+            new Buffer(),
+            new ProtocolReader(),
+            new ProtocolWriter(),
+            new Channels(),
+            $configuration,
+            static function (): int {
+                return Constants::FRAME_MAX;
+            },
+        );
+
+        $connection->appendProtocolHeader();
+        $connection->flushWriteBuffer(awaitDrain: false);
+        $mockConnection->clearWrittenData();
+
+        $connection->startHeartbeatTimer();
+
+        $deferred = new Deferred();
+        Loop::addTimer(0.3, async(static function () use ($deferred, $connection): void {
+            $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
+            $deferred->resolve(null);
+        }));
+        Loop::addTimer(1, async(static function (): void {
+            Loop::stop();
+        }));
+
+        Loop::run();
+        Loop::set($oldLoop);
+
+        await($deferred->promise());
+
+        $writtenData = $mockConnection->getWrittenData();
+        self::assertNotSame('', $writtenData, 'Heartbeat data should have been written to the connection');
+
+        $verifyBuffer = new Buffer();
+        $verifyBuffer->append($writtenData);
+        $frame = (new ProtocolReader())->consumeFrame($verifyBuffer);
+        self::assertInstanceOf(HeartbeatFrame::class, $frame);
+    }
+
+    public function testOnHeartbeatCallsHeartbeatCallback(): void
+    {
+        $oldLoop = Loop::get();
+        Loop::set(new StreamSelectLoop());
+
+        $callbackCalled = false;
+        $mockConnection = new MockConnectionInterface();
+        $configuration = new Configuration(
+            heartbeat: 0.1,
+            heartbeatCallback: static function () use (&$callbackCalled): void {
+                $callbackCalled = true;
+            },
+        );
+
+        $connection = new Connection(
+            new MockClientInterface(),
+            $mockConnection,
+            new Buffer(),
+            new Buffer(),
+            new ProtocolReader(),
+            new ProtocolWriter(),
+            new Channels(),
+            $configuration,
+            static function (): int {
+                return Constants::FRAME_MAX;
+            },
+        );
+
+        $connection->appendProtocolHeader();
+        $connection->flushWriteBuffer();
+
+        $connection->startHeartbeatTimer();
+
+        $deferred = new Deferred();
+        Loop::addTimer(0.3, async(static function () use ($deferred, $connection): void {
+            $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
+            $deferred->resolve(null);
+        }));
+        Loop::addTimer(1, async(static function (): void {
+            Loop::stop();
+        }));
+
+        Loop::run();
+        Loop::set($oldLoop);
+
+        await($deferred->promise());
+
+        self::assertTrue($callbackCalled, 'Heartbeat callback should have been called');
     }
 }
