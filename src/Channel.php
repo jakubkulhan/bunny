@@ -581,6 +581,8 @@ class Channel implements ChannelInterface
     {
         $this->state = ChannelState::Closed;
 
+        $this->emit('close');
+
         if ($this->closeDeferred !== null) {
             $this->closeDeferred->resolve($this->channelId);
         }
@@ -592,8 +594,6 @@ class Channel implements ChannelInterface
         $this->consumeConcurrent = [];
         $this->deliverCallbacks = [];
         $this->deliveryQueue = [];
-
-        $this->emit('close');
     }
 
     /**
