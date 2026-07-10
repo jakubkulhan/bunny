@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true">
-    <coverage processUncoveredFiles="true">
-        <include>
-            <directory suffix=".php">src</directory>
-        </include>
-    </coverage>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true" cacheDirectory=".phpunit.cache">
     <testsuites>
         <testsuite name="Tests">
             <directory suffix="Test.php">test/</directory>
@@ -14,4 +9,9 @@
         <env name="SSL_TEST" value="no"/>
         <env name="TEST_RABBITMQ_CONNECTION_URI" value="amqp://guest:guest@localhost:5672/"/>
     </php>
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+    </source>
 </phpunit>

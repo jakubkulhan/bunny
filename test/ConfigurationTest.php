@@ -8,14 +8,12 @@ namespace Bunny\Test;
 
 use Bunny\Configuration;
 use Bunny\Defaults;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use React\Socket\Connector;
-use WyriHaximus\React\PHPUnit\RunTestsInFibersTrait;
 
 final class ConfigurationTest extends TestCase
 {
-    use RunTestsInFibersTrait;
-
     /**
      * @return iterable<array{0: string, 1: array<string, mixed>}>
      */
@@ -112,9 +110,8 @@ final class ConfigurationTest extends TestCase
 
     /**
      * @param array<string, mixed> $expectations
-     *
-     * @dataProvider DSNs
      */
+    #[DataProvider('DSNs')]
     public function testFromDSN(string $dsn, array $expectations): void
     {
         $configuration = Configuration::fromDSN($dsn);
@@ -123,9 +120,7 @@ final class ConfigurationTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider DSNs
-     */
+    #[DataProvider('DSNs')]
     public function testFromDSNWithHeartBeatCallback(string $dsn): void
     {
         $callable = static function (): void {
@@ -135,9 +130,7 @@ final class ConfigurationTest extends TestCase
         self::assertSame($callable, $configuration->heartbeatCallback);
     }
 
-    /**
-     * @dataProvider DSNs
-     */
+    #[DataProvider('DSNs')]
     public function testFromDSNWithConnector(string $dsn): void
     {
         $connector = new Connector();

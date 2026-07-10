@@ -37,7 +37,7 @@ function app(array $args): void
     $channel = $client->channel();
 
     $channel->qos(0, 1);
-    $channel->queueDeclare($args['queueName']);
+    $channel->queueDeclare($args['queueName'], durable: true);
     $channel->consume(static function (Message $message, Channel $channel): void {
         $channel->ack($message);
     });

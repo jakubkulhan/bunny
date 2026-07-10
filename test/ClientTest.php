@@ -10,7 +10,7 @@ use Bunny\Exception\ClientException;
 use Bunny\Message;
 use Bunny\Protocol\MethodBasicAckFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
-use Bunny\Test\Library\Client;
+use Bunny\Test\Library\ClientFactory;
 use Bunny\Test\Library\Environment;
 use Bunny\Test\Library\Paths;
 use InvalidArgumentException;
@@ -28,11 +28,11 @@ use function count;
 use function implode;
 use const SIGINT;
 
-class ClientTest extends TestCase
+final class ClientTest extends TestCase
 {
     public function testConnect(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
 
         $closeEmitted = null;
         $client->on('close', static function () use (&$closeEmitted): void {
@@ -54,24 +54,24 @@ class ClientTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Client::createClient(['client_properties' => 'not an array']);
+        ClientFactory::createClient(['client_properties' => 'not an array']);
     }
 
     public function testConnectFailure(): void
     {
         $this->expectException(ClientException::class);
 
-        $options = Client::getDefaultOptions();
+        $options = ClientFactory::getDefaultOptions();
         $options['vhost'] = 'bogus-vhost';
 
-        $client = Client::createClient($options);
+        $client = ClientFactory::createClient($options);
 
         $client->connect();
     }
 
     public function testOpenChannel(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
 
         $channel = $client->channel();
         self::assertInstanceOf(Channel::class, $channel);
@@ -81,7 +81,7 @@ class ClientTest extends TestCase
 
     public function testOpenMultipleChannel(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
 
         self::assertInstanceOf(Channel::class, $ch1 = $client->channel());
         self::assertInstanceOf(Channel::class, $ch2 = $client->channel());
@@ -95,7 +95,7 @@ class ClientTest extends TestCase
 
     public function testOpenMultipleChannelAsync(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
 
         $tasks = [];
         for ($i = 0; $i < 5; $i++) {
@@ -119,7 +119,7 @@ class ClientTest extends TestCase
 
     public function testDisconnectWithBufferedMessages(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
         $channel = $client->channel();
 
         $processed = 0;
@@ -141,7 +141,7 @@ class ClientTest extends TestCase
         self::assertFalse($client->isConnected());
 
         // Clean-up Queue
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
         $channel = $client->channel();
         $channel->queueDelete('disconnect_test');
         $client->disconnect();
@@ -176,7 +176,7 @@ class ClientTest extends TestCase
 
     public function testGet(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
         $channel = $client->channel();
 
         $channel->queueDeclare('get_test', durable: true);
@@ -216,7 +216,7 @@ class ClientTest extends TestCase
 
     public function testReturn(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
         $channel = $client->channel();
 
         $returnedMessage = null;
@@ -238,7 +238,7 @@ class ClientTest extends TestCase
 
     public function testTxs(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
         $channel = $client->channel();
 
         $channel->queueDeclare('tx_test', durable: true);
@@ -264,7 +264,7 @@ class ClientTest extends TestCase
     {
         $this->expectException(ChannelException::class);
 
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
         $channel = $client->channel();
 
         try {
@@ -277,7 +277,7 @@ class ClientTest extends TestCase
 
     public function testConfirmMode(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
         $channel = $client->channel();
 
         $deliveryTag = null;
@@ -299,7 +299,7 @@ class ClientTest extends TestCase
 
     public function testEmptyMessage(): void
     {
-        $client = Client::createClient();
+        $client = ClientFactory::createClient();
         $channel = $client->channel();
 
         $channel->queueDeclare('empty_body_message_test', durable: true);
@@ -332,7 +332,7 @@ class ClientTest extends TestCase
 
     public function testHeartBeatCallback(): void
     {
-        $options = Client::getDefaultOptions();
+        $options = ClientFactory::getDefaultOptions();
 
         $called = 0;
         $options['heartbeat']          = 0.1;
@@ -340,7 +340,7 @@ class ClientTest extends TestCase
             $called += 1;
         };
 
-        $client = Client::createClient($options);
+        $client = ClientFactory::createClient($options);
         $client->connect();
 
         await(sleep(0.2));

@@ -7,7 +7,7 @@ namespace Bunny\Test\Library;
 use Bunny\Client as BunnyClient;
 use function array_merge;
 
-final class Client
+final class ClientFactory
 {
     /**
      * @param array<string, mixed>|null $options

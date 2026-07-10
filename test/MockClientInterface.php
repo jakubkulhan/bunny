@@ -15,7 +15,7 @@ final class MockClientInterface implements ClientInterface
     private bool $isConnected;
     private bool $canDisconnect;
 
-    public function __construct(bool $isConnected, bool $canDisconnect)
+    public function __construct(bool $isConnected = true, bool $canDisconnect = true)
     {
         $this->isConnected = $isConnected;
         $this->canDisconnect = $canDisconnect;
