@@ -234,10 +234,10 @@ final class ConnectionTest extends TestCase
         $oldLoop = Loop::get();
         Loop::set(new StreamSelectLoop());
 
-        $mockConnection = new MockConnectionInterface();
+        $socketConnection = new MockConnectionInterface();
         $connection = new Connection(
             new MockClientInterface(),
-            $mockConnection,
+            $socketConnection,
             new Buffer(),
             new Buffer(),
             new ProtocolReader(),
@@ -269,7 +269,7 @@ final class ConnectionTest extends TestCase
         await($deferred->promise());
 
         $heartbeatFrame = "\x08\x00\x00\x00\x00\x00\x00\xCE";
-        self::assertStringNotContainsString($heartbeatFrame, $mockConnection->getWrittenData());
+        self::assertStringNotContainsString($heartbeatFrame, $socketConnection->getWrittenData());
     }
 
     public function testStartHeartbeatTimerCancelsExistingTimerSoDisconnectCancelsAll(): void
@@ -277,10 +277,10 @@ final class ConnectionTest extends TestCase
         $oldLoop = Loop::get();
         Loop::set(new StreamSelectLoop());
 
-        $mockConnection = new MockConnectionInterface();
+        $socketConnection = new MockConnectionInterface();
         $connection = new Connection(
             new MockClientInterface(),
-            $mockConnection,
+            $socketConnection,
             new Buffer(),
             new Buffer(),
             new ProtocolReader(),
@@ -313,7 +313,7 @@ final class ConnectionTest extends TestCase
         await($deferred->promise());
 
         $heartbeatFrame = "\x08\x00\x00\x00\x00\x00\x00\xCE";
-        self::assertStringNotContainsString($heartbeatFrame, $mockConnection->getWrittenData());
+        self::assertStringNotContainsString($heartbeatFrame, $socketConnection->getWrittenData());
     }
 
     public function testDrainEventDuringPendingHeartbeatTimerDoesNotLeakTimer(): void
@@ -321,10 +321,10 @@ final class ConnectionTest extends TestCase
         $oldLoop = Loop::get();
         Loop::set(new StreamSelectLoop());
 
-        $mockConnection = new MockConnectionInterface();
+        $socketConnection = new MockConnectionInterface();
         $connection = new Connection(
             new MockClientInterface(),
-            $mockConnection,
+            $socketConnection,
             new Buffer(),
             new Buffer(),
             new ProtocolReader(),
@@ -342,8 +342,8 @@ final class ConnectionTest extends TestCase
             $connection->flushWriteBuffer();
             $connection->startHeartbeatTimer();
         }));
-        Loop::addTimer(0.05, async(static function () use ($mockConnection): void {
-            $mockConnection->emit('drain');
+        Loop::addTimer(0.05, async(static function () use ($socketConnection): void {
+            $socketConnection->emit('drain');
         }));
         Loop::addTimer(0.06, async(static function () use ($connection): void {
             $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
@@ -359,7 +359,7 @@ final class ConnectionTest extends TestCase
         await($deferred->promise());
 
         $heartbeatFrame = "\x08\x00\x00\x00\x00\x00\x00\xCE";
-        self::assertStringNotContainsString($heartbeatFrame, $mockConnection->getWrittenData());
+        self::assertStringNotContainsString($heartbeatFrame, $socketConnection->getWrittenData());
     }
 
     public function testHeartbeatTimerFiresExactlyOnceWhenStartedTwice(): void

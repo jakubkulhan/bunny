@@ -135,7 +135,7 @@ final class ClientTest extends TestCase
         $channel->publish('.', [], '', 'disconnect_test');
         $channel->publish('.', [], '', 'disconnect_test');
 
-        await(sleep(5));
+        await(sleep(2));
 
         self::assertEquals(1, $processed);
         self::assertFalse($client->isConnected());
