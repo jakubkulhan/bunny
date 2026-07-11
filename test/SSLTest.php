@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Bunny\Test;
 
 use Bunny\Exception\ClientException;
-use Bunny\Test\Library\ClientHelper;
+use Bunny\Test\Library\ClientFactory;
 use Bunny\Test\Library\Environment;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use function file_exists;
 use function in_array;
@@ -14,17 +15,8 @@ use function is_file;
 use function putenv;
 use function time;
 
-class SSLTest extends TestCase
+final class SSLTest extends TestCase
 {
-    private ClientHelper $helper;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->helper = new ClientHelper();
-    }
-
     /**
      * @return iterable<string, array<string>>
      */
@@ -34,23 +26,20 @@ class SSLTest extends TestCase
         yield 'ssl' => ['ssl'];
     }
 
-    /**
-     * @dataProvider provideKeys
-     */
+    #[DataProvider('provideKeys')]
     public function testConnect(string $key): void
     {
         $this->expectNotToPerformAssertions();
 
         $options = $this->getOptions($key);
 
-        $client = $this->helper->createClient($options);
+        $client = ClientFactory::createClient($options);
+
         $client->connect();
         $client->disconnect();
     }
 
-    /**
-     * @dataProvider provideKeys
-     */
+    #[DataProvider('provideKeys')]
     public function testConnectWithMissingClientCert(string $key): void
     {
         $options = $this->getOptions($key);
@@ -65,14 +54,13 @@ class SSLTest extends TestCase
             $this->expectException(ClientException::class);
         }
 
-        $client = $this->helper->createClient($options);
+        $client = ClientFactory::createClient($options);
+
         $client->connect();
         $client->disconnect();
     }
 
-    /**
-     * @dataProvider provideKeys
-     */
+    #[DataProvider('provideKeys')]
     public function testConnectToTcpPort(string $key): void
     {
         $options = $this->getOptions($key);
@@ -80,14 +68,13 @@ class SSLTest extends TestCase
 
         $this->expectException(ClientException::class);
 
-        $client = $this->helper->createClient($options);
+        $client = ClientFactory::createClient($options);
+
         $client->connect();
         $client->disconnect();
     }
 
-    /**
-     * @dataProvider provideKeys
-     */
+    #[DataProvider('provideKeys')]
     public function testConnectWithWrongPeerName(string $key): void
     {
         putenv('SSL_PEER_NAME=not-existsing-peer-name' . time());
@@ -95,7 +82,8 @@ class SSLTest extends TestCase
 
         $this->expectException(ClientException::class);
 
-        $client = $this->helper->createClient($options);
+        $client = ClientFactory::createClient($options);
+
         $client->connect();
         $client->disconnect();
     }

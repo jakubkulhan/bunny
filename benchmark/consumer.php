@@ -21,15 +21,15 @@ Loop::futureTick(async(static function () use ($client): void {
     $time = null;
     $count = 0;
 
-    $channel->consume(static function (Message $msg, Channel $channel, Client $c) use (&$time, &$count): void {
+    $channel->consume(static function (Message $message, Channel $channel, Client $client) use (&$time, &$count): void {
         if ($time === null) {
             $time = microtime(true);
         }
 
-        if ($msg->content === 'quit') {
+        if ($message->content === 'quit') {
             $runTime = microtime(true) - $time;
             printf("Consume: Pid: %s, Count: %s, Time: %.6f, Msg/sec: %.0f\n", getmypid(), $count, $runTime, 1 / $runTime * $count);
-            $c->disconnect();
+            $client->disconnect();
         } else {
             ++$count;
         }

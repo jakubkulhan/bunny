@@ -16,40 +16,60 @@ use Bunny\Protocol\Buffer;
 use Bunny\Protocol\MethodConnectionCloseFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
-use Bunny\Test\Library\ClientHelper;
+use Bunny\Test\Library\ClientFactory;
 use PHPUnit\Framework\TestCase;
 use React\EventLoop\Loop;
+use React\EventLoop\LoopInterface;
 use React\EventLoop\StreamSelectLoop;
 use React\Promise\Deferred;
 use RuntimeException;
 use Throwable;
-use WyriHaximus\React\PHPUnit\RunTestsInFibersTrait;
 use function React\Async\async;
 use function React\Async\await;
 use function base64_decode;
+use function substr_count;
 
-class ConnectionTest extends TestCase
+final class ConnectionTest extends TestCase
 {
-    use RunTestsInFibersTrait;
-
-    private ClientHelper $helper;
+    private LoopInterface $previousLoop;
 
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->previousLoop = Loop::get();
+        Loop::set(new StreamSelectLoop());
+    }
 
-        $this->helper = new ClientHelper();
+    protected function tearDown(): void
+    {
+        Loop::set($this->previousLoop);
+    }
+
+    private function createConnection(
+        MockConnectionInterface $socketConnection,
+        ?ClientInterface $client = null,
+        ?Configuration $configuration = null,
+    ): Connection {
+        return new Connection(
+            $client ?? new MockClientInterface(),
+            $socketConnection,
+            new Buffer(),
+            new Buffer(),
+            new ProtocolReader(),
+            new ProtocolWriter(),
+            new Channels(),
+            $configuration ?? new Configuration(),
+            static function (): int {
+                return Constants::FRAME_MAX;
+            },
+        );
     }
 
     public function testThrowOn(): void
     {
-        $oldLoop = Loop::get();
-        Loop::set(new StreamSelectLoop());
-
         self::expectException(ClientException::class);
         self::expectExceptionMessage('blaat');
 
-        $mockConnection = new MockConnectionInterface();
+        $socketConnection = new MockConnectionInterface();
         $buffer = new Buffer();
         $frame = new MethodConnectionCloseFrame();
         $frame->replyCode = Constants::STATUS_REPLY_SUCCESS;
@@ -57,19 +77,8 @@ class ConnectionTest extends TestCase
         $frame->closeClassId = Constants::CLASS_CONNECTION;
         $frame->closeMethodId = Constants::METHOD_CONNECTION_CLOSE;
         (new ProtocolWriter())->appendFrame($frame, $buffer);
-        $connection = new Connection(
-            $this->helper->createClient(),
-            $mockConnection,
-            new Buffer(),
-            new Buffer(),
-            new ProtocolReader(),
-            new ProtocolWriter(),
-            new Channels(),
-            new Configuration(),
-            static function (): int {
-                return Constants::FRAME_MAX;
-            },
-        );
+        $connection = $this->createConnection($socketConnection, ClientFactory::createClient());
+
         $deferred = new Deferred();
         Loop::addTimer(0.1, async(static function () use ($deferred, $connection): void {
             try {
@@ -79,44 +88,28 @@ class ConnectionTest extends TestCase
                 $deferred->reject($exception);
             }
         }));
-        Loop::addTimer(0.2, async(static function () use ($mockConnection, $buffer): void {
+        Loop::addTimer(0.2, async(static function () use ($socketConnection, $buffer): void {
             $line = $buffer->consume($buffer->getLength());
-            $mockConnection->emit('data', [$line]);
+            $socketConnection->emit('data', [$line]);
         }));
-        Loop::addTimer(0.3, async(static function () use ($mockConnection): void {
-            $mockConnection->emit('drain');
+        Loop::addTimer(0.3, async(static function () use ($socketConnection): void {
+            $socketConnection->emit('drain');
         }));
         Loop::addTimer(1, async(static function (): void {
             Loop::stop();
         }));
 
         Loop::run();
-        Loop::set($oldLoop);
-
         await($deferred->promise());
     }
 
     public function testNoMethodConnectionCloseOkFrameIsWrittenWhenConnectionIsCloseWhenDisconnectionWithActiveConnection(): void
     {
-        $oldLoop = Loop::get();
-        Loop::set(new StreamSelectLoop());
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, ClientFactory::createClient());
 
-        $mockConnection = new MockConnectionInterface();
-        $connection = new Connection(
-            $this->helper->createClient(),
-            $mockConnection,
-            new Buffer(),
-            new Buffer(),
-            new ProtocolReader(),
-            new ProtocolWriter(),
-            new Channels(),
-            new Configuration(),
-            static function (): int {
-                return Constants::FRAME_MAX;
-            },
-        );
-        $baseBuffer = $mockConnection->getWrittenData();
-        self::assertSame('', $baseBuffer);
+        self::assertSame('', $socketConnection->getWrittenData());
+
         $deferred = new Deferred();
         Loop::addTimer(0.1, async(static function () use ($deferred, $connection): void {
             try {
@@ -125,8 +118,8 @@ class ConnectionTest extends TestCase
                 $deferred->reject($exception);
             }
         }));
-        Loop::addTimer(0.3, async(static function () use ($mockConnection): void {
-            $mockConnection->emit('drain');
+        Loop::addTimer(0.3, async(static function () use ($socketConnection): void {
+            $socketConnection->emit('drain');
         }));
         Loop::addTimer(1, async(static function () use ($deferred): void {
             Loop::stop();
@@ -134,36 +127,18 @@ class ConnectionTest extends TestCase
         }));
 
         Loop::run();
-        Loop::set($oldLoop);
-
         await($deferred->promise());
 
-        $afterCloseBuffer = $mockConnection->getWrittenData();
-
-        self::assertSame(base64_decode('AQAAAAAACwAKADIAAAAAAAAAzg=='), $afterCloseBuffer);
+        self::assertSame(base64_decode('AQAAAAAACwAKADIAAAAAAAAAzg=='), $socketConnection->getWrittenData());
     }
 
     public function testNoMethodConnectionCloseOkFrameIsWrittenWhenConnectionIsCloseWhenDisconnectionWithInactiveConnection(): void
     {
-        $oldLoop = Loop::get();
-        Loop::set(new StreamSelectLoop());
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, ClientFactory::createClient());
 
-        $mockConnection = new MockConnectionInterface();
-        $connection = new Connection(
-            $this->helper->createClient(),
-            $mockConnection,
-            new Buffer(),
-            new Buffer(),
-            new ProtocolReader(),
-            new ProtocolWriter(),
-            new Channels(),
-            new Configuration(),
-            static function (): int {
-                return Constants::FRAME_MAX;
-            },
-        );
-        $baseBuffer = $mockConnection->getWrittenData();
-        self::assertSame('', $baseBuffer);
+        self::assertSame('', $socketConnection->getWrittenData());
+
         $deferred = new Deferred();
         Loop::addTimer(0.1, async(static function () use ($deferred, $connection): void {
             try {
@@ -172,8 +147,8 @@ class ConnectionTest extends TestCase
                 $deferred->reject($exception);
             }
         }));
-        Loop::addTimer(0.3, async(static function () use ($mockConnection): void {
-            $mockConnection->emit('drain');
+        Loop::addTimer(0.3, async(static function () use ($socketConnection): void {
+            $socketConnection->emit('drain');
         }));
         Loop::addTimer(1, async(static function () use ($deferred): void {
             Loop::stop();
@@ -181,34 +156,18 @@ class ConnectionTest extends TestCase
         }));
 
         Loop::run();
-        Loop::set($oldLoop);
-
         await($deferred->promise());
 
-        $afterCloseBuffer = $mockConnection->getWrittenData();
-
-        self::assertSame($baseBuffer, $afterCloseBuffer);
+        self::assertSame('', $socketConnection->getWrittenData());
     }
 
     public function testConnectingEmittingCloseWillResultInFastClosure(): void
     {
-        $client = new MockClientInterface(true, true);
-        $mockConnection = new MockConnectionInterface();
-        new Connection(
-            $client,
-            $mockConnection,
-            new Buffer(),
-            new Buffer(),
-            new ProtocolReader(),
-            new ProtocolWriter(),
-            new Channels(),
-            new Configuration(),
-            static function (): int {
-                return Constants::FRAME_MAX;
-            },
-        );
+        $client = new MockClientInterface();
+        $socketConnection = new MockConnectionInterface();
+        $this->createConnection($socketConnection, $client);
 
-        $mockConnection->emit('close');
+        $socketConnection->emit('close');
 
         self::assertSame(0, $client->getIsConnectedCount());
         self::assertSame(1, $client->getCanDisconnectCount());
@@ -217,26 +176,121 @@ class ConnectionTest extends TestCase
 
     public function testConnectingEmittingCloseWillResultInFastClosureButNotWhenNotConnected(): void
     {
-        $client = new MockClientInterface(false, false);
-        $mockConnection = new MockConnectionInterface();
-        new Connection(
-            $client,
-            $mockConnection,
-            new Buffer(),
-            new Buffer(),
-            new ProtocolReader(),
-            new ProtocolWriter(),
-            new Channels(),
-            new Configuration(),
-            static function (): int {
-                return Constants::FRAME_MAX;
-            },
-        );
+        $client = new MockClientInterface(isConnected: false, canDisconnect: false);
+        $socketConnection = new MockConnectionInterface();
+        $this->createConnection($socketConnection, $client);
 
-        $mockConnection->emit('close');
+        $socketConnection->emit('close');
 
         self::assertSame(0, $client->getIsConnectedCount());
         self::assertSame(1, $client->getCanDisconnectCount());
         self::assertSame(0, $client->getDisconnectCount());
+    }
+
+    public function testDisconnectCancelsHeartbeatTimer(): void
+    {
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(heartbeat: 0.1));
+
+        $deferred = new Deferred();
+        Loop::addTimer(0.01, async(static function () use ($connection): void {
+            $connection->appendProtocolHeader();
+            $connection->flushWriteBuffer();
+            $connection->startHeartbeatTimer();
+        }));
+        Loop::addTimer(0.05, async(static function () use ($connection): void {
+            $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
+        }));
+        Loop::addTimer(0.3, async(static function () use ($deferred): void {
+            Loop::stop();
+            $deferred->resolve(null);
+        }));
+
+        Loop::run();
+        await($deferred->promise());
+
+        $heartbeatFrame = "\x08\x00\x00\x00\x00\x00\x00\xCE";
+        self::assertStringNotContainsString($heartbeatFrame, $socketConnection->getWrittenData());
+    }
+
+    public function testStartHeartbeatTimerCancelsExistingTimerSoDisconnectCancelsAll(): void
+    {
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(heartbeat: 0.1));
+
+        $deferred = new Deferred();
+        Loop::addTimer(0.01, async(static function () use ($connection): void {
+            $connection->appendProtocolHeader();
+            $connection->flushWriteBuffer();
+            $connection->startHeartbeatTimer();
+            $connection->startHeartbeatTimer();
+        }));
+        Loop::addTimer(0.05, async(static function () use ($connection): void {
+            $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
+        }));
+        Loop::addTimer(0.3, async(static function () use ($deferred): void {
+            Loop::stop();
+            $deferred->resolve(null);
+        }));
+
+        Loop::run();
+        await($deferred->promise());
+
+        $heartbeatFrame = "\x08\x00\x00\x00\x00\x00\x00\xCE";
+        self::assertStringNotContainsString($heartbeatFrame, $socketConnection->getWrittenData());
+    }
+
+    public function testDrainEventDuringPendingHeartbeatTimerDoesNotLeakTimer(): void
+    {
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(heartbeat: 0.1));
+
+        $deferred = new Deferred();
+        Loop::addTimer(0.01, async(static function () use ($connection): void {
+            $connection->appendProtocolHeader();
+            $connection->flushWriteBuffer();
+            $connection->startHeartbeatTimer();
+        }));
+        Loop::addTimer(0.05, async(static function () use ($socketConnection): void {
+            $socketConnection->emit('drain');
+        }));
+        Loop::addTimer(0.06, async(static function () use ($connection): void {
+            $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
+        }));
+        Loop::addTimer(0.3, async(static function () use ($deferred): void {
+            Loop::stop();
+            $deferred->resolve(null);
+        }));
+
+        Loop::run();
+        await($deferred->promise());
+
+        $heartbeatFrame = "\x08\x00\x00\x00\x00\x00\x00\xCE";
+        self::assertStringNotContainsString($heartbeatFrame, $socketConnection->getWrittenData());
+    }
+
+    public function testHeartbeatTimerFiresExactlyOnceWhenStartedTwice(): void
+    {
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(heartbeat: 0.15));
+
+        $deferred = new Deferred();
+        Loop::addTimer(0.01, async(static function () use ($connection): void {
+            $connection->appendProtocolHeader();
+            $connection->flushWriteBuffer();
+            $connection->startHeartbeatTimer();
+            $connection->startHeartbeatTimer();
+        }));
+        Loop::addTimer(0.28, async(static function () use ($deferred): void {
+            Loop::stop();
+            $deferred->resolve(null);
+        }));
+
+        Loop::run();
+        await($deferred->promise());
+
+        $heartbeatFrame = "\x08\x00\x00\x00\x00\x00\x00\xCE";
+        $heartbeatCount = substr_count($socketConnection->getWrittenData(), $heartbeatFrame);
+        self::assertSame(1, $heartbeatCount);
     }
 }

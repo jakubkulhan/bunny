@@ -12,64 +12,47 @@ use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-class ProtocolWriterTest extends TestCase
+final class ProtocolWriterTest extends TestCase
 {
     public function testAppendFieldValueCanHandleDateTime(): void
     {
-        $buffer = $this->createMock(Buffer::class);
         $protocolWriter = new ProtocolWriter();
 
-        $date = new DateTime();
+        $buffer = $this->createMock(Buffer::class);
 
-        $buffer->expects($this->once())
-            ->method('appendUint8')
-            ->with(Constants::FIELD_TIMESTAMP);
-        $buffer->expects($this->once())
-            ->method('appendUint64')
-            ->with($date->getTimestamp());
+        $date = new DateTime();
+        $buffer->expects($this->once())->method('appendUint8')->with(Constants::FIELD_TIMESTAMP);
+        $buffer->expects($this->once())->method('appendUint64')->with($date->getTimestamp());
 
         $protocolWriter->appendFieldValue($date, $buffer);
     }
 
     public function testAppendFieldValueCanHandleDateTimeImmutable(): void
     {
-        $buffer = $this->createMock(Buffer::class);
         $protocolWriter = new ProtocolWriter();
 
-        $date = new DateTimeImmutable();
+        $buffer = $this->createMock(Buffer::class);
 
-        $buffer->expects($this->once())
-            ->method('appendUint8')
-            ->with(Constants::FIELD_TIMESTAMP);
-        $buffer->expects($this->once())
-            ->method('appendUint64')
-            ->with($date->getTimestamp());
+        $date = new DateTimeImmutable();
+        $buffer->expects($this->once())->method('appendUint8')->with(Constants::FIELD_TIMESTAMP);
+        $buffer->expects($this->once())->method('appendUint64')->with($date->getTimestamp());
 
         $protocolWriter->appendFieldValue($date, $buffer);
     }
 
-    /**
-     * @dataProvider providerAppendFieldValueCanHandleInt64
-     */
+    #[DataProvider('providerAppendFieldValueCanHandleInt64')]
     public function testAppendFieldValueCanHandleInt64(int $value, bool $expectedInt64): void
     {
-        $buffer = $this->createMock(Buffer::class);
         $protocolWriter = new ProtocolWriter();
 
+        $buffer = $this->createMock(Buffer::class);
+
         if ($expectedInt64) {
-            $buffer->expects($this->once())
-                   ->method('appendUint8')
-                   ->with(Constants::FIELD_LONG_LONG_INT);
-            $buffer->expects($this->once())
-                   ->method('appendInt64')
-                   ->with($value);
+            $buffer->expects($this->once())->method('appendUint8')->with(Constants::FIELD_LONG_LONG_INT);
+            $buffer->expects($this->once())->method('appendInt64')->with($value);
         } else {
-            $buffer->expects($this->once())
-                   ->method('appendUint8')
-                   ->with(Constants::FIELD_LONG_INT);
-            $buffer->expects($this->once())
-                   ->method('appendInt32')
-                   ->with($value);
+            $buffer->expects($this->once())->method('appendUint8')->with(Constants::FIELD_LONG_INT);
+            $buffer->expects($this->once())->method('appendInt32')->with($value);
         }
 
         $protocolWriter->appendFieldValue($value, $buffer);
