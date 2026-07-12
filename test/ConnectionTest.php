@@ -297,28 +297,12 @@ final class ConnectionTest extends TestCase
 
     public function testOnHeartbeatDoesNotAwaitWhenWriteBufferIsFull(): void
     {
-        $oldLoop = Loop::get();
-        Loop::set(new StreamSelectLoop());
-
-        $mockConnection = new MockConnectionInterface(fullBuffer: true);
-        $configuration = new Configuration(heartbeat: 0.1);
-        $connection = new Connection(
-            new MockClientInterface(),
-            $mockConnection,
-            new Buffer(),
-            new Buffer(),
-            new ProtocolReader(),
-            new ProtocolWriter(),
-            new Channels(),
-            $configuration,
-            static function (): int {
-                return Constants::FRAME_MAX;
-            },
-        );
+        $socketConnection = new MockConnectionInterface(fullBuffer: true);
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(heartbeat: 0.1));
 
         $connection->appendProtocolHeader();
         $connection->flushWriteBuffer(awaitDrain: false);
-        $mockConnection->clearWrittenData();
+        $socketConnection->clearWrittenData();
 
         $connection->startHeartbeatTimer();
 
@@ -332,11 +316,10 @@ final class ConnectionTest extends TestCase
         }));
 
         Loop::run();
-        Loop::set($oldLoop);
 
         await($deferred->promise());
 
-        $writtenData = $mockConnection->getWrittenData();
+        $writtenData = $socketConnection->getWrittenData();
         self::assertNotSame('', $writtenData, 'Heartbeat data should have been written to the connection');
 
         $verifyBuffer = new Buffer();
@@ -347,31 +330,14 @@ final class ConnectionTest extends TestCase
 
     public function testOnHeartbeatCallsHeartbeatCallback(): void
     {
-        $oldLoop = Loop::get();
-        Loop::set(new StreamSelectLoop());
-
         $callbackCalled = false;
-        $mockConnection = new MockConnectionInterface();
-        $configuration = new Configuration(
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(
             heartbeat: 0.1,
             heartbeatCallback: static function () use (&$callbackCalled): void {
                 $callbackCalled = true;
             },
-        );
-
-        $connection = new Connection(
-            new MockClientInterface(),
-            $mockConnection,
-            new Buffer(),
-            new Buffer(),
-            new ProtocolReader(),
-            new ProtocolWriter(),
-            new Channels(),
-            $configuration,
-            static function (): int {
-                return Constants::FRAME_MAX;
-            },
-        );
+        ));
 
         $connection->appendProtocolHeader();
         $connection->flushWriteBuffer();
@@ -388,7 +354,6 @@ final class ConnectionTest extends TestCase
         }));
 
         Loop::run();
-        Loop::set($oldLoop);
 
         await($deferred->promise());
 
