@@ -1,7 +1,5 @@
 <?php
 
-/** @noinspection PhpUnhandledExceptionInspection */
-
 declare(strict_types=1);
 
 namespace Bunny\Test;
@@ -13,6 +11,7 @@ use Bunny\Connection;
 use Bunny\Constants;
 use Bunny\Exception\ClientException;
 use Bunny\Protocol\Buffer;
+use Bunny\Protocol\HeartbeatFrame;
 use Bunny\Protocol\MethodConnectionCloseFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
@@ -292,5 +291,70 @@ final class ConnectionTest extends TestCase
         $heartbeatFrame = "\x08\x00\x00\x00\x00\x00\x00\xCE";
         $heartbeatCount = substr_count($socketConnection->getWrittenData(), $heartbeatFrame);
         self::assertSame(1, $heartbeatCount);
+    }
+
+    public function testOnHeartbeatDoesNotAwaitWhenWriteBufferIsFull(): void
+    {
+        $socketConnection = new MockConnectionInterface(fullBuffer: true);
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(heartbeat: 0.1));
+
+        $connection->appendProtocolHeader();
+        $connection->flushWriteBuffer(awaitDrain: false);
+        $socketConnection->clearWrittenData();
+
+        $connection->startHeartbeatTimer();
+
+        $deferred = new Deferred();
+        Loop::addTimer(0.3, async(static function () use ($deferred, $connection): void {
+            $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
+            $deferred->resolve(null);
+        }));
+        Loop::addTimer(1, async(static function (): void {
+            Loop::stop();
+        }));
+
+        Loop::run();
+
+        await($deferred->promise());
+
+        $writtenData = $socketConnection->getWrittenData();
+        self::assertNotSame('', $writtenData, 'Heartbeat data should have been written to the connection');
+
+        $verifyBuffer = new Buffer();
+        $verifyBuffer->append($writtenData);
+        $frame = (new ProtocolReader())->consumeFrame($verifyBuffer);
+        self::assertInstanceOf(HeartbeatFrame::class, $frame);
+    }
+
+    public function testOnHeartbeatCallsHeartbeatCallback(): void
+    {
+        $callbackCalled = false;
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(
+            heartbeat: 0.1,
+            heartbeatCallback: static function () use (&$callbackCalled): void {
+                $callbackCalled = true;
+            },
+        ));
+
+        $connection->appendProtocolHeader();
+        $connection->flushWriteBuffer();
+
+        $connection->startHeartbeatTimer();
+
+        $deferred = new Deferred();
+        Loop::addTimer(0.3, async(static function () use ($deferred, $connection): void {
+            $connection->disconnect(0, '', ClientInterface::RAW_CONNECTION_INACTIVE);
+            $deferred->resolve(null);
+        }));
+        Loop::addTimer(1, async(static function (): void {
+            Loop::stop();
+        }));
+
+        Loop::run();
+
+        await($deferred->promise());
+
+        self::assertTrue($callbackCalled, 'Heartbeat callback should have been called');
     }
 }
