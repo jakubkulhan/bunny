@@ -210,7 +210,7 @@ class Client implements ClientInterface, EventEmitterInterface
                 $this->channels,
                 $this->configuration,
                 function (): int {
-                    return $this->channelMax;
+                    return $this->frameMax;
                 },
             );
             $this->connection->on('error', function (Throwable $error): void {
