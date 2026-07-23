@@ -186,6 +186,25 @@ final class ConnectionTest extends TestCase
         self::assertSame(0, $client->getDisconnectCount());
     }
 
+    public function testIncomingHeartbeatDoesNotEmitError(): void
+    {
+        $client = new MockClientInterface();
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, $client);
+
+        $errors = [];
+        $connection->on('error', static function (Throwable $error) use (&$errors): void {
+            $errors[] = $error;
+        });
+
+        $buffer = new Buffer();
+        (new ProtocolWriter())->appendFrame(new HeartbeatFrame(), $buffer);
+        $socketConnection->emit('data', [$buffer->consume($buffer->getLength())]);
+
+        self::assertSame([], $errors);
+        self::assertSame(0, $client->getDisconnectCount());
+    }
+
     public function testDisconnectCancelsHeartbeatTimer(): void
     {
         $socketConnection = new MockConnectionInterface();
