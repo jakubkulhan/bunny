@@ -15,7 +15,9 @@ use Bunny\Protocol\Buffer;
 use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\MethodBasicAckFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
+use Bunny\Protocol\MethodChannelCloseOkFrame;
 use Bunny\Protocol\MethodChannelOpenOkFrame;
+use Bunny\Protocol\MethodConnectionCloseOkFrame;
 use Bunny\Protocol\MethodConnectionOpenOkFrame;
 use Bunny\Protocol\MethodConnectionStartFrame;
 use Bunny\Protocol\MethodConnectionTuneFrame;
@@ -28,7 +30,6 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use React\ChildProcess\Process;
 use React\EventLoop\Loop;
-use React\EventLoop\StreamSelectLoop;
 use React\Promise\Promise;
 use React\Socket\ConnectorInterface;
 use function React\Async\async;
@@ -47,8 +48,7 @@ final class ClientTest extends TestCase
 {
     public function testPublishFragmentsBodyUsingNegotiatedFrameMax(): void
     {
-        $previousLoop = Loop::get();
-        Loop::set(new StreamSelectLoop());
+        $client = null;
 
         try {
             $socketConnection = new MockConnectionInterface();
@@ -67,11 +67,16 @@ final class ClientTest extends TestCase
             $channelOpenOk = new MethodChannelOpenOkFrame();
             $channelOpenOk->channel = 1;
 
+            $channelCloseOk = new MethodChannelCloseOkFrame();
+            $channelCloseOk->channel = 1;
+
             $serverFrames = [
                 $start,
                 $tune,
                 new MethodConnectionOpenOkFrame(),
                 $channelOpenOk,
+                $channelCloseOk,
+                new MethodConnectionCloseOkFrame(),
             ];
             $protocolWriter = new ProtocolWriter();
             foreach ($serverFrames as $serverFrame) {
@@ -99,7 +104,9 @@ final class ClientTest extends TestCase
 
             self::assertSame([$tune->frameMax - 8, 12], $bodyPayloadSizes);
         } finally {
-            Loop::set($previousLoop);
+            if ($client !== null && $client->canDisconnect()) {
+                $client->disconnect();
+            }
         }
     }
 
