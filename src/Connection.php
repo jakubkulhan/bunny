@@ -148,7 +148,7 @@ final class Connection implements EventEmitterInterface
             $this->client->disconnect(Constants::STATUS_UNEXPECTED_FRAME, 'Got body frame on connection channel (#0).');
         }
 
-        if ($frame instanceof HeartbeatFrame) {
+        if (!$frame instanceof HeartbeatFrame) {
             throw new ClientException(sprintf('Unhandled frame %s.', $frame::class));
         }
     }
