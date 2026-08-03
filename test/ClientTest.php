@@ -5,11 +5,24 @@ declare(strict_types=1);
 namespace Bunny\Test;
 
 use Bunny\Channel;
+use Bunny\Client;
+use Bunny\Configuration;
+use Bunny\Constants;
 use Bunny\Exception\ChannelException;
 use Bunny\Exception\ClientException;
 use Bunny\Message;
+use Bunny\Protocol\Buffer;
+use Bunny\Protocol\ContentBodyFrame;
 use Bunny\Protocol\MethodBasicAckFrame;
 use Bunny\Protocol\MethodBasicReturnFrame;
+use Bunny\Protocol\MethodChannelCloseOkFrame;
+use Bunny\Protocol\MethodChannelOpenOkFrame;
+use Bunny\Protocol\MethodConnectionCloseOkFrame;
+use Bunny\Protocol\MethodConnectionOpenOkFrame;
+use Bunny\Protocol\MethodConnectionStartFrame;
+use Bunny\Protocol\MethodConnectionTuneFrame;
+use Bunny\Protocol\ProtocolReader;
+use Bunny\Protocol\ProtocolWriter;
 use Bunny\Test\Library\ClientFactory;
 use Bunny\Test\Library\Environment;
 use Bunny\Test\Library\Paths;
@@ -18,18 +31,85 @@ use PHPUnit\Framework\TestCase;
 use React\ChildProcess\Process;
 use React\EventLoop\Loop;
 use React\Promise\Promise;
+use React\Socket\ConnectorInterface;
 use function React\Async\async;
 use function React\Async\await;
 use function React\Promise\Stream\buffer;
 use function React\Promise\Timer\sleep;
 use function React\Promise\all;
+use function React\Promise\resolve;
 use function array_unique;
 use function count;
 use function implode;
+use function str_repeat;
 use const SIGINT;
 
 final class ClientTest extends TestCase
 {
+    public function testPublishFragmentsBodyUsingNegotiatedFrameMax(): void
+    {
+        $client = null;
+
+        try {
+            $socketConnection = new MockConnectionInterface();
+            $connector = $this->createMock(ConnectorInterface::class);
+            $connector
+                ->method('connect')
+                ->willReturn(resolve($socketConnection));
+
+            $start = new MethodConnectionStartFrame();
+            $start->mechanisms = 'AMQPLAIN';
+
+            $tune = new MethodConnectionTuneFrame();
+            $tune->frameMax = Constants::FRAME_MIN_SIZE;
+            $tune->channelMax = 2047;
+
+            $channelOpenOk = new MethodChannelOpenOkFrame();
+            $channelOpenOk->channel = 1;
+
+            $channelCloseOk = new MethodChannelCloseOkFrame();
+            $channelCloseOk->channel = 1;
+
+            $serverFrames = [
+                $start,
+                $tune,
+                new MethodConnectionOpenOkFrame(),
+                $channelOpenOk,
+                $channelCloseOk,
+                new MethodConnectionCloseOkFrame(),
+            ];
+            $protocolWriter = new ProtocolWriter();
+            foreach ($serverFrames as $serverFrame) {
+                Loop::futureTick(static function () use ($protocolWriter, $serverFrame, $socketConnection): void {
+                    $buffer = new Buffer();
+                    $protocolWriter->appendFrame($serverFrame, $buffer);
+                    $socketConnection->emit('data', [$buffer->consume($buffer->getLength())]);
+                });
+            }
+
+            $client = new Client(new Configuration(heartbeat: 0, connector: $connector));
+            $channel = $client->channel();
+            $socketConnection->clearWrittenData();
+
+            $channel->publish(str_repeat('x', $tune->frameMax + 4));
+
+            $buffer = new Buffer($socketConnection->getWrittenData());
+            $protocolReader = new ProtocolReader();
+            $bodyPayloadSizes = [];
+            while (($frame = $protocolReader->consumeFrame($buffer)) !== null) {
+                if ($frame instanceof ContentBodyFrame) {
+                    $bodyPayloadSizes[] = $frame->payloadSize;
+                }
+            }
+
+            self::assertSame([$tune->frameMax - 8, 12], $bodyPayloadSizes);
+        } finally {
+            if ($client !== null && $client->canDisconnect()) {
+                $client->disconnect();
+            }
+        }
+    }
+
     public function testConnect(): void
     {
         $client = ClientFactory::createClient();
