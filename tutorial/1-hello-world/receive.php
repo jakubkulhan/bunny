@@ -14,7 +14,7 @@ $client = new Client();
 Loop::futureTick(async(static function () use ($client): void {
     $channel = $client->channel();
 
-    $channel->queueDeclare('hello', false, false, false, false);
+    $channel->queueDeclare('hello', durable: true);
 
     echo ' [*] Waiting for messages. To exit press CTRL+C', PHP_EOL;
 

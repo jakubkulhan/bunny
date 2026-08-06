@@ -14,7 +14,7 @@ $client = new Client();
 Loop::futureTick(async(static function () use ($client): void {
     $channel = $client->channel();
 
-    $channel->queueDeclare('bench_queue');
+    $channel->queueDeclare('bench_queue', durable: true);
     $channel->exchangeDeclare('bench_exchange');
     $channel->queueBind('bench_exchange', 'bench_queue');
 
