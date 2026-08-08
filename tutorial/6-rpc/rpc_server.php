@@ -27,7 +27,7 @@ $client = new Client();
 Loop::futureTick(async(static function () use ($client): void {
     $channel = $client->channel();
 
-    $channel->queueDeclare('rpc_queue');
+    $channel->queueDeclare('rpc_queue', durable: true);
 
     echo ' [x] Awaiting RPC requests' . PHP_EOL;
 

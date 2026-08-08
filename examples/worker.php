@@ -42,7 +42,7 @@ $clientConfig = [
 $client = new Client($clientConfig);
 $channel = $client->channel();
 $channel->qos(0, 13);
-$channel->queueDeclare('hello', false, false, false, false);
+$channel->queueDeclare('hello', durable: true);
 $channelRef = $channel;
 echo ' [*] Waiting for messages. To exit press CTRL+C', "\n";
 $response = $channel->consume(

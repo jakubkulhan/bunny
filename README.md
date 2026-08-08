@@ -310,11 +310,11 @@ $bunny->connect();
 
 ### Publish a message
 
-Now that we have a connection with the server we need to create a channel and declare a queue to communicate over before we can publish a message, or subscribe to a queue for that matter.
+Now that we have a connection with the server we need to create a channel and declare a queue to communicate over before we can publish a message, or subscribe to a queue for that matter. On RabbitMQ 4 and newer, named queues must be durable; transient non-exclusive queues are deprecated and rejected by default.
 
 ```php
 $channel = $bunny->channel();
-$channel->queueDeclare('queue_name'); // Queue name
+$channel->queueDeclare('queue_name', durable: true);
 ```
 
 <details>
@@ -338,7 +338,7 @@ $channel->queueDeclare('queue_name'); // Queue name
   Loop::futureTick(async(static function (): void {
     $bunny->connect(); // Not required as the Client::channel() method handles this for us if we don't, but added for completeness sake
     $channel = $bunny->channel();
-    $channel->queueDeclare('queue_name'); // Queue name
+    $channel->queueDeclare('queue_name', durable: true);
     $channel->close(); // Not required as the Client::disconnect() method handles this for us if we don't, but added for completeness sake
     $bunny->disconnect();
   }));
