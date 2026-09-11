@@ -6,6 +6,7 @@ namespace Bunny\Test;
 
 use Bunny\Channel;
 use Bunny\Client;
+use Bunny\ClientState;
 use Bunny\Configuration;
 use Bunny\Constants;
 use Bunny\Exception\ChannelException;
@@ -30,8 +31,11 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use React\ChildProcess\Process;
 use React\EventLoop\Loop;
+use React\Promise\Deferred;
 use React\Promise\Promise;
 use React\Socket\ConnectorInterface;
+use ReflectionProperty;
+use Throwable;
 use function React\Async\async;
 use function React\Async\await;
 use function React\Promise\Stream\buffer;
@@ -171,6 +175,52 @@ final class ClientTest extends TestCase
         self::assertNotEquals($ch2->getChannelId(), $ch3->getChannelId());
 
         $client->disconnect();
+    }
+
+    public function testChannelWaitsWhileConnecting(): void
+    {
+        $connectDeferred = new Deferred();
+
+        $connector = $this->createMock(ConnectorInterface::class);
+        $connector
+            ->expects($this->once())
+            ->method('connect')
+            ->willReturn($connectDeferred->promise());
+
+        $client = new ConnectingIsNotConnectedClient(new Configuration(heartbeat: 0, connector: $connector));
+
+        $state = new ReflectionProperty(Client::class, 'state');
+        $connection = new ReflectionProperty(Client::class, 'connection');
+        $connectQueue = new ReflectionProperty(Client::class, 'connectQueue');
+
+        async(static fn () => $client->channel())();
+
+        // While connect is in-flight, state is Connecting but $connection is still null.
+        self::assertFalse($client->isConnected());
+        self::assertSame(ClientState::Connecting, $state->getValue($client));
+        self::assertNull($connection->getValue($client));
+
+        $secondChannel = async(static fn () => $client->channel())();
+
+        await(sleep(0));
+
+        self::assertCount(1, $connectQueue->getValue($client));
+
+        $fulfilled = false;
+        $rejection = null;
+        $secondChannel->then(
+            static function () use (&$fulfilled): void {
+                $fulfilled = true;
+            },
+            static function (Throwable $error) use (&$rejection): void {
+                $rejection = $error;
+            },
+        );
+
+        await(sleep(0));
+
+        self::assertFalse($fulfilled, 'Second channel() must still be waiting for connect to finish');
+        self::assertNull($rejection, 'Second channel() must wait, not call connect() again');
     }
 
     public function testOpenMultipleChannelAsync(): void

@@ -163,12 +163,10 @@ class Client implements ClientInterface, EventEmitterInterface
      */
     public function channel(): ChannelInterface
     {
-        if (!$this->isConnected()) {
-            $this->connect();
-        }
-
         if ($this->state === ClientState::Connecting) {
             $this->awaitConnection();
+        } elseif (!$this->isConnected()) {
+            $this->connect();
         }
 
         $channelId = $this->findChannelId();
