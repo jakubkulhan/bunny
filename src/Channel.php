@@ -99,7 +99,7 @@ class Channel implements ChannelInterface
     /** @var \React\Promise\Deferred<int>|null */
     private ?Deferred $closeDeferred = null;
 
-    /** @var \React\Promise\PromiseInterface<void>|null */
+    /** @var \React\Promise\PromiseInterface<int>|null */
     private ?PromiseInterface $closePromise = null;
 
     private ?int $deliveryTag = null;
