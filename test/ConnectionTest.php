@@ -16,6 +16,7 @@ use Bunny\Protocol\MethodConnectionCloseFrame;
 use Bunny\Protocol\ProtocolReader;
 use Bunny\Protocol\ProtocolWriter;
 use Bunny\Test\Library\ClientFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
@@ -203,6 +204,41 @@ final class ConnectionTest extends TestCase
 
         self::assertSame([], $errors);
         self::assertSame(0, $client->getDisconnectCount());
+    }
+
+    /**
+     * A frame awaited when the socket closes will never arrive. The wait fails instead of hanging the fiber for good,
+     * whether the client was still connected or already on its way out.
+     */
+    #[DataProvider('provideCloseRejectsAwaitedFrames')]
+    public function testCloseRejectsAwaitedFrames(bool $canDisconnect): void
+    {
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, new MockClientInterface(canDisconnect: $canDisconnect));
+
+        $reasons = [];
+        foreach ([1, 2] as $channelId) {
+            async(static fn () => $connection->channelOpen($channelId))()->catch(static function (Throwable $reason) use (&$reasons): void {
+                $reasons[] = $reason;
+            });
+        }
+
+        $socketConnection->emit('close');
+
+        self::assertCount(2, $reasons);
+        foreach ($reasons as $reason) {
+            self::assertInstanceOf(ClientException::class, $reason);
+            self::assertSame('Connection lost.', $reason->getMessage());
+        }
+    }
+
+    /**
+     * @return iterable<string, array{bool}>
+     */
+    public static function provideCloseRejectsAwaitedFrames(): iterable
+    {
+        yield 'connected' => [true];
+        yield 'disconnecting' => [false];
     }
 
     public function testDisconnectCancelsHeartbeatTimer(): void

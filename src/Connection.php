@@ -69,11 +69,11 @@ final class Connection implements EventEmitterInterface
         private readonly Closure $frameMax,
     ) {
         $this->connection->on('close', function (): void {
-            if (!$this->client->canDisconnect()) {
-                return;
+            if ($this->client->canDisconnect()) {
+                $this->client->disconnect(0, 'Connection lost', ClientInterface::RAW_CONNECTION_INACTIVE);
             }
 
-            $this->client->disconnect(0, 'Connection lost', ClientInterface::RAW_CONNECTION_INACTIVE);
+            $this->rejectAwaited(new ClientException('Connection lost.'));
         });
         $this->connection->on('data', function (string $data): void {
             $this->readBuffer->append($data);
@@ -126,6 +126,19 @@ final class Connection implements EventEmitterInterface
 
         if ($this->heartbeatTimer !== null) {
             Loop::cancelTimer($this->heartbeatTimer);
+        }
+    }
+
+    /**
+     * Fails every wait for a frame, which will never arrive once the socket is gone.
+     */
+    private function rejectAwaited(Throwable $reason): void
+    {
+        $awaitList = $this->awaitList;
+        $this->awaitList = [];
+
+        foreach ($awaitList as $frameHandler) {
+            $frameHandler['promise']->reject($reason);
         }
     }
 
