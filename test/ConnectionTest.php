@@ -137,6 +137,8 @@ final class ConnectionTest extends TestCase
         $socketConnection = new MockConnectionInterface();
         $connection = $this->createConnection($socketConnection, ClientFactory::createClient());
 
+        self::assertSame('', $socketConnection->getWrittenData());
+
         $deferred = new Deferred();
         Loop::addTimer(0.1, async(static function () use ($deferred, $connection): void {
             try {
