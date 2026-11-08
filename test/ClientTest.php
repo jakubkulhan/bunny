@@ -35,12 +35,14 @@ use React\Promise\Deferred;
 use React\Promise\Promise;
 use React\Socket\ConnectorInterface;
 use ReflectionProperty;
+use RuntimeException;
 use Throwable;
 use function React\Async\async;
 use function React\Async\await;
 use function React\Promise\Stream\buffer;
 use function React\Promise\Timer\sleep;
 use function React\Promise\all;
+use function React\Promise\reject;
 use function React\Promise\resolve;
 use function array_unique;
 use function count;
@@ -221,6 +223,103 @@ final class ClientTest extends TestCase
 
         self::assertFalse($fulfilled, 'Second channel() must still be waiting for connect to finish');
         self::assertNull($rejection, 'Second channel() must wait, not call connect() again');
+    }
+
+    public function testChannelReconnectsAfterFailedConnect(): void
+    {
+        $client = null;
+
+        try {
+            $socketConnection = new MockConnectionInterface();
+            $connector = $this->createMock(ConnectorInterface::class);
+            $connector
+                ->expects($this->exactly(2))
+                ->method('connect')
+                ->willReturnOnConsecutiveCalls(
+                    reject(new RuntimeException('Connection refused')),
+                    resolve($socketConnection),
+                );
+
+            $client = new Client(new Configuration(heartbeat: 0, connector: $connector));
+
+            try {
+                $client->channel();
+                self::fail('channel() must fail while the broker is down');
+            } catch (ClientException $exception) {
+                self::assertStringContainsString('Connection refused', $exception->getMessage());
+            }
+
+            self::assertFalse($client->isConnected(), 'A failed connect must not leave the client in the Connecting state');
+
+            $start = new MethodConnectionStartFrame();
+            $start->mechanisms = 'AMQPLAIN';
+
+            $channelOpenOk = new MethodChannelOpenOkFrame();
+            $channelOpenOk->channel = 1;
+
+            $channelCloseOk = new MethodChannelCloseOkFrame();
+            $channelCloseOk->channel = 1;
+
+            $serverFrames = [
+                $start,
+                new MethodConnectionTuneFrame(),
+                new MethodConnectionOpenOkFrame(),
+                $channelOpenOk,
+                $channelCloseOk,
+                new MethodConnectionCloseOkFrame(),
+            ];
+            $protocolWriter = new ProtocolWriter();
+            foreach ($serverFrames as $serverFrame) {
+                Loop::futureTick(static function () use ($protocolWriter, $serverFrame, $socketConnection): void {
+                    $buffer = new Buffer();
+                    $protocolWriter->appendFrame($serverFrame, $buffer);
+                    $socketConnection->emit('data', [$buffer->consume($buffer->getLength())]);
+                });
+            }
+
+            self::assertInstanceOf(Channel::class, $client->channel());
+            self::assertTrue($client->isConnected());
+        } finally {
+            if ($client !== null && $client->canDisconnect()) {
+                $client->disconnect();
+            }
+        }
+    }
+
+    public function testWaitingChannelsCanRetryAfterFailedConnect(): void
+    {
+        $firstAttempt = new Deferred();
+        $secondAttempt = new Deferred();
+
+        $connector = $this->createMock(ConnectorInterface::class);
+        $connector
+            ->expects($this->exactly(2))
+            ->method('connect')
+            ->willReturnOnConsecutiveCalls($firstAttempt->promise(), $secondAttempt->promise());
+
+        $client = new Client(new Configuration(heartbeat: 0, connector: $connector));
+
+        $errors = [];
+        for ($i = 0; $i < 3; $i++) {
+            async(static function () use ($client): void {
+                try {
+                    $client->channel();
+                } catch (ClientException) {
+                    $client->channel();
+                }
+            })()->then(null, static function (Throwable $error) use (&$errors): void {
+                $errors[] = $error;
+            });
+        }
+
+        $firstAttempt->reject(new RuntimeException('Connection refused'));
+        $secondAttempt->reject(new RuntimeException('Connection refused again'));
+
+        self::assertCount(3, $errors, 'Every channel() call must fail, none may be left waiting');
+        foreach ($errors as $error) {
+            self::assertInstanceOf(ClientException::class, $error);
+            self::assertStringContainsString('Connection refused again', $error->getMessage(), 'Every retry must get the result of the second attempt');
+        }
     }
 
     public function testOpenMultipleChannelAsync(): void
