@@ -322,6 +322,79 @@ final class ClientTest extends TestCase
         }
     }
 
+    public function testFailedHandshakeClosesItsSocket(): void
+    {
+        $client = null;
+
+        try {
+            $failedSocket = new MockConnectionInterface();
+            $socketConnection = new MockConnectionInterface();
+            $connector = $this->createMock(ConnectorInterface::class);
+            $connector
+                ->expects($this->exactly(2))
+                ->method('connect')
+                ->willReturnOnConsecutiveCalls(
+                    resolve($failedSocket),
+                    resolve($socketConnection),
+                );
+
+            $plainOnly = new MethodConnectionStartFrame();
+            $plainOnly->mechanisms = 'PLAIN';
+            $protocolWriter = new ProtocolWriter();
+            Loop::futureTick(static function () use ($protocolWriter, $plainOnly, $failedSocket): void {
+                $buffer = new Buffer();
+                $protocolWriter->appendFrame($plainOnly, $buffer);
+                $failedSocket->emit('data', [$buffer->consume($buffer->getLength())]);
+            });
+
+            $client = new Client(new Configuration(heartbeat: 0, connector: $connector));
+
+            try {
+                $client->channel();
+                self::fail('channel() must fail when the handshake fails');
+            } catch (ClientException $exception) {
+                self::assertStringContainsString('AMQPLAIN', $exception->getMessage());
+            }
+
+            self::assertTrue($failedSocket->isClosed(), 'A failed handshake must close its socket');
+
+            $start = new MethodConnectionStartFrame();
+            $start->mechanisms = 'AMQPLAIN';
+
+            $channelOpenOk = new MethodChannelOpenOkFrame();
+            $channelOpenOk->channel = 1;
+
+            $channelCloseOk = new MethodChannelCloseOkFrame();
+            $channelCloseOk->channel = 1;
+
+            $serverFrames = [
+                $start,
+                new MethodConnectionTuneFrame(),
+                new MethodConnectionOpenOkFrame(),
+                $channelOpenOk,
+                $channelCloseOk,
+                new MethodConnectionCloseOkFrame(),
+            ];
+            foreach ($serverFrames as $serverFrame) {
+                Loop::futureTick(static function () use ($protocolWriter, $serverFrame, $socketConnection): void {
+                    $buffer = new Buffer();
+                    $protocolWriter->appendFrame($serverFrame, $buffer);
+                    $socketConnection->emit('data', [$buffer->consume($buffer->getLength())]);
+                });
+            }
+
+            self::assertInstanceOf(Channel::class, $client->channel());
+
+            $failedSocket->emit('close');
+
+            self::assertTrue($client->isConnected(), 'The socket of a failed handshake must not disconnect the next connection');
+        } finally {
+            if ($client !== null && $client->canDisconnect()) {
+                $client->disconnect();
+            }
+        }
+    }
+
     public function testOpenMultipleChannelAsync(): void
     {
         $client = ClientFactory::createClient();

@@ -17,6 +17,8 @@ final class MockConnectionInterface implements ConnectionInterface {
 
     private bool $fullBuffer;
 
+    private bool $closed = false;
+
     public function __construct(bool $fullBuffer = false)
     {
         $this->fullBuffer = $fullBuffer;
@@ -63,7 +65,18 @@ final class MockConnectionInterface implements ConnectionInterface {
 
     public function close()
     {
-        // No-op
+        if ($this->closed) {
+            return;
+        }
+
+        $this->closed = true;
+        $this->emit('close');
+        $this->removeAllListeners();
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->closed;
     }
 
     /**
