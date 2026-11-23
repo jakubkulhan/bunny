@@ -258,11 +258,11 @@ class Client implements ClientInterface, EventEmitterInterface
         $connectQueue = $this->connectQueue;
         $this->connectQueue = [];
 
-        foreach ($connectQueue as $channelPromise) {
+        foreach ($connectQueue as $deferred) {
             if ($exception !== null) {
-                $channelPromise->reject($exception);
+                $deferred->reject($exception);
             } else {
-                $channelPromise->resolve(null);
+                $deferred->resolve(null);
             }
         }
     }
