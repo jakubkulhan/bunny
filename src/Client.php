@@ -230,6 +230,8 @@ class Client implements ClientInterface, EventEmitterInterface
 
             $this->state = ClientState::Connected;
         } catch (Throwable $thrown) {
+            $this->state = ClientState::NotConnected;
+
             $exception = new ClientException('Could not connect to ' . $this->configuration->uri . ': ' . $thrown->getMessage(), $thrown->getCode(), $thrown);
 
             $this->resolveConnectQueue($exception);
@@ -253,15 +255,16 @@ class Client implements ClientInterface, EventEmitterInterface
 
     private function resolveConnectQueue(?Throwable $exception = null): void
     {
-        foreach ($this->connectQueue as $channelPromise) {
+        $connectQueue = $this->connectQueue;
+        $this->connectQueue = [];
+
+        foreach ($connectQueue as $deferred) {
             if ($exception !== null) {
-                $channelPromise->reject($exception);
+                $deferred->reject($exception);
             } else {
-                $channelPromise->resolve(null);
+                $deferred->resolve(null);
             }
         }
-
-        $this->connectQueue = [];
     }
 
     /**
