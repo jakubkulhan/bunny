@@ -196,9 +196,10 @@ class Client implements ClientInterface, EventEmitterInterface
         }
 
         $this->state = ClientState::Connecting;
+        $connection = null;
 
         try {
-            $this->connection = new Connection(
+            $connection = new Connection(
                 $this,
                 await($this->configuration->connector->connect($this->configuration->uri)),
                 new Buffer(),
@@ -211,6 +212,7 @@ class Client implements ClientInterface, EventEmitterInterface
                     return $this->frameMax;
                 },
             );
+            $this->connection = $connection;
             $this->connection->on('error', function (Throwable $error): void {
                 $this->emit('error', [$error]);
             });
@@ -231,6 +233,7 @@ class Client implements ClientInterface, EventEmitterInterface
             $this->state = ClientState::Connected;
         } catch (Throwable $thrown) {
             $this->state = ClientState::NotConnected;
+            $connection?->disconnect(0, 'Connect failed', ClientInterface::RAW_CONNECTION_INACTIVE);
 
             $exception = new ClientException('Could not connect to ' . $this->configuration->uri . ': ' . $thrown->getMessage(), $thrown->getCode(), $thrown);
 
