@@ -44,6 +44,10 @@ final class Configuration
         public readonly array $clientProperties = Defaults::CLIENT_PROPERTIES,
         ?ConnectorInterface $connector = Defaults::CONNECTOR,
     ) {
+        if ($heartbeat < 0) {
+            throw new InvalidArgumentException('Heartbeat must not be negative, use 0 to disable it.');
+        }
+
         $streamScheme = 'tcp';
         if (count($tls) > 0) {
             $streamScheme = 'tls';
