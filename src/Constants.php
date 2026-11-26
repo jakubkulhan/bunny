@@ -239,7 +239,7 @@ final class Constants
 
     public const FIELD_LONG_LONG_INT = 0x4C; // 'L'
 
-    public const FIELD_LONG_LONG_UINT = 0x6C; // 'l'
+    public const FIELD_RABBITMQ_LONG_LONG_INT = 0x6C; // 'l'
 
     public const FIELD_FLOAT = 0x66; // 'f'
 

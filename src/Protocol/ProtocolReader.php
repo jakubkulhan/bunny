@@ -248,10 +248,8 @@ class ProtocolReader
                 return $buffer->consumeUint32();
 
             case Constants::FIELD_LONG_LONG_INT:
+            case Constants::FIELD_RABBITMQ_LONG_LONG_INT:
                 return $buffer->consumeInt64();
-
-            case Constants::FIELD_LONG_LONG_UINT:
-                return $buffer->consumeUint64();
 
             case Constants::FIELD_FLOAT:
                 return $buffer->consumeFloat();

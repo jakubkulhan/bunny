@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 use function chr;
 use function pack;
 use function strlen;
+use const PHP_INT_MIN;
 
 final class ProtocolReaderTest extends TestCase
 {
@@ -53,5 +54,25 @@ final class ProtocolReaderTest extends TestCase
         yield 'negative' => ['value' => -2];
 
         yield 'minimum' => ['value' => -32768];
+    }
+
+    #[DataProvider('providerConsumeFieldValueReadsLongLongIntAsSigned')]
+    public function testConsumeFieldValueReadsLongLongIntAsSigned(int $value): void
+    {
+        $buffer = new Buffer('l' . pack('J', $value));
+
+        self::assertSame($value, (new ProtocolReader())->consumeFieldValue($buffer));
+    }
+
+    /**
+     * @return iterable<string, array<string, mixed>>
+     */
+    public static function providerConsumeFieldValueReadsLongLongIntAsSigned(): iterable
+    {
+        yield 'positive' => ['value' => 42];
+
+        yield 'negative' => ['value' => -5];
+
+        yield 'minimum' => ['value' => PHP_INT_MIN];
     }
 }
