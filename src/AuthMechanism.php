@@ -11,6 +11,9 @@ use function explode;
 use function in_array;
 use function sprintf;
 
+/**
+ * @internal
+ */
 enum AuthMechanism: string
 {
     case AmqPlain = 'AMQPLAIN';
