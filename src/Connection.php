@@ -2209,6 +2209,10 @@ final class Connection implements EventEmitterInterface
             Loop::cancelTimer($this->heartbeatTimer);
         }
 
+        if ($this->configuration->heartbeat === 0.0) {
+            return;
+        }
+
         $this->heartbeatTimer = Loop::addTimer($this->configuration->heartbeat, $this->onHeartbeat(...));
         $this->connection->on('drain', $this->onHeartbeat(...));
     }

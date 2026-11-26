@@ -1071,6 +1071,10 @@ $connectionContent .= "        if (\$this->heartbeatTimer instanceof TimerInterf
 $connectionContent .= "            Loop::cancelTimer(\$this->heartbeatTimer);\n";
 $connectionContent .= "        }\n";
 $connectionContent .= "\n";
+$connectionContent .= "        if (\$this->configuration->heartbeat === 0.0) {\n";
+$connectionContent .= "            return;\n";
+$connectionContent .= "        }\n";
+$connectionContent .= "\n";
 $connectionContent .= "        \$this->heartbeatTimer = Loop::addTimer(\$this->configuration->heartbeat, \$this->onHeartbeat(...));\n";
 $connectionContent .= "        \$this->connection->on('drain', \$this->onHeartbeat(...));\n";
 $connectionContent .= "    }\n";

@@ -267,6 +267,20 @@ final class ConnectionTest extends TestCase
         self::assertStringNotContainsString($heartbeatFrame, $socketConnection->getWrittenData());
     }
 
+    public function testZeroHeartbeatSendsNoHeartbeats(): void
+    {
+        $socketConnection = new MockConnectionInterface();
+        $connection = $this->createConnection($socketConnection, configuration: new Configuration(heartbeat: 0));
+
+        $connection->startHeartbeatTimer();
+        Loop::addTimer(0.05, static function (): void {
+            Loop::stop();
+        });
+        Loop::run();
+
+        self::assertSame('', $socketConnection->getWrittenData());
+    }
+
     public function testStartHeartbeatTimerCancelsExistingTimerSoDisconnectCancelsAll(): void
     {
         $socketConnection = new MockConnectionInterface();

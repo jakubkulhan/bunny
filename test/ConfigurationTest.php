@@ -6,6 +6,7 @@ namespace Bunny\Test;
 
 use Bunny\Configuration;
 use Bunny\Defaults;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use React\Socket\Connector;
@@ -135,5 +136,13 @@ final class ConfigurationTest extends TestCase
         $configuration = Configuration::fromDSN($dsn, Defaults::HEARTBEAT_CALLBACK, $connector);
 
         self::assertSame($connector, $configuration->connector);
+    }
+
+    public function testNegativeHeartbeatIsRejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Heartbeat must not be negative, use 0 to disable it.');
+
+        new Configuration(heartbeat: -1);
     }
 }
