@@ -231,6 +231,8 @@ final class Constants
 
     public const FIELD_SHORT_UINT = 0x75; // 'u'
 
+    public const FIELD_RABBITMQ_SHORT_INT = 0x73; // 's'
+
     public const FIELD_LONG_INT = 0x49; // 'I'
 
     public const FIELD_LONG_UINT = 0x69; // 'i'
@@ -244,8 +246,6 @@ final class Constants
     public const FIELD_DOUBLE = 0x64; // 'd'
 
     public const FIELD_DECIMAL_VALUE = 0x44; // 'D'
-
-    public const FIELD_SHORT_STRING = 0x73; // 's'
 
     public const FIELD_LONG_STRING = 0x53; // 'S'
 

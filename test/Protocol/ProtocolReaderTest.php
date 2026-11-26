@@ -33,4 +33,25 @@ final class ProtocolReaderTest extends TestCase
 
         yield 'binary' => ['value' => "\x00\xff\x01x\x00"];
     }
+
+    #[DataProvider('providerConsumeTableReadsShortIntAsSigned')]
+    public function testConsumeTableReadsShortIntAsSigned(int $value): void
+    {
+        $fields = "\x05shorts" . pack('n', $value & 0xFFFF) . "\x04nextS" . pack('N', 2) . 'ok';
+        $buffer = new Buffer(pack('N', strlen($fields)) . $fields);
+
+        self::assertSame(['short' => $value, 'next' => 'ok'], (new ProtocolReader())->consumeTable($buffer));
+    }
+
+    /**
+     * @return iterable<string, array<string, mixed>>
+     */
+    public static function providerConsumeTableReadsShortIntAsSigned(): iterable
+    {
+        yield 'positive' => ['value' => 42];
+
+        yield 'negative' => ['value' => -2];
+
+        yield 'minimum' => ['value' => -32768];
+    }
 }

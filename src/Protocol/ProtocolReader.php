@@ -235,6 +235,7 @@ class ProtocolReader
                 return $buffer->consumeUint8();
 
             case Constants::FIELD_SHORT_INT:
+            case Constants::FIELD_RABBITMQ_SHORT_INT:
                 return $buffer->consumeInt16();
 
             case Constants::FIELD_SHORT_UINT:
@@ -260,9 +261,6 @@ class ProtocolReader
 
             case Constants::FIELD_DECIMAL_VALUE:
                 return $this->consumeDecimalValue($buffer);
-
-            case Constants::FIELD_SHORT_STRING:
-                return $buffer->consume($buffer->consumeUint8());
 
             case Constants::FIELD_LONG_STRING:
             case Constants::FIELD_BYTES:
