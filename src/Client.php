@@ -19,8 +19,6 @@ use function React\Async\await;
 use function React\Promise\all;
 use function is_array;
 use function is_callable;
-use function sprintf;
-use function strpos;
 
 /**
  * Synchronous AMQP/RabbitMQ client.
@@ -272,18 +270,10 @@ class Client implements ClientInterface, EventEmitterInterface
      */
     protected function authResponse(MethodConnectionStartFrame $start): void
     {
-        if (strpos($start->mechanisms, 'AMQPLAIN') === false) {
-            throw new ClientException(sprintf('Server does not support AMQPLAIN mechanism (supported: %s).', $start->mechanisms));
-        }
+        $mechanism = AuthMechanism::negotiate($start->mechanisms);
+        $response = $mechanism->response($this->configuration->user, $this->configuration->password);
 
-        $responseBuffer = new Buffer();
-        (new ProtocolWriter())->appendTable([
-            'LOGIN' => $this->configuration->user,
-            'PASSWORD' => $this->configuration->password,
-        ], $responseBuffer);
-        $responseBuffer->discard(4);
-
-        $this->connection->connectionStartOk($responseBuffer->read($responseBuffer->getLength()), $this->configuration->clientProperties, 'AMQPLAIN', 'en_US');
+        $this->connection->connectionStartOk($response, $this->configuration->clientProperties, $mechanism->value, 'en_US');
     }
 
     /**
