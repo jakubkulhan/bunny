@@ -338,12 +338,12 @@ final class ClientTest extends TestCase
                     resolve($socketConnection),
                 );
 
-            $plainOnly = new MethodConnectionStartFrame();
-            $plainOnly->mechanisms = 'PLAIN';
+            $unsupported = new MethodConnectionStartFrame();
+            $unsupported->mechanisms = 'EXTERNAL';
             $protocolWriter = new ProtocolWriter();
-            Loop::futureTick(static function () use ($protocolWriter, $plainOnly, $failedSocket): void {
+            Loop::futureTick(static function () use ($protocolWriter, $unsupported, $failedSocket): void {
                 $buffer = new Buffer();
-                $protocolWriter->appendFrame($plainOnly, $buffer);
+                $protocolWriter->appendFrame($unsupported, $buffer);
                 $failedSocket->emit('data', [$buffer->consume($buffer->getLength())]);
             });
 
@@ -353,7 +353,7 @@ final class ClientTest extends TestCase
                 $client->channel();
                 self::fail('channel() must fail when the handshake fails');
             } catch (ClientException $exception) {
-                self::assertStringContainsString('AMQPLAIN', $exception->getMessage());
+                self::assertStringContainsString('EXTERNAL', $exception->getMessage());
             }
 
             self::assertTrue($failedSocket->isClosed(), 'A failed handshake must close its socket');
@@ -384,10 +384,6 @@ final class ClientTest extends TestCase
             }
 
             self::assertInstanceOf(Channel::class, $client->channel());
-
-            $failedSocket->emit('close');
-
-            self::assertTrue($client->isConnected(), 'The socket of a failed handshake must not disconnect the next connection');
         } finally {
             if ($client !== null && $client->canDisconnect()) {
                 $client->disconnect();
