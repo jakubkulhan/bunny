@@ -256,4 +256,6 @@ final class Constants
     public const FIELD_TABLE = 0x46; // 'F'
 
     public const FIELD_NULL = 0x56; // 'V'
+
+    public const FIELD_BYTES = 0x78; // 'x'
 }
