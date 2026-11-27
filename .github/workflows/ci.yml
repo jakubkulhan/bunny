@@ -16,11 +16,155 @@ jobs:
       lowest: ${{ steps.supported-versions-matrix.outputs.lowest }}
       version: ${{ steps.supported-versions-matrix.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: supported-versions-matrix
         uses: WyriHaximus/github-action-composer-php-versions-in-range@v2
         with:
           upcomingReleases: true
+  rabbitmq-matrix:
+    name: Generate RabbitMQ Test Matrix
+    runs-on: ubuntu-latest
+    needs:
+      - supported-versions-matrix
+    outputs:
+      matrix: ${{ steps.rabbitmq-matrix.outputs.matrix }}
+    steps:
+      - id: rabbitmq-matrix
+        uses: actions/github-script@v7
+        env:
+          PHP_VERSIONS: ${{ needs.supported-versions-matrix.outputs.version }}
+          LOWEST_PHP: ${{ needs.supported-versions-matrix.outputs.lowest }}
+          HIGHEST_PHP: ${{ needs.supported-versions-matrix.outputs.highest }}
+          RABBITMQ_VERSIONS: '["3", "3.9", "3.10", "3.11", "3.12", "3.13", "4", "4.0", "4.1", "4.2", "4.3", "4.4"]'
+        with:
+          script: |
+            const phpVersions = JSON.parse(process.env.PHP_VERSIONS);
+            const lowestPhp = process.env.LOWEST_PHP;
+            const highestPhp = process.env.HIGHEST_PHP;
+            const rabbitmqVersions = JSON.parse(process.env.RABBITMQ_VERSIONS);
+            const composers = ['lowest', 'locked', 'highest'];
+            const tlsModes = ['no', 'yes', 'client'];
+            const authModes = ['default', 'plain', 'amqplain'];
+            const releaseRabbitmqVersions = rabbitmqVersions.filter(version => /^\d+\.\d+$/.test(version));
+            const latestRabbitmqVersionsByMajor = [...new Set(releaseRabbitmqVersions.map(version => version.split('.')[0]))]
+              .map(major => releaseRabbitmqVersions
+                .filter(version => version.split('.')[0] === major)
+                .reduce((latest, version) => Number(version.split('.')[1]) > Number(latest.split('.')[1]) ? version : latest));
+            const latestRabbitmqSet = new Set(latestRabbitmqVersionsByMajor);
+            const boundaryPhpSet = new Set([lowestPhp, highestPhp]);
+            const preferredPhpVersions = [...new Set([lowestPhp, highestPhp, ...phpVersions])];
+            const preferredRabbitmqVersions = [
+              ...[...releaseRabbitmqVersions].sort((left, right) => {
+                const [leftMajor, leftMinor] = left.split('.').map(Number);
+                const [rightMajor, rightMinor] = right.split('.').map(Number);
+                return rightMajor - leftMajor || rightMinor - leftMinor;
+              }),
+              ...rabbitmqVersions.filter(version => !/^\d+\.\d+$/.test(version)),
+            ];
+            const phpPriority = new Map(preferredPhpVersions.map((version, index) => [version, index]));
+            const rabbitmqPriority = new Map(preferredRabbitmqVersions.map((version, index) => [version, index]));
+            const candidates = [];
+            const seen = new Set();
+            let inputOrder = 0;
+
+            for (const php of phpVersions) {
+              for (const rabbitmq of rabbitmqVersions) {
+                for (const composer of composers) {
+                  for (const ssl_test of tlsModes) {
+                    for (const auth of authModes) {
+                      const row = {php, composer, rabbitmq, ssl_test, auth};
+                      const key = JSON.stringify(row);
+                      if (seen.has(key)) {
+                        continue;
+                      }
+                      seen.add(key);
+
+                      const nonDefaultAxes = Number(composer !== 'locked')
+                        + Number(ssl_test !== 'no')
+                        + Number(auth !== 'default');
+                      let tier;
+                      if (nonDefaultAxes === 0) {
+                        tier = 1;
+                      } else if (nonDefaultAxes === 1 && composer !== 'locked' && boundaryPhpSet.has(php)
+                        && releaseRabbitmqVersions.includes(rabbitmq)) {
+                        tier = 2;
+                      } else if (nonDefaultAxes === 1 && ssl_test !== 'no' && latestRabbitmqSet.has(rabbitmq)) {
+                        tier = 3;
+                      } else if (nonDefaultAxes === 1 && auth !== 'default' && boundaryPhpSet.has(php)
+                        && latestRabbitmqSet.has(rabbitmq)) {
+                        tier = 4;
+                      } else {
+                        tier = nonDefaultAxes === 1 ? 5 : 6;
+                      }
+
+                      candidates.push({
+                        row,
+                        tier,
+                        phpPriority: phpPriority.get(php),
+                        rabbitmqPriority: rabbitmqPriority.get(rabbitmq),
+                        inputOrder: inputOrder++,
+                      });
+                    }
+                  }
+                }
+              }
+            }
+
+            candidates.sort((left, right) => left.tier - right.tier
+              || (left.phpPriority + left.rabbitmqPriority) - (right.phpPriority + right.rabbitmqPriority)
+              || Math.max(left.phpPriority, left.rabbitmqPriority) - Math.max(right.phpPriority, right.rabbitmqPriority)
+              || left.phpPriority - right.phpPriority
+              || left.rabbitmqPriority - right.rabbitmqPriority
+              || left.inputOrder - right.inputOrder);
+            const selectedCandidates = candidates.slice(0, 256);
+            const matrix = selectedCandidates.map(candidate => candidate.row);
+            const maximumMatrixRows = 256;
+            if (matrix.length > maximumMatrixRows) {
+              throw new Error(`Generated matrix exceeds the ${maximumMatrixRows}-row limit`);
+            }
+
+            const selectedRowKeys = new Set(matrix.map(row => JSON.stringify(row)));
+            if (selectedRowKeys.size !== matrix.length) {
+              throw new Error('Generated matrix contains duplicate rows');
+            }
+
+            const expectedBaselineCount = new Set(phpVersions).size * new Set(rabbitmqVersions).size;
+            if (expectedBaselineCount > maximumMatrixRows) {
+              throw new Error(`Baseline requires ${expectedBaselineCount} rows, exceeding the ${maximumMatrixRows}-row limit`);
+            }
+            const selectedBaselinePairs = new Set(matrix
+              .filter(row => row.composer === 'locked' && row.ssl_test === 'no' && row.auth === 'default')
+              .map(row => JSON.stringify([row.php, row.rabbitmq])));
+            for (const php of new Set(phpVersions)) {
+              for (const rabbitmq of new Set(rabbitmqVersions)) {
+                if (!selectedBaselinePairs.has(JSON.stringify([php, rabbitmq]))) {
+                  throw new Error(`Generated matrix is missing baseline coverage for PHP ${php} and RabbitMQ ${rabbitmq}`);
+                }
+              }
+            }
+
+            const tierNames = {
+              1: 'baseline',
+              2: 'boundary-composer',
+              3: 'latest-major-tls',
+              4: 'boundary-auth',
+              5: 'remaining-single-axis',
+              6: 'multiple-non-default-axes',
+            };
+            const countsByTier = rows => Object.fromEntries(Object.entries(tierNames).map(([tier, name]) => [
+              name,
+              rows.filter(candidate => candidate.tier === Number(tier)).length,
+            ]));
+            const omittedCandidates = candidates.slice(selectedCandidates.length);
+            console.log(`Matrix candidates: ${candidates.length}; selected: ${matrix.length}; omitted: ${omittedCandidates.length}`);
+            console.log(JSON.stringify({
+              candidatesByTier: countsByTier(candidates),
+              selectedByTier: countsByTier(selectedCandidates),
+              omittedByTier: countsByTier(omittedCandidates),
+            }, null, 2));
+
+            core.setOutput('matrix', JSON.stringify(matrix));
+            console.log(matrix.map(row => `- php: ${JSON.stringify(row.php)}\n  composer: ${JSON.stringify(row.composer)}\n  rabbitmq: ${JSON.stringify(row.rabbitmq)}\n  ssl_test: ${JSON.stringify(row.ssl_test)}\n  auth: ${JSON.stringify(row.auth)}`).join('\n'));
   static-anylsis:
     name: "Run static analysis on PHP ${{ matrix.php }}"
     runs-on: ubuntu-latest
@@ -32,7 +176,7 @@ jobs:
         php: ${{ fromJson(format('["{0}","{1}"]"', needs.supported-versions-matrix.outputs.lowest, needs.supported-versions-matrix.outputs.highest)) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -50,25 +194,11 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - supported-versions-matrix
+      - rabbitmq-matrix
     strategy:
       fail-fast: false
       matrix:
-        php: ${{ fromJson(needs.supported-versions-matrix.outputs.version) }}
-        composer: [lowest, locked, highest]
-        rabbitmq: ["3", "3.9", "4", "4.3"]
-        ssl_test: ["no", "yes", "client"]
-        auth: ["default"]
-        include:
-          - php: ${{ needs.supported-versions-matrix.outputs.highest }}
-            composer: locked
-            rabbitmq: "4.3"
-            ssl_test: "no"
-            auth: plain
-          - php: ${{ needs.supported-versions-matrix.outputs.highest }}
-            composer: locked
-            rabbitmq: "4.3"
-            ssl_test: "no"
-            auth: amqplain
+        include: ${{ fromJson(needs.rabbitmq-matrix.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
