@@ -231,21 +231,21 @@ final class Constants
 
     public const FIELD_SHORT_UINT = 0x75; // 'u'
 
+    public const FIELD_RABBITMQ_SHORT_INT = 0x73; // 's', RabbitMQ extension
+
     public const FIELD_LONG_INT = 0x49; // 'I'
 
     public const FIELD_LONG_UINT = 0x69; // 'i'
 
     public const FIELD_LONG_LONG_INT = 0x4C; // 'L'
 
-    public const FIELD_LONG_LONG_UINT = 0x6C; // 'l'
+    public const FIELD_RABBITMQ_LONG_LONG_INT = 0x6C; // 'l', RabbitMQ extension
 
     public const FIELD_FLOAT = 0x66; // 'f'
 
     public const FIELD_DOUBLE = 0x64; // 'd'
 
     public const FIELD_DECIMAL_VALUE = 0x44; // 'D'
-
-    public const FIELD_SHORT_STRING = 0x73; // 's'
 
     public const FIELD_LONG_STRING = 0x53; // 'S'
 
@@ -257,5 +257,5 @@ final class Constants
 
     public const FIELD_NULL = 0x56; // 'V'
 
-    public const FIELD_BYTES = 0x78; // 'x'
+    public const FIELD_BYTES = 0x78; // 'x', RabbitMQ extension
 }

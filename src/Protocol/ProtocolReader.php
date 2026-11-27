@@ -235,6 +235,7 @@ class ProtocolReader
                 return $buffer->consumeUint8();
 
             case Constants::FIELD_SHORT_INT:
+            case Constants::FIELD_RABBITMQ_SHORT_INT:
                 return $buffer->consumeInt16();
 
             case Constants::FIELD_SHORT_UINT:
@@ -247,10 +248,8 @@ class ProtocolReader
                 return $buffer->consumeUint32();
 
             case Constants::FIELD_LONG_LONG_INT:
+            case Constants::FIELD_RABBITMQ_LONG_LONG_INT:
                 return $buffer->consumeInt64();
-
-            case Constants::FIELD_LONG_LONG_UINT:
-                return $buffer->consumeUint64();
 
             case Constants::FIELD_FLOAT:
                 return $buffer->consumeFloat();
@@ -260,9 +259,6 @@ class ProtocolReader
 
             case Constants::FIELD_DECIMAL_VALUE:
                 return $this->consumeDecimalValue($buffer);
-
-            case Constants::FIELD_SHORT_STRING:
-                return $buffer->consume($buffer->consumeUint8());
 
             case Constants::FIELD_LONG_STRING:
             case Constants::FIELD_BYTES:
